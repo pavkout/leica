@@ -1,19 +1,24 @@
 /* ── Tokens ─────────────────────────────────────────────── */
 :root {
-  --bg: #0a0a0a;
-  --surface: #131313;
-  --surface-2: #1b1b1b;
-  --line: #262626;
-  --line-strong: #363636;
-  --text: #f2f2f2;
-  --muted: #8f8f8f;
-  --red: #e20613;
-  --red-hover: #ff1f2c;
-  --red-soft: rgba(226, 6, 19, 0.16);
-  --radius: 3px;
+  /* Leica red and charcoal, sampled from leica-camera.com */
+  --leica-red: #cf2e25;
+  --leica-charcoal: #222222;
+
+  --bg: #141414;
+  --surface: var(--leica-charcoal);
+  --surface-2: #2c2c2c;
+  --line: #333333;
+  --line-strong: #444444;
+  --text: #ffffff;
+  --muted: #9b9b9b;
+  --red: var(--leica-red);
+  --red-hover: #dd3a30;
+  --red-soft: rgba(207, 46, 37, 0.18);
+  --radius: 14px;
+  --radius-control: 999px;
   --gutter: 16px;
 
-  --font: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --font: "Outfit", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
   --font-engraving: "DIN Alternate", "DIN Condensed", "Barlow Condensed", "Arial Narrow", var(--font);
 
   color-scheme: dark;
@@ -79,7 +84,7 @@ select {
   gap: 12px;
   margin: 0 calc(-1 * var(--gutter));
   padding: max(10px, env(safe-area-inset-top)) var(--gutter) 10px;
-  background: rgba(10, 10, 10, 0.88);
+  background: rgba(20, 20, 20, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
@@ -160,8 +165,8 @@ select {
 
 .chip {
   flex: none;
-  padding: 3px 8px;
-  border-radius: 2px;
+  padding: 3px 10px;
+  border-radius: var(--radius-control);
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -192,7 +197,7 @@ select {
 
 .headline {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.25;
   margin-bottom: 14px;
   font-variant-numeric: tabular-nums;
@@ -314,13 +319,13 @@ select {
   -webkit-appearance: none;
   width: 100%;
   min-height: 44px;
-  padding: 0 40px 0 12px;
+  padding: 0 44px 0 18px;
   font-size: 16px; /* stops iOS zooming on focus */
   background: var(--surface-2)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23e20613' stroke-width='2'/%3E%3C/svg%3E")
-    no-repeat right 14px center;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23cf2e25' stroke-width='2'/%3E%3C/svg%3E")
+    no-repeat right 18px center;
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
+  border-radius: var(--radius-control);
   cursor: pointer;
 }
 
@@ -338,7 +343,7 @@ select optgroup {
 .segmented {
   display: flex;
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
+  border-radius: var(--radius-control);
   overflow: hidden;
 }
 
@@ -380,20 +385,35 @@ select optgroup {
 }
 
 .btn {
+  position: relative;
   flex: 1 1 auto;
-  min-height: 44px;
-  padding: 0 14px;
+  min-height: 48px;
+  padding: 0 40px;
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
+  border-radius: var(--radius-control);
   background: var(--surface-2);
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: background-color 0.12s;
+  transition: background-color 0.12s, border-color 0.12s;
+}
+
+/* Leica's button detail: a small red dot at the right end. */
+.btn::after {
+  content: "";
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--red);
 }
 
 .btn:hover {
-  background: #242424;
+  background: #363636;
 }
 
 .btn-red {
@@ -401,11 +421,16 @@ select optgroup {
   background: var(--red);
   border-color: var(--red);
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.btn-red::after {
+  background: #fff;
 }
 
 .btn-red:hover {
   background: var(--red-hover);
+  border-color: var(--red-hover);
 }
 
 .btn:disabled {
@@ -425,7 +450,7 @@ select optgroup {
   width: 100%;
   overflow: hidden;
   background: #000;
-  border-radius: var(--radius);
+  border-radius: 10px;
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
@@ -459,7 +484,7 @@ select optgroup {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   background: rgba(0, 0, 0, 0.62);
-  border-radius: 2px;
+  border-radius: var(--radius-control);
   pointer-events: none;
 }
 
@@ -515,7 +540,7 @@ select optgroup {
   text-align: center;
   font-size: 14px;
   color: var(--muted);
-  background: rgba(10, 10, 10, 0.82);
+  background: rgba(20, 20, 20, 0.84);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 }
@@ -580,9 +605,16 @@ select optgroup {
 
 .btn-small {
   flex: none;
-  min-height: 34px;
-  padding: 0 12px;
-  font-size: 12px;
+  min-height: 36px;
+  padding: 0 30px 0 14px;
+  font-size: 13px;
+}
+
+.btn-small::after {
+  right: 12px;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
 }
 
 .btn[aria-pressed="true"] {
@@ -634,7 +666,7 @@ select optgroup {
 
 /* ── Lens barrel ────────────────────────────────────────── */
 .barrel {
-  border-radius: var(--radius);
+  border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--line);
 }
@@ -647,7 +679,7 @@ select optgroup {
 .b-ring { fill: #0f0f0f; }
 .b-knurl { stroke: #262626; stroke-width: 2.5; }
 .b-seam { stroke: #2b2b2b; }
-.b-dof-band { fill: rgba(226, 6, 19, 0.2); }
+.b-dof-band { fill: rgba(207, 46, 37, 0.24); }
 .b-label-m text { fill: #f4f4f4; font-size: 14px; }
 .b-label-ft text { fill: #9a9a9a; font-size: 11px; }
 .b-label-m .b-infinity { font-size: 17px; }

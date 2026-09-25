@@ -157,12 +157,12 @@ export default function Viewfinder({ lens, focusMm, subjectMm, backgroundMm, sha
       drawFinderImage(ctx, r.mainCanvas, r.secondCanvas, patch);
       ctx.restore();
       ctx.lineWidth = Math.max(2, W / 350);
-      ctx.strokeStyle = "#e20613";
+      ctx.strokeStyle = "#cf2e25";
       ctx.beginPath();
       ctx.arc(lx, ly, R, 0, Math.PI * 2);
       ctx.stroke();
       ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.font = `600 ${Math.round(W / 45)}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      ctx.font = `600 ${Math.round(W / 45)}px Outfit, "Helvetica Neue", Helvetica, Arial, sans-serif`;
       ctx.textAlign = "center";
       ctx.fillText(`Patch ${LOUPE_ZOOM}×`, lx, ly + R + W / 35);
     });

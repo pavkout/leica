@@ -79,7 +79,7 @@ function paintPerson() {
   ctx.fill();
 
   // Red scarf around the collar, one end hanging down the back
-  ctx.fillStyle = "#c3121c";
+  ctx.fillStyle = "#cf2e25";
   ctx.beginPath();
   ctx.ellipse(...at(0.28, 1.47), 0.13 * s, 0.05 * s, 0, 0, Math.PI * 2);
   ctx.fill();

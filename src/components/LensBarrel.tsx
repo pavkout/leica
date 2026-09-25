@@ -160,10 +160,10 @@ export default function LensBarrel({
             <stop offset="1" stopColor="#000" stopOpacity="0.55" />
           </linearGradient>
           <linearGradient id="barrel-edge" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor="#0a0a0a" stopOpacity="1" />
-            <stop offset="0.12" stopColor="#0a0a0a" stopOpacity="0" />
-            <stop offset="0.88" stopColor="#0a0a0a" stopOpacity="0" />
-            <stop offset="1" stopColor="#0a0a0a" stopOpacity="1" />
+            <stop offset="0" stopColor="#111111" stopOpacity="1" />
+            <stop offset="0.12" stopColor="#111111" stopOpacity="0" />
+            <stop offset="0.88" stopColor="#111111" stopOpacity="0" />
+            <stop offset="1" stopColor="#111111" stopOpacity="1" />
           </linearGradient>
         </defs>
 
