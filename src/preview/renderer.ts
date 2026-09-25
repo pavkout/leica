@@ -19,10 +19,18 @@ export interface RenderParams {
   focalMm: number;
   fNumber: number;
   focusMm: number;
+  subjectMm: number;
   backgroundMm: number;
   frameWidthMm: number;
   horizontalAngleDeg: number;
   shape: ApertureShape;
+  /** Render everything sharp, as seen through an optical viewfinder. */
+  sharp?: boolean;
+  /**
+   * Render from a viewpoint this far to the side (metres), turned so objects
+   * at the focus distance line up: the rangefinder's second image.
+   */
+  baselineM?: number;
 }
 
 const KERNEL_SIZE = 64;
@@ -74,6 +82,8 @@ uniform vec2 uTarget;
 uniform vec2 uCenter;   // optical centre in target pixels, y down
 uniform float uFpx;
 uniform float uCamH;
+uniform float uBaselinePx;
+uniform float uInvFocus;
 uniform vec2 uLamps[8];
 uniform int uLampCount;
 uniform vec3 uFogColor;
@@ -92,7 +102,7 @@ void main() {
   float dy = fc.y - uCenter.y;
   if (dy <= 0.0) discard;
   float Z = uFpx * uCamH / dy;
-  float X = (fc.x - uCenter.x) * Z / uFpx;
+  float X = (fc.x - uCenter.x - uBaselinePx * (1.0 / Z - uInvFocus)) * Z / uFpx;
   float ax = abs(X);
 
   vec3 col;
@@ -290,16 +300,23 @@ export class BokehRenderer {
     const cx = W / 2;
     const cy = H / 2;
     const camH = CAMERA_HEIGHT_M;
-    const project = (x: number, y: number, z: number) => [cx + (fpx * x) / z, cy - (fpx * (y - camH)) / z] as const;
+    // Rangefinder second image: sideways parallax, cancelled at the focus distance.
+    const baselinePx = fpx * (params.baselineM ?? 0);
+    const invFocusM = Number.isFinite(params.focusMm) ? 1000 / params.focusMm : 0;
+    const shift = (z: number) => baselinePx * (1 / z - invFocusM);
+    const project = (x: number, y: number, z: number) =>
+      [cx + (fpx * x) / z + shift(z), cy - (fpx * (y - camH)) / z] as const;
     const blurRadius = (zM: number) =>
-      ((blurDiscMm(params.focalMm, params.fNumber, params.focusMm, zM * 1000) / params.frameWidthMm) * W) / 2;
+      params.sharp
+        ? 0
+        : ((blurDiscMm(params.focalMm, params.fNumber, params.focusMm, zM * 1000) / params.frameWidthMm) * W) / 2;
     const fog = (zM: number) => (1 - Math.exp(-zM / 260)) * 0.9;
 
     const { shape } = params;
     const kernel = new Float32Array(kernelSamples(KERNEL_SIZE, shape).flat());
     const powerScale = 900 * (W / 1000) ** 2;
 
-    const layers = buildScene(params.focusMm / 1000, params.backgroundMm / 1000);
+    const layers = buildScene(params.subjectMm / 1000, params.backgroundMm / 1000);
 
     // Sky, straight onto the canvas: a smooth gradient needs no blur.
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -323,7 +340,7 @@ export class BokehRenderer {
       gl.disable(gl.BLEND);
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
-      this.paintLayer(layer, project, fpx, cx, cy, margin, FW, FH, H, r, fog(layer.z));
+      this.paintLayer(layer, project, fpx, cx, cy, margin, FW, FH, H, r, fog(layer.z), baselinePx, invFocusM);
 
       // 2. Mipmaps for the blur.
       gl.bindTexture(gl.TEXTURE_2D, this.layerTex);
@@ -414,7 +431,9 @@ export class BokehRenderer {
     FH: number,
     H: number,
     r: number,
-    fogAmount: number
+    fogAmount: number,
+    baselinePx: number,
+    invFocusM: number
   ) {
     const gl = this.gl;
     if (layer.kind === "ground") {
@@ -428,6 +447,8 @@ export class BokehRenderer {
       gl.uniform2f(g.u("uCenter"), cx + margin, cy + margin);
       gl.uniform1f(g.u("uFpx"), fpx);
       gl.uniform1f(g.u("uCamH"), CAMERA_HEIGHT_M);
+      gl.uniform1f(g.u("uBaselinePx"), baselinePx);
+      gl.uniform1f(g.u("uInvFocus"), invFocusM);
       gl.uniform3f(g.u("uFogColor"), ...FOG_COLOR);
       const lamps = LAMP_POSTS.slice(0, 8).flatMap((p) => [p.x * 0.8, p.z]);
       gl.uniform2fv(g.u("uLamps"), new Float32Array(lamps));

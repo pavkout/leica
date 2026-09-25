@@ -9,6 +9,8 @@ interface Props {
   shot: Shot;
   minFocusMm: number;
   units: Units;
+  /** Hides where the subject stands (during the focus challenge). */
+  hideSubject?: boolean;
   onFocusChange: (mm: number) => void;
   onBackgroundChange: (distanceMm: number) => void;
 }
@@ -32,7 +34,7 @@ const BLUR_CAP = 40;
 const METRIC_TICKS_MM = [200, 300, 500, 1000, 2000, 3000, 5000, 10_000, 20_000, 50_000, 100_000];
 const IMPERIAL_TICKS_MM = [1, 2, 3, 5, 10, 20, 50, 100, 300].map((ft) => ft * 304.8);
 
-export default function SceneDiagram({ shot, minFocusMm, units, onFocusChange, onBackgroundChange }: Props) {
+export default function SceneDiagram({ shot, minFocusMm, units, hideSubject, onFocusChange, onBackgroundChange }: Props) {
   const [wrapRef, width] = useElementWidth<HTMLDivElement>();
   const plotRight = width - PAD_RIGHT - INFINITY_SLOT;
   const plotWidth = plotRight - PAD_LEFT;
@@ -52,6 +54,7 @@ export default function SceneDiagram({ shot, minFocusMm, units, onFocusChange, o
 
   const { dof, focusMm, backgroundMm, focalMm, fNumber, cocMm } = shot;
   const focusX = xOf(focusMm);
+  const subjectX = xOf(shot.subjectMm);
   const bgX = xOf(backgroundMm);
   const nearX = xOf(dof.nearMm);
   const farX = xOf(dof.farMm);
@@ -61,7 +64,7 @@ export default function SceneDiagram({ shot, minFocusMm, units, onFocusChange, o
   function moveTo(x: number) {
     const mm = mmOf(x);
     if (target.current === "background") {
-      onBackgroundChange(Number.isFinite(mm) ? Math.max(mm, focusMm + 50) : Infinity);
+      onBackgroundChange(Number.isFinite(mm) ? Math.max(mm, shot.subjectMm + 50) : Infinity);
     } else {
       onFocusChange(Number.isFinite(mm) ? Math.max(mm, minFocusMm) : Infinity);
     }
@@ -69,7 +72,7 @@ export default function SceneDiagram({ shot, minFocusMm, units, onFocusChange, o
   const drag = useDrag({
     onStart: (x) => {
       target.current =
-        Number.isFinite(focusMm) && Math.abs(x - bgX) < Math.abs(x - focusX) && Math.abs(x - bgX) < 28
+        Number.isFinite(shot.backgroundMm) && Math.abs(x - bgX) < Math.abs(x - focusX) && Math.abs(x - bgX) < 28
           ? "background"
           : "focus";
     },
@@ -174,7 +177,7 @@ export default function SceneDiagram({ shot, minFocusMm, units, onFocusChange, o
         </g>
 
         {/* Background */}
-        {Number.isFinite(focusMm) && (
+        {Number.isFinite(shot.backgroundMm) && (
           <g className="s-background" transform={`translate(${bgX} ${GROUND})`}>
             <rect x={-1.5} y={-22} width={3} height={22} />
             <circle cx={0} cy={-34} r={15} />
@@ -182,10 +185,12 @@ export default function SceneDiagram({ shot, minFocusMm, units, onFocusChange, o
         )}
 
         {/* Subject */}
-        <g className="s-subject" transform={`translate(${focusX} ${GROUND})`}>
-          <circle cx={0} cy={-52} r={7} />
-          <path d="M-9,-42 h18 a3,3 0 0 1 3,3 v18 h-5 v21 h-5 v-17 h-4 v17 h-5 v-21 h-5 v-18 a3,3 0 0 1 3,-3 Z" />
-        </g>
+        {!hideSubject && Number.isFinite(shot.subjectMm) && (
+          <g className="s-subject" transform={`translate(${subjectX} ${GROUND})`}>
+            <circle cx={0} cy={-52} r={7} />
+            <path d="M-9,-42 h18 a3,3 0 0 1 3,3 v18 h-5 v21 h-5 v-17 h-4 v17 h-5 v-21 h-5 v-18 a3,3 0 0 1 3,-3 Z" />
+          </g>
+        )}
         <line className="s-focus" x1={focusX} x2={focusX} y1={LABEL_ROW + 8} y2={GROUND} />
 
         {/* Blur profile */}

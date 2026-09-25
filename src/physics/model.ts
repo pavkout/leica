@@ -38,7 +38,9 @@ export interface ShotSettings {
   lens: Lens;
   fNumber: number;
   focusMm: number;
-  /** Background distance behind the focus point; `Infinity` for a distant background. */
+  /** Where the subject stands; defaults to the focus distance. */
+  subjectMm?: number;
+  /** Background distance behind the subject; `Infinity` for a distant background. */
   backgroundOffsetMm: number;
   megapixels: number | null;
   /** Framing on fixed-lens bodies with digital crop modes. */
@@ -48,6 +50,7 @@ export interface ShotSettings {
 
 export function computeShot(settings: ShotSettings) {
   const { body, lens, fNumber, focusMm, backgroundOffsetMm, megapixels, cropFocalMm, standard } = settings;
+  const subjectMm = settings.subjectMm ?? focusMm;
   const focalMm = lens.focalMm;
 
   // A crop mode keeps the pixels but uses a smaller part of the sensor.
@@ -72,7 +75,8 @@ export function computeShot(settings: ShotSettings) {
   const dof = depthOfField(focalMm, fNumber, cocMm, focusMm);
   const mag = magnification(focalMm, focusMm);
 
-  const backgroundMm = focusMm + backgroundOffsetMm;
+  const backgroundMm = subjectMm + backgroundOffsetMm;
+  const subjectBlurMm = blurDiscMm(focalMm, fNumber, focusMm, subjectMm);
   const backgroundBlurMm = blurDiscMm(focalMm, fNumber, focusMm, backgroundMm);
 
   const diffractionFNumber = diffractionLimitedFNumber(cocMm, mag);
@@ -88,6 +92,9 @@ export function computeShot(settings: ShotSettings) {
     pixelPitchMm,
     dof,
     magnification: mag,
+    subjectMm,
+    subjectBlurMm,
+    subjectSharp: subjectBlurMm <= cocMm,
     backgroundMm,
     backgroundBlurMm,
     backgroundBlurFrameFraction: backgroundBlurMm / frameWidthMm,

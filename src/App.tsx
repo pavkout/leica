@@ -3,6 +3,7 @@ import BokehPreview, { type PreviewSide } from "./components/BokehPreview";
 import LensBarrel from "./components/LensBarrel";
 import Readouts, { Details } from "./components/Readouts";
 import SceneDiagram from "./components/SceneDiagram";
+import Viewfinder from "./components/Viewfinder";
 import Segmented from "./components/Segmented";
 import {
   BODIES,
@@ -19,7 +20,7 @@ import {
 } from "./data/gear";
 import { SHARPNESS_STANDARDS, computeShot, type SharpnessStandard, type Shot } from "./physics/model";
 import { GENERIC_BLADES, apertureShape } from "./preview/aperture";
-import { formatDistance, formatFNumber, type Units } from "./utils/format";
+import { formatDistance, formatFNumber, formatLength, type Units } from "./utils/format";
 
 const BACKGROUND_PRESETS: Record<Units, { mm: number; label: string }[]> = {
   metric: [
@@ -43,6 +44,7 @@ function previewSide(lens: Lens, shot: Shot): PreviewSide {
       focalMm: shot.focalMm,
       fNumber: shot.fNumber,
       focusMm: shot.focusMm,
+      subjectMm: shot.subjectMm,
       backgroundMm: shot.backgroundMm,
       frameWidthMm: shot.frameWidthMm,
       horizontalAngleDeg: shot.horizontalAngle,
@@ -55,6 +57,11 @@ function previewSide(lens: Lens, shot: Shot): PreviewSide {
 function defaultComparisonLens(lenses: Lens[], current: Lens) {
   const others = lenses.filter((l) => l.id !== current.id);
   return others.find((l) => l.focalMm === current.focalMm) ?? others[0] ?? current;
+}
+
+/** M bodies: the ones with a coupled rangefinder. */
+function isRangefinder(body: Body) {
+  return body.mounts.includes("M") && !body.fixedLensId;
 }
 
 function LensOptions({ body, lenses }: { body: Body; lenses: Lens[] }) {
@@ -87,6 +94,8 @@ export default function App() {
   const [compare, setCompare] = useState(false);
   const [lensBId, setLensBId] = useState("m-50-0.95");
   const [fNumberB, setFNumberB] = useState(1.4);
+  // Focus challenge: the subject stands at a hidden distance instead of at the focus.
+  const [challenge, setChallenge] = useState<{ subjectMm: number; shotTaken: boolean } | null>(null);
 
   const body = findBody(bodyId);
   const lens = findLens(lensId);
@@ -98,6 +107,7 @@ export default function App() {
     lens,
     fNumber,
     focusMm,
+    subjectMm: challenge?.subjectMm,
     backgroundOffsetMm,
     megapixels,
     cropFocalMm,
@@ -112,6 +122,7 @@ export default function App() {
     lens: lensB,
     fNumber: nearestStop(stopsB, fNumberB),
     focusMm: Math.max(focusMm, lensB.minFocusMm),
+    subjectMm: shot.subjectMm,
     backgroundOffsetMm,
     megapixels,
     cropFocalMm: cropFocalMm && lensB.id === lens.id ? cropFocalMm : null,
@@ -137,11 +148,22 @@ export default function App() {
   function selectBody(id: string) {
     const next = findBody(id);
     setBodyId(id);
+    if (!isRangefinder(next)) setChallenge(null);
     setMegapixels(next.megapixels?.[0] ?? null);
     setCropFocalMm(null);
     const available = lensesForBody(next);
     if (!available.some((l) => l.id === lensId)) selectLens(available[0].id);
   }
+
+  // Challenge range: from just past the lens's closest focus out to 6 m.
+  const challengeMinMm = Math.max(lens.minFocusMm * 1.15, 800);
+  const challengeMaxMm = 6000;
+  function startChallenge() {
+    const subject = challengeMinMm * (challengeMaxMm / challengeMinMm) ** Math.random();
+    setChallenge({ subjectMm: Math.round(subject / 10) * 10, shotTaken: false });
+    setFocusMm(subject < 2500 ? Infinity : lens.minFocusMm);
+  }
+  const challengeHidden = challenge !== null && !challenge.shotTaken;
 
   const shape = apertureShape(lens, fNumber);
   const standardInfo = SHARPNESS_STANDARDS.find((s) => s.id === shot.standard)!;
@@ -179,6 +201,7 @@ export default function App() {
             )}
           </div>
           <BokehPreview
+            veil={challengeHidden ? "The photo appears when you take the shot." : undefined}
             a={previewSide(lens, shot)}
             b={compare && lenses.length > 1 ? previewSide(lensB, shotB) : null}
             aspect={shot.frameWidthMm / shot.frameHeightMm}
@@ -215,6 +238,65 @@ export default function App() {
           </p>
         </section>
 
+        {isRangefinder(body) && (
+          <section className="panel stage-finder" aria-label="Rangefinder">
+            <div className="panel-head">
+              <h2>Rangefinder · {body.name}</h2>
+              {!challenge && (
+                <button type="button" className="btn btn-small" onClick={startChallenge}>
+                  Focus challenge
+                </button>
+              )}
+            </div>
+            <Viewfinder
+              lens={lens}
+              focusMm={focusMm}
+              subjectMm={shot.subjectMm}
+              backgroundMm={shot.backgroundMm}
+              shape={shape}
+              onFocusChange={setFocusMm}
+            />
+            {challenge && (
+              <div className="challenge" role="status">
+                {challenge.shotTaken ? (
+                  <p>
+                    <strong className={shot.subjectSharp ? "ok" : "miss"}>
+                      {shot.subjectSharp ? "Sharp." : "Missed focus."}
+                    </strong>{" "}
+                    The subject was at {formatDistance(shot.subjectMm, units)}; you focused at{" "}
+                    {formatDistance(focusMm, units)}
+                    {Number.isFinite(focusMm) &&
+                      ` (${formatLength(Math.abs(focusMm - shot.subjectMm), units)} ${focusMm > shot.subjectMm ? "behind" : "in front"})`}
+                    . Depth of field at {formatFNumber(fNumber)}: {formatDistance(shot.dof.nearMm, units)} to{" "}
+                    {formatDistance(shot.dof.farMm, units)}.
+                  </p>
+                ) : (
+                  <p>
+                    The subject is somewhere between {formatDistance(challengeMinMm, units)} and{" "}
+                    {formatDistance(challengeMaxMm, units)}. Turn the focus ring, or drag across the finder, until the two
+                    images of the scarf in the patch merge into one. Then take the shot.
+                  </p>
+                )}
+                <div className="actions">
+                  {challenge.shotTaken ? (
+                    <>
+                      <button type="button" className="btn btn-red" onClick={startChallenge}>Try again</button>
+                      <button type="button" className="btn" onClick={() => setChallenge(null)}>Done</button>
+                    </>
+                  ) : (
+                    <>
+                      <button type="button" className="btn btn-red" onClick={() => setChallenge({ ...challenge, shotTaken: true })}>
+                        Take the shot
+                      </button>
+                      <button type="button" className="btn" onClick={() => setChallenge(null)}>Cancel</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
         <section className="panel stage-scene" aria-label="Scene">
           <div className="panel-head">
             <h2>{body.name} · {lens.name}</h2>
@@ -225,7 +307,8 @@ export default function App() {
             minFocusMm={lens.minFocusMm}
             units={units}
             onFocusChange={setFocusMm}
-            onBackgroundChange={(mm) => setBackgroundOffsetMm(Number.isFinite(mm) ? mm - focusMm : Infinity)}
+            hideSubject={challengeHidden}
+            onBackgroundChange={(mm) => setBackgroundOffsetMm(Number.isFinite(mm) ? mm - shot.subjectMm : Infinity)}
           />
           <p className="hint">Drag the figure to focus, or drag the tree to move the background.</p>
         </section>

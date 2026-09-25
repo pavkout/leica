@@ -15,12 +15,14 @@ interface Props {
   b: PreviewSide | null;
   /** Width ÷ height of the frame. */
   aspect: number;
+  /** Covers the photo with this message (the focus challenge hides the result). */
+  veil?: string;
 }
 
 /** Rendering cap: detail beyond this isn't visible and costs fill rate on phones. */
 const MAX_PIXEL_WIDTH = 1600;
 
-export default function BokehPreview({ a, b, aspect }: Props) {
+export default function BokehPreview({ a, b, aspect, veil }: Props) {
   const [wrapRef, width] = useElementWidth<HTMLDivElement>();
   const dpr = typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2);
   const pixelWidth = Math.min(Math.round(width * dpr), MAX_PIXEL_WIDTH);
@@ -48,6 +50,7 @@ export default function BokehPreview({ a, b, aspect }: Props) {
         <PreviewCanvas side={b} pixelWidth={pixelWidth} pixelHeight={pixelHeight} />
       </div>
 
+      {veil && <div className="preview-veil">{veil}</div>}
       <span className="preview-tag preview-tag-a">
         {b && <b>A</b>} {formatFNumber(a.params.fNumber)} · {a.label}
       </span>

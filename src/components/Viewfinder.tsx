@@ -1,0 +1,204 @@
+import { useEffect, useRef, useState } from "react";
+import type { Lens } from "../data/gear";
+import { distanceFromExtension, focusExtension } from "../physics/optics";
+import type { ApertureShape } from "../preview/aperture";
+import {
+  MAGNIFIER,
+  RANGEFINDER_BASE_M,
+  finderFieldDeg,
+  framelineParallax,
+  framelinePair,
+} from "../preview/rangefinder";
+import { BokehRenderer, type RenderParams } from "../preview/renderer";
+import { useDrag } from "../utils/useDrag";
+import { useElementWidth } from "../utils/useElementWidth";
+
+interface Props {
+  lens: Lens;
+  focusMm: number;
+  subjectMm: number;
+  backgroundMm: number;
+  shape: ApertureShape;
+  onFocusChange: (mm: number) => void;
+}
+
+const ASPECT = 1.5;
+const MAX_PIXEL_WIDTH = 1400;
+const LOUPE_ZOOM = 3;
+
+interface Patch {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * The finder image plus the rangefinder patch: inside the patch the second
+ * image is superimposed, brighter and slightly warm, as in an M finder.
+ */
+function drawFinderImage(ctx: CanvasRenderingContext2D, main: HTMLCanvasElement, second: HTMLCanvasElement, patch: Patch) {
+  ctx.drawImage(main, 0, 0);
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(patch.x, patch.y, patch.w, patch.h, patch.h * 0.14);
+  ctx.clip();
+  ctx.globalCompositeOperation = "screen";
+  ctx.globalAlpha = 0.85;
+  ctx.drawImage(second, 0, 0);
+  ctx.globalCompositeOperation = "multiply";
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = "#ffcf73";
+  ctx.fillRect(patch.x, patch.y, patch.w, patch.h);
+  ctx.restore();
+}
+
+export default function Viewfinder({ lens, focusMm, subjectMm, backgroundMm, shape, onFocusChange }: Props) {
+  const [wrapRef, width] = useElementWidth<HTMLDivElement>();
+  const dpr = typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+  const W = Math.min(Math.round(width * dpr), MAX_PIXEL_WIDTH);
+  const H = Math.round(W / ASPECT);
+
+  const [magnified, setMagnified] = useState(false);
+  const outRef = useRef<HTMLCanvasElement>(null);
+  const renderers = useRef<{ main: BokehRenderer; second: BokehRenderer; mainCanvas: HTMLCanvasElement; secondCanvas: HTMLCanvasElement } | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (renderers.current) return;
+    try {
+      const mainCanvas = document.createElement("canvas");
+      const secondCanvas = document.createElement("canvas");
+      renderers.current = {
+        main: new BokehRenderer(mainCanvas),
+        second: new BokehRenderer(secondCanvas),
+        mainCanvas,
+        secondCanvas,
+      };
+    } catch {
+      setError(true);
+    }
+  }, []);
+
+  const fieldDeg = finderFieldDeg(magnified ? MAGNIFIER : 1);
+  const pair = framelinePair(lens.focalMm);
+
+  useEffect(() => {
+    const r = renderers.current;
+    const out = outRef.current;
+    if (!r || !out || W < 2) return;
+    const frame = requestAnimationFrame(() => {
+      for (const c of [r.mainCanvas, r.secondCanvas, out]) {
+        if (c.width !== W || c.height !== H) {
+          c.width = W;
+          c.height = H;
+        }
+      }
+      const base: RenderParams = {
+        focalMm: lens.focalMm,
+        fNumber: lens.maxAperture,
+        focusMm,
+        subjectMm,
+        backgroundMm,
+        frameWidthMm: 36,
+        horizontalAngleDeg: fieldDeg,
+        shape,
+        sharp: true,
+      };
+      r.main.render(base);
+      r.second.render({ ...base, baselineM: RANGEFINDER_BASE_M });
+
+      const ctx = out.getContext("2d")!;
+      const fpx = W / 2 / Math.tan(((fieldDeg / 2) * Math.PI) / 180);
+      const cx = W / 2;
+      const cy = H / 2;
+      const patch: Patch = { w: W * 0.13, h: W * 0.085, x: 0, y: 0 };
+      patch.x = cx - patch.w / 2;
+      patch.y = cy - patch.h / 2;
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      drawFinderImage(ctx, r.mainCanvas, r.secondCanvas, patch);
+
+      // Bright-line frames, shifted for parallax at the current focus.
+      const parallax = framelineParallax(focusMm / 1000);
+      ctx.strokeStyle = "rgba(252, 248, 236, 0.95)";
+      ctx.lineWidth = Math.max(1.5, W / 480);
+      ctx.shadowColor = "rgba(255, 250, 235, 0.6)";
+      ctx.shadowBlur = W / 300;
+      for (const f of pair ?? []) {
+        const hw = (fpx * 18) / f;
+        const hh = (fpx * 12) / f;
+        const x = cx + fpx * parallax.x;
+        const y = cy + fpx * parallax.y;
+        ctx.strokeRect(x - hw, y - hh, hw * 2, hh * 2);
+      }
+      ctx.shadowBlur = 0;
+
+      // Dark rim of the finder window.
+      const rim = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.45, cx, cy, Math.hypot(W, H) / 2);
+      rim.addColorStop(0, "rgba(0,0,0,0)");
+      rim.addColorStop(1, "rgba(0,0,0,0.65)");
+      ctx.fillStyle = rim;
+      ctx.fillRect(0, 0, W, H);
+
+      // Loupe: the patch enlarged, top-right.
+      const R = Math.min(W, H) * 0.19;
+      const lx = W - R - W * 0.03;
+      const ly = R + W * 0.03;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(lx, ly, R, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.translate(lx, ly);
+      ctx.scale(LOUPE_ZOOM, LOUPE_ZOOM);
+      ctx.translate(-cx, -cy);
+      drawFinderImage(ctx, r.mainCanvas, r.secondCanvas, patch);
+      ctx.restore();
+      ctx.lineWidth = Math.max(2, W / 350);
+      ctx.strokeStyle = "#e20613";
+      ctx.beginPath();
+      ctx.arc(lx, ly, R, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.font = `600 ${Math.round(W / 45)}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillText(`Patch ${LOUPE_ZOOM}×`, lx, ly + R + W / 35);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [W, H, lens, focusMm, subjectMm, backgroundMm, shape, fieldDeg, pair]);
+
+  // Dragging across the finder turns the focus ring, a full throw per width.
+  const maxExtension = focusExtension(lens.focalMm, lens.minFocusMm);
+  const dragStart = useRef(0);
+  const drag = useDrag({
+    onStart: () => (dragStart.current = focusExtension(lens.focalMm, focusMm)),
+    onMove: (dx) => {
+      const e = Math.min(Math.max(dragStart.current + (dx / Math.max(width, 1)) * maxExtension, 0), maxExtension);
+      onFocusChange(e < maxExtension * 0.012 ? Infinity : distanceFromExtension(lens.focalMm, e));
+    },
+  });
+
+  return (
+    <div className="finder-wrap">
+      <div ref={wrapRef} className="finder" style={{ aspectRatio: String(ASPECT) }} {...drag}>
+        {error ? (
+          <div className="preview-error">The viewfinder needs WebGL 2, which this browser doesn't provide.</div>
+        ) : (
+          <canvas ref={outRef} className="preview-canvas" role="img" aria-label="Rangefinder view with focusing patch" />
+        )}
+      </div>
+      <div className="finder-controls">
+        <span className="muted small">
+          {pair
+            ? `${pair[0]}/${pair[1]} frames. Drag across the finder to focus.`
+            : `${lens.focalMm} mm is wider than the finder; use an external finder. Drag to focus.`}
+        </span>
+        <button type="button" className="btn btn-small" aria-pressed={magnified} onClick={() => setMagnified(!magnified)}>
+          Magnifier {MAGNIFIER}×
+        </button>
+      </div>
+    </div>
+  );
+}

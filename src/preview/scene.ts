@@ -125,10 +125,10 @@ export const GROUND_SLICES: [number, number][] = (() => {
 })();
 
 /**
- * Builds the scene, far to near. The subject stands at the focus distance and
- * the café facade at `backgroundM` (both may be `Infinity`).
+ * Builds the scene, far to near, with the subject at `subjectM` and the café
+ * facade at `backgroundM` (both may be `Infinity`).
  */
-export function buildScene(focusM: number, backgroundM: number): Layer[] {
+export function buildScene(subjectM: number, backgroundM: number): Layer[] {
   const layers: Layer[] = [];
 
   const skylineZ = 1500;
@@ -162,8 +162,9 @@ export function buildScene(focusM: number, backgroundM: number): Layer[] {
 
   if (Number.isFinite(backgroundM) && backgroundM < 400) layers.push(facade(backgroundM));
 
-  if (Number.isFinite(focusM) && focusM < 400) {
-    layers.push({ kind: "sprite", sprite: "person", z: focusM, x0: -0.08, x1: 0.48, y0: 0, y1: 1.76, lights: [] });
+  if (Number.isFinite(subjectM) && subjectM < 400) {
+    // Centred, so the rangefinder patch lands on the scarf.
+    layers.push({ kind: "sprite", sprite: "person", z: subjectM, x0: -0.28, x1: 0.28, y0: 0, y1: 1.76, lights: [] });
   }
 
   layers.push({ kind: "sprite", sprite: "branch", z: 0.65, x0: -0.78, x1: -0.08, y0: 1.52, y1: 2.32, lights: [] });
