@@ -1,9 +1,10 @@
 // Leica bodies and lenses.
 //
 // Specs are taken from public product information and should be checked
-// against Leica's current datasheets before relying on them. Aperture-blade
-// counts are left out until the bokeh preview (which needs them) is built
-// and they can be verified.
+// against Leica's current datasheets before relying on them. Leica's
+// datasheets don't list aperture blades, so `apertureBlades` is set only
+// where the count is consistently published; other lenses render with a
+// generic rounded iris.
 
 export type Mount = "M" | "L" | "TL" | "S" | "fixed";
 
@@ -32,6 +33,7 @@ export interface Lens {
   maxAperture: number;
   minAperture: number;
   minFocusMm: number;
+  apertureBlades?: number;
 }
 
 export const BODIES: Body[] = [
@@ -63,16 +65,16 @@ export const LENSES: Lens[] = [
   { id: "m-35-2-apo", name: "APO-Summicron-M 35 f/2 ASPH.", mount: "M", focalMm: 35, maxAperture: 2, minAperture: 16, minFocusMm: 300 },
   { id: "m-35-1.4", name: "Summilux-M 35 f/1.4 ASPH.", mount: "M", focalMm: 35, maxAperture: 1.4, minAperture: 16, minFocusMm: 400 },
   { id: "m-50-2", name: "Summicron-M 50 f/2", mount: "M", focalMm: 50, maxAperture: 2, minAperture: 16, minFocusMm: 700 },
-  { id: "m-50-2-apo", name: "APO-Summicron-M 50 f/2 ASPH.", mount: "M", focalMm: 50, maxAperture: 2, minAperture: 16, minFocusMm: 700 },
+  { id: "m-50-2-apo", name: "APO-Summicron-M 50 f/2 ASPH.", mount: "M", focalMm: 50, maxAperture: 2, minAperture: 16, minFocusMm: 700, apertureBlades: 11 },
   { id: "m-50-1.4", name: "Summilux-M 50 f/1.4 ASPH.", mount: "M", focalMm: 50, maxAperture: 1.4, minAperture: 16, minFocusMm: 450 },
-  { id: "m-50-0.95", name: "Noctilux-M 50 f/0.95 ASPH.", mount: "M", focalMm: 50, maxAperture: 0.95, minAperture: 16, minFocusMm: 1000 },
+  { id: "m-50-0.95", name: "Noctilux-M 50 f/0.95 ASPH.", mount: "M", focalMm: 50, maxAperture: 0.95, minAperture: 16, minFocusMm: 1000, apertureBlades: 11 },
   { id: "m-75-2-apo", name: "APO-Summicron-M 75 f/2 ASPH.", mount: "M", focalMm: 75, maxAperture: 2, minAperture: 16, minFocusMm: 700 },
   { id: "m-90-2-apo", name: "APO-Summicron-M 90 f/2 ASPH.", mount: "M", focalMm: 90, maxAperture: 2, minAperture: 16, minFocusMm: 1000 },
   { id: "m-90-2.2", name: "Thambar-M 90 f/2.2", mount: "M", focalMm: 90, maxAperture: 2.2, minAperture: 25, minFocusMm: 1000 },
   // L (SL)
   { id: "sl-35-2", name: "APO-Summicron-SL 35 f/2 ASPH.", mount: "L", focalMm: 35, maxAperture: 2, minAperture: 22, minFocusMm: 270 },
   { id: "sl-50-2", name: "APO-Summicron-SL 50 f/2 ASPH.", mount: "L", focalMm: 50, maxAperture: 2, minAperture: 22, minFocusMm: 350 },
-  { id: "sl-50-1.4", name: "Summilux-SL 50 f/1.4 ASPH.", mount: "L", focalMm: 50, maxAperture: 1.4, minAperture: 16, minFocusMm: 600 },
+  { id: "sl-50-1.4", name: "Summilux-SL 50 f/1.4 ASPH.", mount: "L", focalMm: 50, maxAperture: 1.4, minAperture: 22, minFocusMm: 600 },
   { id: "sl-75-2", name: "APO-Summicron-SL 75 f/2 ASPH.", mount: "L", focalMm: 75, maxAperture: 2, minAperture: 22, minFocusMm: 500 },
   { id: "sl-90-2", name: "APO-Summicron-SL 90 f/2 ASPH.", mount: "L", focalMm: 90, maxAperture: 2, minAperture: 22, minFocusMm: 600 },
   // TL (APS-C)
@@ -88,7 +90,7 @@ export const LENSES: Lens[] = [
 ];
 
 export const DEFAULT_BODY_ID = "m11";
-export const DEFAULT_LENS_ID = "m-35-2";
+export const DEFAULT_LENS_ID = "m-50-1.4";
 
 export function findBody(id: string) {
   return BODIES.find((b) => b.id === id) ?? BODIES[0];

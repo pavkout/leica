@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import BokehPreview, { type PreviewSide } from "./components/BokehPreview";
 import LensBarrel from "./components/LensBarrel";
 import Readouts, { Details } from "./components/Readouts";
 import SceneDiagram from "./components/SceneDiagram";
@@ -13,8 +14,11 @@ import {
   isAdapted,
   lensesForBody,
   nearestStop,
+  type Body,
+  type Lens,
 } from "./data/gear";
-import { SHARPNESS_STANDARDS, computeShot, type SharpnessStandard } from "./physics/model";
+import { SHARPNESS_STANDARDS, computeShot, type SharpnessStandard, type Shot } from "./physics/model";
+import { GENERIC_BLADES, apertureShape } from "./preview/aperture";
 import { formatDistance, formatFNumber, type Units } from "./utils/format";
 
 const BACKGROUND_PRESETS: Record<Units, { mm: number; label: string }[]> = {
@@ -32,16 +36,57 @@ const BACKGROUND_PRESETS: Record<Units, { mm: number; label: string }[]> = {
   ],
 };
 
+function previewSide(lens: Lens, shot: Shot): PreviewSide {
+  return {
+    label: lens.name.replace(/ ASPH\.$/, ""),
+    params: {
+      focalMm: shot.focalMm,
+      fNumber: shot.fNumber,
+      focusMm: shot.focusMm,
+      backgroundMm: shot.backgroundMm,
+      frameWidthMm: shot.frameWidthMm,
+      horizontalAngleDeg: shot.horizontalAngle,
+      shape: apertureShape(lens, shot.fNumber),
+    },
+  };
+}
+
+/** A second lens worth comparing against: same focal length if possible. */
+function defaultComparisonLens(lenses: Lens[], current: Lens) {
+  const others = lenses.filter((l) => l.id !== current.id);
+  return others.find((l) => l.focalMm === current.focalMm) ?? others[0] ?? current;
+}
+
+function LensOptions({ body, lenses }: { body: Body; lenses: Lens[] }) {
+  const native = lenses.filter((l) => !isAdapted(body, l));
+  const adapted = lenses.filter((l) => isAdapted(body, l));
+  if (!adapted.length) return <>{lenses.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</>;
+  return (
+    <>
+      <optgroup label="Native">
+        {native.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+      </optgroup>
+      <optgroup label="M lenses via adapter">
+        {adapted.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+      </optgroup>
+    </>
+  );
+}
+
 export default function App() {
   const [bodyId, setBodyId] = useState(DEFAULT_BODY_ID);
   const [lensId, setLensId] = useState(DEFAULT_LENS_ID);
-  const [fNumber, setFNumber] = useState(5.6);
-  const [focusMm, setFocusMm] = useState(3000);
-  const [backgroundOffsetMm, setBackgroundOffsetMm] = useState(2000);
+  // Opens on a portrait wide open against the street, where the preview shows most.
+  const [fNumber, setFNumber] = useState(findLens(DEFAULT_LENS_ID).maxAperture);
+  const [focusMm, setFocusMm] = useState(2000);
+  const [backgroundOffsetMm, setBackgroundOffsetMm] = useState(Infinity);
   const [megapixels, setMegapixels] = useState<number | null>(60);
   const [cropFocalMm, setCropFocalMm] = useState<number | null>(null);
   const [standard, setStandard] = useState<SharpnessStandard>("engraved");
   const [units, setUnits] = useState<Units>("metric");
+  const [compare, setCompare] = useState(false);
+  const [lensBId, setLensBId] = useState("m-50-0.95");
+  const [fNumberB, setFNumberB] = useState(1.4);
 
   const body = findBody(bodyId);
   const lens = findLens(lensId);
@@ -59,6 +104,29 @@ export default function App() {
     standard,
   });
 
+  // Comparison lens: same body, focus and background as A.
+  const lensB = lenses.find((l) => l.id === lensBId) ?? defaultComparisonLens(lenses, lens);
+  const stopsB = apertureStops(lensB);
+  const shotB = computeShot({
+    body,
+    lens: lensB,
+    fNumber: nearestStop(stopsB, fNumberB),
+    focusMm: Math.max(focusMm, lensB.minFocusMm),
+    backgroundOffsetMm,
+    megapixels,
+    cropFocalMm: cropFocalMm && lensB.id === lens.id ? cropFocalMm : null,
+    standard,
+  });
+
+  function toggleCompare() {
+    if (!compare) {
+      const b = defaultComparisonLens(lenses, lens);
+      setLensBId(b.id);
+      setFNumberB(b.maxAperture);
+    }
+    setCompare(!compare);
+  }
+
   function selectLens(id: string) {
     const next = findLens(id);
     setLensId(id);
@@ -75,8 +143,7 @@ export default function App() {
     if (!available.some((l) => l.id === lensId)) selectLens(available[0].id);
   }
 
-  const nativeLenses = lenses.filter((l) => !isAdapted(body, l));
-  const adaptedLenses = lenses.filter((l) => isAdapted(body, l));
+  const shape = apertureShape(lens, fNumber);
   const standardInfo = SHARPNESS_STANDARDS.find((s) => s.id === shot.standard)!;
   const canHyperfocal = shot.dof.hyperfocalMm >= lens.minFocusMm;
 
@@ -102,6 +169,52 @@ export default function App() {
       </header>
 
       <main className="layout">
+        <section className="panel stage-preview" aria-label="Simulated photo">
+          <div className="panel-head">
+            <h2>Simulated photo</h2>
+            {lenses.length > 1 && (
+              <button type="button" className="btn btn-small" aria-pressed={compare} onClick={toggleCompare}>
+                {compare ? "Close comparison" : "Compare lenses"}
+              </button>
+            )}
+          </div>
+          <BokehPreview
+            a={previewSide(lens, shot)}
+            b={compare && lenses.length > 1 ? previewSide(lensB, shotB) : null}
+            aspect={shot.frameWidthMm / shot.frameHeightMm}
+          />
+          {compare && lenses.length > 1 && (
+            <div className="compare-row">
+              <label className="field">
+                <span>Lens B</span>
+                <select
+                  value={lensB.id}
+                  onChange={(e) => {
+                    const next = findLens(e.target.value);
+                    setLensBId(next.id);
+                    setFNumberB(next.maxAperture);
+                  }}
+                >
+                  <LensOptions body={body} lenses={lenses} />
+                </select>
+              </label>
+              <label className="field field-narrow">
+                <span>Aperture B</span>
+                <select value={shotB.fNumber} onChange={(e) => setFNumberB(Number(e.target.value))}>
+                  {stopsB.map((n) => <option key={n} value={n}>{formatFNumber(n)}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
+          <p className="hint">
+            {lens.apertureBlades
+              ? `${shape.blades}-blade iris, as published for this lens.`
+              : `Generic ${GENERIC_BLADES}-blade rounded iris; Leica doesn't publish this lens's blade count.`}{" "}
+            Blur sizes are computed from the optics; the scene itself is illustrated.
+            {compare && " Drag the divider to compare."}
+          </p>
+        </section>
+
         <section className="panel stage-scene" aria-label="Scene">
           <div className="panel-head">
             <h2>{body.name} · {lens.name}</h2>
@@ -165,18 +278,7 @@ export default function App() {
           <label className="field">
             <span>Lens</span>
             <select value={lensId} onChange={(e) => selectLens(e.target.value)} disabled={lenses.length === 1}>
-              {adaptedLenses.length ? (
-                <>
-                  <optgroup label="Native">
-                    {nativeLenses.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                  </optgroup>
-                  <optgroup label="M lenses via adapter">
-                    {adaptedLenses.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                  </optgroup>
-                </>
-              ) : (
-                lenses.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)
-              )}
+              <LensOptions body={body} lenses={lenses} />
             </select>
           </label>
 
