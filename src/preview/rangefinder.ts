@@ -3,9 +3,6 @@
 /** Distance between the viewfinder and rangefinder windows on M bodies. */
 export const RANGEFINDER_BASE_M = 0.06925;
 
-/** Standard M viewfinder magnification (M6 0.72×, M10/M11 0.73×). */
-export const VIEWFINDER_MAGNIFICATION = 0.73;
-
 /** Leica's accessory viewfinder magnifier. */
 export const MAGNIFIER = 1.4;
 
@@ -16,26 +13,14 @@ export const MAGNIFIER = 1.4;
  */
 export const FINDER_OFFSET_M = { x: 0.038, y: 0.016 };
 
-/** Half the horizontal field the 0.73× finder shows, just wider than the 28 mm frame. */
-const FINDER_HALF_ANGLE_DEG = 35.5;
-
-/** Horizontal field of view through the finder, in degrees. */
-export function finderFieldDeg(magnifier = 1) {
-  const half = (FINDER_HALF_ANGLE_DEG * Math.PI) / 180;
-  return (2 * Math.atan(Math.tan(half) / magnifier) * 180) / Math.PI;
-}
-
 /**
- * Framelines appear in pairs; the lens brings up the pair containing its
- * focal length. Null when the lens is wider than the finder shows.
+ * Horizontal field through a finder, in degrees. A 0.72–0.73× finder shows
+ * just more than the 28 mm frame; higher magnification shows less.
  */
-export function framelinePair(focalMm: number): [number, number] | null {
-  const pairs: [number, number][] = [
-    [28, 90],
-    [35, 135],
-    [50, 75],
-  ];
-  return pairs.find((pair) => pair.includes(focalMm)) ?? null;
+export function finderFieldDeg(magnification: number, magnifier = 1) {
+  const halfAt073 = (35.5 * Math.PI) / 180;
+  const tanHalf = (Math.tan(halfAt073) * 0.73) / (magnification * magnifier);
+  return (2 * Math.atan(tanHalf) * 180) / Math.PI;
 }
 
 /**

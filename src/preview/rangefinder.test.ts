@@ -1,16 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { doubleImageOffset, finderFieldDeg, framelineParallax, framelinePair } from "./rangefinder";
+import { findBody, framelinesFor } from "../data/gear";
+import { doubleImageOffset, finderFieldDeg, framelineParallax } from "./rangefinder";
 
-describe("framelinePair", () => {
-  it("brings up the pair containing the lens", () => {
-    expect(framelinePair(28)).toEqual([28, 90]);
-    expect(framelinePair(90)).toEqual([28, 90]);
-    expect(framelinePair(35)).toEqual([35, 135]);
-    expect(framelinePair(75)).toEqual([50, 75]);
+describe("framelinesFor", () => {
+  const m6 = findBody("m6");
+  it("brings up the set containing the lens", () => {
+    expect(framelinesFor(m6, 28)).toEqual([28, 90]);
+    expect(framelinesFor(m6, 90)).toEqual([28, 90]);
+    expect(framelinesFor(m6, 35)).toEqual([35, 135]);
+    expect(framelinesFor(m6, 75)).toEqual([50, 75]);
   });
 
   it("has no frame for lenses wider than the finder", () => {
-    expect(framelinePair(21)).toBeNull();
+    expect(framelinesFor(m6, 21)).toBeNull();
+  });
+
+  it("uses the M3's own frames, which have no 35", () => {
+    const m3 = findBody("m3");
+    expect(framelinesFor(m3, 50)).toEqual([50]);
+    expect(framelinesFor(m3, 90)).toEqual([50, 90]);
+    expect(framelinesFor(m3, 35)).toBeNull();
   });
 });
 
@@ -33,8 +42,12 @@ describe("doubleImageOffset", () => {
 describe("finder field", () => {
   it("is just wider than a 28mm frame and narrows with the magnifier", () => {
     const frame28 = (2 * Math.atan(18 / 28) * 180) / Math.PI;
-    expect(finderFieldDeg()).toBeGreaterThan(frame28);
-    expect(finderFieldDeg(1.4)).toBeLessThan(finderFieldDeg());
+    expect(finderFieldDeg(0.72)).toBeGreaterThan(frame28);
+    expect(finderFieldDeg(0.72, 1.4)).toBeLessThan(finderFieldDeg(0.72));
+    // The M3's 0.91× finder is built around the 50 mm frame.
+    const frame50 = (2 * Math.atan(18 / 50) * 180) / Math.PI;
+    expect(finderFieldDeg(0.91)).toBeGreaterThan(frame50);
+    expect(finderFieldDeg(0.91)).toBeLessThan(frame28);
   });
 });
 

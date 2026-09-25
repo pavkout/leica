@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type MutableRefObject } from "react";
 import type { ApertureShape } from "../preview/aperture";
 import { BokehRenderer, type RenderParams } from "../preview/renderer";
 import { formatFNumber } from "../utils/format";
@@ -7,7 +7,7 @@ import { useElementWidth } from "../utils/useElementWidth";
 
 export interface PreviewSide {
   label: string;
-  params: Omit<RenderParams, "shape"> & { shape: ApertureShape };
+  params: RenderParams & { shape: ApertureShape };
 }
 
 interface Props {
@@ -17,12 +17,36 @@ interface Props {
   aspect: number;
   /** Covers the photo with this message (the focus challenge hides the result). */
   veil?: string;
+  /** Tap to focus: position in the frame, 0–1. */
+  onTap?: (x: number, y: number) => void;
 }
 
 /** Rendering cap: detail beyond this isn't visible and costs fill rate on phones. */
 const MAX_PIXEL_WIDTH = 1600;
 
-export default function BokehPreview({ a, b, aspect, veil }: Props) {
+export interface PreviewHandle {
+  /** Renders side A with these params and returns the frame as a JPEG data URL. */
+  capture(params: RenderParams): string | null;
+}
+
+interface CanvasHandle {
+  renderer: BokehRenderer;
+  canvas: HTMLCanvasElement;
+}
+
+const BokehPreview = forwardRef<PreviewHandle, Props>(function BokehPreview({ a, b, aspect, veil, onTap }, ref) {
+  const [reticle, setReticle] = useState<{ x: number; y: number; key: number } | null>(null);
+  const handleA = useRef<CanvasHandle | null>(null);
+  useImperativeHandle(ref, () => ({
+    capture(params) {
+      const h = handleA.current;
+      if (!h) return null;
+      // Read back in the same task as the draw: the buffer isn't preserved after compositing.
+      h.renderer.render(params);
+      return h.canvas.toDataURL("image/jpeg", 0.92);
+    },
+  }));
+
   const [wrapRef, width] = useElementWidth<HTMLDivElement>();
   const dpr = typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2);
   const pixelWidth = Math.min(Math.round(width * dpr), MAX_PIXEL_WIDTH);
@@ -43,8 +67,23 @@ export default function BokehPreview({ a, b, aspect, veil }: Props) {
   }
 
   return (
-    <div ref={wrapRef} className="preview" style={{ aspectRatio: String(aspect) }}>
-      <PreviewCanvas side={a} pixelWidth={pixelWidth} pixelHeight={pixelHeight} />
+    <div
+      ref={wrapRef}
+      className={onTap && !b ? "preview preview-tappable" : "preview"}
+      style={{ aspectRatio: String(aspect) }}
+      onClick={(e) => {
+        if (!onTap || b) return;
+        const r = e.currentTarget.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width;
+        const y = (e.clientY - r.top) / r.height;
+        setReticle({ x, y, key: Date.now() });
+        onTap(x, y);
+      }}
+    >
+      {reticle && !b && (
+        <span key={reticle.key} className="reticle" style={{ left: `${reticle.x * 100}%`, top: `${reticle.y * 100}%` }} aria-hidden="true" />
+      )}
+      <PreviewCanvas side={a} pixelWidth={pixelWidth} pixelHeight={pixelHeight} handleRef={handleA} />
       {/* Kept mounted so toggling compare never creates extra WebGL contexts. */}
       <div className="preview-b" hidden={!b} style={{ clipPath: `inset(0 0 0 ${split * 100}%)` }}>
         <PreviewCanvas side={b} pixelWidth={pixelWidth} pixelHeight={pixelHeight} />
@@ -78,16 +117,20 @@ export default function BokehPreview({ a, b, aspect, veil }: Props) {
       )}
     </div>
   );
-}
+});
+
+export default BokehPreview;
 
 function PreviewCanvas({
   side,
   pixelWidth,
   pixelHeight,
+  handleRef,
 }: {
   side: PreviewSide | null;
   pixelWidth: number;
   pixelHeight: number;
+  handleRef?: MutableRefObject<CanvasHandle | null>;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<BokehRenderer | null>(null);
@@ -97,6 +140,7 @@ function PreviewCanvas({
     if (rendererRef.current || !canvasRef.current) return;
     try {
       rendererRef.current = new BokehRenderer(canvasRef.current);
+      if (handleRef) handleRef.current = { renderer: rendererRef.current, canvas: canvasRef.current };
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }

@@ -13,7 +13,25 @@
 import { blurDiscMm } from "../physics/optics";
 import { kernelSamples, type ApertureShape } from "./aperture";
 import { CAMERA_HEIGHT_M, LAMP_POSTS, buildScene, type Layer, type Light } from "./scene";
+import type { FilmLook } from "./film";
+import type { PhotoScene } from "./photoScene";
 import { spriteArt, type SpriteId } from "./sprites";
+
+/** What happens after the lens: exposure, film or sensor, and the photographer's hands. */
+export interface DevelopParams {
+  /** Stops over (+) or under (−) the correct exposure. */
+  exposureStops: number;
+  look: FilmLook;
+  /** Grain or noise strength (0 = none). */
+  grain: number;
+  /** Lens vignetting at the frame corner, in stops. */
+  vignetteStops: number;
+  /** Camera-shake blur as a fraction of the frame width, and its direction. */
+  shake: number;
+  shakeAngle: number;
+  /** Varies the grain pattern from frame to frame. */
+  seed: number;
+}
 
 export interface RenderParams {
   focalMm: number;
@@ -31,7 +49,14 @@ export interface RenderParams {
    * at the focus distance line up: the rangefinder's second image.
    */
   baselineM?: number;
+  /** Film/sensor processing; omitted for the optical viewfinder. */
+  develop?: DevelopParams;
+  /** Render this photograph (with its depth map) instead of the illustrated street. */
+  photo?: PhotoScene;
 }
+
+/** Depth slices for photos, evenly spaced in inverse depth (which is evenly spaced in blur). */
+const PHOTO_SLICES = 20;
 
 const KERNEL_SIZE = 64;
 /** Extra border painted around the frame so blur near the edges has content to sample. */
@@ -141,21 +166,171 @@ uniform float uLod;
 uniform vec2 uKernel[${KERNEL_SIZE}];
 uniform int uCount;
 uniform float uCatEye;
+// Photos: which pixels are visible at this depth (not hidden by nearer ones).
+uniform sampler2D uSupport;
+uniform int uUseSupport;
+uniform float uShift;
 out vec4 o;
 void main() {
   vec2 fc = vec2(gl_FragCoord.x, uCanvas.y - gl_FragCoord.y);
   vec2 d = uCatEye * (fc - uCanvas * 0.5) / (0.5 * length(uCanvas));
   vec4 sum = vec4(0.0);
   float n = 0.0;
+  float support = 0.0;
   for (int i = 0; i < ${KERNEL_SIZE}; i++) {
     if (i >= uCount) break;
     vec2 k = uKernel[i];
     if (uCount > 1 && length(k - d) > 1.0) continue;
-    vec2 p = fc + uMargin - k * uRadius;
-    sum += textureLod(uTex, vec2(p.x / uTexSize.x, 1.0 - p.y / uTexSize.y), uLod);
+    vec2 p = fc + uMargin - k * uRadius - vec2(uShift, 0.0);
+    vec2 uv = vec2(p.x / uTexSize.x, 1.0 - p.y / uTexSize.y);
+    sum += textureLod(uTex, uv, uLod);
+    if (uUseSupport == 1) support += textureLod(uSupport, uv, uLod).r;
     n += 1.0;
   }
-  o = n > 0.0 ? sum / n : vec4(0.0);
+  // Hidden samples are unknown, not transparent: average over the visible ones.
+  float norm = uUseSupport == 1 ? support : n;
+  o = norm > 0.001 ? sum / norm : vec4(0.0);
+}`;
+
+const FS_PHOTO = `#version 300 es
+precision highp float;
+uniform sampler2D uPhoto;
+uniform sampler2D uDepth;
+uniform vec2 uTarget;
+uniform vec2 uCanvas;
+uniform float uMargin;
+uniform float uFovRatio;
+uniform float uAspect;
+uniform float uK;
+uniform float uV0;
+uniform float uPrev;   // inverse depth of the neighbouring slice centres
+uniform float uCenter;
+uniform float uNext;
+uniform int uPlate;
+uniform float uBoost;
+layout(location = 0) out vec4 o;
+layout(location = 1) out vec4 s;
+void main() {
+  vec2 fc = vec2(gl_FragCoord.x, uTarget.y - gl_FragCoord.y) - uMargin;
+  vec2 uv = 0.5 + (fc - uCanvas * 0.5) / uCanvas.x * uFovRatio * vec2(1.0, uAspect);
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+    // Outside the photo (a lens wider than it was taken with).
+    o = uPlate == 1 ? vec4(0.03, 0.03, 0.03, 1.0) : vec4(0.0);
+    s = vec4(1.0);
+    return;
+  }
+  vec3 c = texture(uPhoto, uv).rgb;
+  float inv = max(texture(uDepth, uv).r - uV0, 0.0) * uK;
+  // Near-white points are light sources: give them the energy to become bokeh.
+  float peak = max(c.r, max(c.g, c.b));
+  c *= 1.0 + uBoost * smoothstep(0.8, 1.0, peak);
+  float m;
+  if (uPlate == 1) m = 1.0;
+  else if (inv < uCenter) m = uPrev < 0.0 ? 1.0 : clamp((inv - uPrev) / (uCenter - uPrev), 0.0, 1.0);
+  else m = uNext < 0.0 ? 1.0 : clamp((uNext - inv) / (uNext - uCenter), 0.0, 1.0);
+  o = vec4(c * m, m);
+  s = vec4(uPlate == 1 || uNext < 0.0 || inv <= uNext ? 1.0 : 0.0);
+}`;
+
+const FS_DEVELOP = `#version 300 es
+precision highp float;
+uniform sampler2D uImg;
+uniform vec2 uTarget;
+uniform float uExposure;
+uniform int uCurve;          // 0 = digital clip, 1 = film curve
+uniform float uMono;
+uniform float uSoft;
+uniform float uBias;
+uniform float uSat;
+uniform vec3 uBalance;
+uniform vec3 uShadowTint;
+uniform vec3 uHighlightTint;
+uniform float uBlackLift;
+uniform float uGrain;
+uniform float uGrainSize;
+uniform float uGrainColor;
+uniform float uHalation;
+uniform float uHalLod;
+uniform float uVignette;
+uniform vec2 uShake;         // full blur length in pixels
+uniform float uSeed;
+out vec4 o;
+
+float hash(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21) + uSeed);
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+// Smooth value noise in [-1, 1].
+float vnoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  float a = hash(i), b = hash(i + vec2(1, 0)), c = hash(i + vec2(0, 1)), d = hash(i + vec2(1, 1));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y) * 2.0 - 1.0;
+}
+
+float grain(vec2 p) {
+  return vnoise(p) * 0.7 + vnoise(p * 2.3 + 17.0) * 0.3;
+}
+
+vec3 toLinear(vec3 c) { return pow(max(c, 0.0), vec3(2.2)); }
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / uTarget;
+
+  // Camera shake: the image smeared along a line.
+  vec3 c = vec3(0.0);
+  const int TAPS = 12;
+  for (int i = 0; i < TAPS; i++) {
+    float t = float(i) / float(TAPS - 1) - 0.5;
+    c += texture(uImg, uv + uShake * t / uTarget).rgb;
+  }
+  vec3 lin = toLinear(c / float(TAPS));
+
+  // Lens vignetting, strongest in the corners.
+  vec2 d = (uv - 0.5) * vec2(uTarget.x / uTarget.y, 1.0);
+  float r2 = dot(d, d) / dot(vec2(0.5 * uTarget.x / uTarget.y, 0.5), vec2(0.5 * uTarget.x / uTarget.y, 0.5));
+  lin *= exp2(-uVignette * pow(r2, 1.15));
+
+  // Halation: light scattered back from the film base glows red around highlights.
+  if (uHalation > 0.0) {
+    // A tight glow hugging each light plus a wider, fainter bloom.
+    float tight = dot(toLinear(textureLod(uImg, uv, uHalLod - 2.0).rgb), vec3(0.3, 0.5, 0.2));
+    float wide = dot(toLinear(textureLod(uImg, uv, uHalLod).rgb), vec3(0.3, 0.5, 0.2));
+    float h = max(tight - 0.3, 0.0) * 1.4 + max(wide - 0.15, 0.0) * 1.2;
+    lin += uHalation * vec3(1.0, 0.18, 0.05) * h;
+  }
+
+  lin *= uBalance * exp2(uExposure);
+  float Y = dot(lin, vec3(0.2126, 0.7152, 0.0722));
+  lin = mix(vec3(Y), lin, uSat);
+  if (uMono > 0.5) lin = vec3(dot(lin, vec3(0.3, 0.59, 0.11)));
+
+  vec3 y;
+  if (uCurve == 0) {
+    // Digital: linear until the sensor clips.
+    y = pow(clamp(lin, 0.0, 1.0), vec3(1.0 / 2.2));
+  } else {
+    vec3 stops = log2(max(lin, 1e-5) / 0.18);
+    y = 0.5 + 0.5 * tanh((stops + uBias) / uSoft);
+  }
+  y += uShadowTint * (1.0 - y) * (1.0 - y) + uHighlightTint * y * y;
+  y = uBlackLift + y * (1.0 - uBlackLift);
+
+  // Grain strongest in the midtones (film) or noise strongest in shadows (digital).
+  if (uGrain > 0.0) {
+    vec2 gp = gl_FragCoord.xy / uGrainSize;
+    float lum = dot(y, vec3(0.3, 0.59, 0.11));
+    float weight = uCurve == 0 ? (1.15 - lum) : 4.0 * lum * (1.0 - lum) + 0.15;
+    float g = grain(gp);
+    vec3 gc = vec3(grain(gp + 31.7), grain(gp + 63.1), grain(gp + 94.3));
+    vec3 n = mix(vec3(g), gc, uGrainColor * (1.0 - uMono));
+    y += uGrain * 0.09 * weight * n;
+  }
+
+  o = vec4(clamp(y, 0.0, 1.0), 1.0);
 }`;
 
 const FS_LIGHT = `#version 300 es
@@ -219,7 +394,7 @@ function compile(gl: WebGL2RenderingContext, fs: string) {
 }
 
 type Program = ReturnType<typeof compile>;
-type ProgramName = "sky" | "sprite" | "ground" | "blur" | "light";
+type ProgramName = "sky" | "sprite" | "ground" | "blur" | "light" | "develop" | "photo";
 type Rect = [number, number, number, number];
 
 export class BokehRenderer {
@@ -229,6 +404,15 @@ export class BokehRenderer {
   private layerTex: WebGLTexture | null = null;
   private layerFbo: WebGLFramebuffer | null = null;
   private layerSize = [0, 0];
+  private supportTex: WebGLTexture | null = null;
+  private photoKey: string | null = null;
+  private photoTex: WebGLTexture | null = null;
+  private depthTex: WebGLTexture | null = null;
+  private imageTex: WebGLTexture | null = null;
+  private imageFbo: WebGLFramebuffer | null = null;
+  private imageSize = [0, 0];
+  /** Half-float image buffer, so highlights can exceed white before the film curve. */
+  private hdr: boolean;
 
   constructor(private canvas: HTMLCanvasElement) {
     const gl = canvas.getContext("webgl2", {
@@ -246,7 +430,10 @@ export class BokehRenderer {
       ground: compile(gl, FS_GROUND),
       blur: compile(gl, FS_BLUR),
       light: compile(gl, FS_LIGHT),
+      develop: compile(gl, FS_DEVELOP),
+      photo: compile(gl, FS_PHOTO),
     };
+    this.hdr = gl.getExtension("EXT_color_buffer_float") !== null;
 
     const quad = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quad);
@@ -271,20 +458,200 @@ export class BokehRenderer {
   private ensureLayerTarget(width: number, height: number) {
     if (this.layerSize[0] === width && this.layerSize[1] === height) return;
     const gl = this.gl;
-    if (this.layerTex) gl.deleteTexture(this.layerTex);
+    for (const t of [this.layerTex, this.supportTex]) if (t) gl.deleteTexture(t);
     if (this.layerFbo) gl.deleteFramebuffer(this.layerFbo);
     const levels = Math.floor(Math.log2(Math.max(width, height))) + 1;
-    this.layerTex = gl.createTexture();
+    const make = (format: number) => {
+      const tex = gl.createTexture()!;
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texStorage2D(gl.TEXTURE_2D, levels, format, width, height);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      return tex;
+    };
+    // Half float lets photo highlights exceed white, so they bloom into bokeh.
+    this.layerTex = make(this.hdr ? gl.RGBA16F : gl.RGBA8);
+    this.supportTex = make(gl.RGBA8);
+    this.layerFbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.layerFbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.layerTex, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, this.supportTex, 0);
+    this.layerSize = [width, height];
+  }
+
+  /** Clears the layer target: transparent colour, full support. */
+  private clearLayer() {
+    const gl = this.gl;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.layerFbo);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    gl.disable(gl.SCISSOR_TEST);
+    gl.disable(gl.BLEND);
+    gl.clearBufferfv(gl.COLOR, 0, [0, 0, 0, 0]);
+    gl.clearBufferfv(gl.COLOR, 1, [1, 1, 1, 1]);
+  }
+
+  /** Blurs the painted layer through the aperture and composites it onto the image. */
+  private compositeLayer(
+    bounds: Rect,
+    r: number,
+    opts: { W: number; H: number; FW: number; FH: number; margin: number; kernel: Float32Array; catEye: number; shift?: number; useSupport?: boolean }
+  ) {
+    const gl = this.gl;
+    const { W, H, FW, FH, margin } = opts;
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.supportTex);
+    if (opts.useSupport) gl.generateMipmap(gl.TEXTURE_2D);
+    gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.layerTex);
-    gl.texStorage2D(gl.TEXTURE_2D, levels, gl.RGBA8, width, height);
+    gl.generateMipmap(gl.TEXTURE_2D);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.imageFbo);
+    gl.viewport(0, 0, W, H);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    const [bx0, by0, bx1, by1] = bounds;
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(bx0, H - by1, bx1 - bx0, by1 - by0);
+    const blur = this.use("blur", [0, 0, W, H], [W, H]);
+    const count = r < 0.6 ? 1 : KERNEL_SIZE;
+    const spacing = r * Math.sqrt(Math.PI / KERNEL_SIZE);
+    gl.uniform1i(blur.u("uTex"), 0);
+    gl.uniform1i(blur.u("uSupport"), 1);
+    gl.uniform1i(blur.u("uUseSupport"), opts.useSupport ? 1 : 0);
+    gl.uniform1f(blur.u("uShift"), opts.shift ?? 0);
+    gl.uniform2f(blur.u("uTexSize"), FW, FH);
+    gl.uniform2f(blur.u("uCanvas"), W, H);
+    gl.uniform1f(blur.u("uMargin"), margin);
+    gl.uniform1f(blur.u("uRadius"), count === 1 ? 0 : r);
+    gl.uniform1f(blur.u("uLod"), count === 1 ? 0 : Math.max(0, Math.log2(spacing)));
+    gl.uniform2fv(blur.u("uKernel"), opts.kernel);
+    gl.uniform1i(blur.u("uCount"), count);
+    gl.uniform1f(blur.u("uCatEye"), opts.catEye);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.disable(gl.SCISSOR_TEST);
+  }
+
+  private uploadPhoto(photo: PhotoScene) {
+    if (this.photoKey === photo.key) return;
+    const gl = this.gl;
+    for (const t of [this.photoTex, this.depthTex]) if (t) gl.deleteTexture(t);
+    const upload = (source: TexImageSource, mip: boolean) => {
+      const tex = gl.createTexture()!;
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      if (mip) gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, mip ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      return tex;
+    };
+    this.photoTex = upload(photo.image, true);
+    this.depthTex = upload(photo.depth, false);
+    this.photoKey = photo.key;
+  }
+
+  /**
+   * A photograph sliced by depth: each slice (evenly spaced in inverse depth)
+   * is blurred by the physically correct amount for its distance, far to near.
+   */
+  private renderPhoto(
+    params: RenderParams,
+    photo: PhotoScene,
+    ctx: { W: number; H: number; FW: number; FH: number; margin: number; fpx: number; kernel: Float32Array; baselinePx: number; invFocusM: number }
+  ) {
+    const gl = this.gl;
+    const { W, H, FW, FH, margin, kernel } = ctx;
+    this.uploadPhoto(photo);
+
+    const blurAtInv = (inv: number) =>
+      params.sharp
+        ? 0
+        : ((blurDiscMm(params.focalMm, params.fNumber, params.focusMm, inv > 1e-6 ? 1000 / inv : Infinity) / params.frameWidthMm) * W) / 2;
+    const fovRatio = Math.tan((params.horizontalAngleDeg * Math.PI) / 360) / Math.tan((photo.fovDeg * Math.PI) / 360);
+
+    // Slice centres from infinity (0) to the nearest point in the photo.
+    let maxV = 0;
+    for (const v of photo.sample.data) maxV = Math.max(maxV, v);
+    const invMax = Math.max((maxV - photo.v0) * photo.k, 1e-3);
+    const centers = Array.from({ length: PHOTO_SLICES }, (_, i) => (invMax * i) / (PHOTO_SLICES - 1));
+
+    // Which slices have any pixels, and where (in photo coordinates).
+    const present = new Array(PHOTO_SLICES).fill(false);
+    const step = invMax / (PHOTO_SLICES - 1);
+    for (const v of photo.sample.data) {
+      const inv = Math.max(v - photo.v0, 0) * photo.k;
+      const i = inv / step;
+      present[Math.floor(i)] = true;
+      present[Math.min(PHOTO_SLICES - 1, Math.ceil(i))] = true;
+    }
+
+    const paint = (plate: boolean, i: number) => {
+      this.clearLayer();
+      gl.viewport(0, 0, FW, FH);
+      const p = this.use("photo", [0, 0, FW, FH], [FW, FH]);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.photoTex);
+      gl.uniform1i(p.u("uPhoto"), 0);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, this.depthTex);
+      gl.uniform1i(p.u("uDepth"), 1);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.uniform2f(p.u("uCanvas"), W, H);
+      gl.uniform1f(p.u("uMargin"), margin);
+      gl.uniform1f(p.u("uFovRatio"), fovRatio);
+      gl.uniform1f(p.u("uAspect"), photo.aspect);
+      gl.uniform1f(p.u("uK"), photo.k);
+      gl.uniform1f(p.u("uV0"), photo.v0);
+      gl.uniform1f(p.u("uPrev"), i > 0 ? centers[i - 1] : -1);
+      gl.uniform1f(p.u("uCenter"), centers[i]);
+      gl.uniform1f(p.u("uNext"), i < PHOTO_SLICES - 1 ? centers[i + 1] : -1);
+      gl.uniform1i(p.u("uPlate"), plate ? 1 : 0);
+      gl.uniform1f(p.u("uBoost"), this.hdr && !params.sharp ? 1.6 : 0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    };
+
+    const full: Rect = [0, 0, W, H];
+    const common = { W, H, FW, FH, margin, kernel, catEye: params.shape.catEye };
+    const shiftAt = (inv: number) => ctx.baselinePx * (inv - ctx.invFocusM);
+
+    // A softly blurred plate behind everything fills in what nearer objects hid.
+    const plateR = Math.max(...centers.filter((_, i) => present[i]).map(blurAtInv), 0);
+    paint(true, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.imageFbo);
+    gl.viewport(0, 0, W, H);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    this.compositeLayer(full, Math.min(plateR, W / 12), { ...common, shift: shiftAt(0) });
+
+    for (let i = 0; i < PHOTO_SLICES; i++) {
+      if (!present[i]) continue;
+      paint(false, i);
+      this.compositeLayer(full, blurAtInv(centers[i]), { ...common, shift: shiftAt(centers[i]), useSupport: true });
+    }
+  }
+
+  private ensureImageTarget(width: number, height: number) {
+    if (this.imageSize[0] === width && this.imageSize[1] === height) return;
+    const gl = this.gl;
+    if (this.imageTex) gl.deleteTexture(this.imageTex);
+    if (this.imageFbo) gl.deleteFramebuffer(this.imageFbo);
+    const levels = Math.floor(Math.log2(Math.max(width, height))) + 1;
+    this.imageTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.imageTex);
+    gl.texStorage2D(gl.TEXTURE_2D, levels, this.hdr ? gl.RGBA16F : gl.RGBA8, width, height);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    this.layerFbo = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.layerFbo);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.layerTex, 0);
-    this.layerSize = [width, height];
+    this.imageFbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.imageFbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.imageTex, 0);
+    this.imageSize = [width, height];
   }
 
   render(params: RenderParams) {
@@ -295,6 +662,7 @@ export class BokehRenderer {
     const FW = W + 2 * margin;
     const FH = H + 2 * margin;
     this.ensureLayerTarget(FW, FH);
+    this.ensureImageTarget(W, H);
 
     const fpx = W / 2 / Math.tan(((params.horizontalAngleDeg / 2) * Math.PI) / 180);
     const cx = W / 2;
@@ -316,10 +684,16 @@ export class BokehRenderer {
     const kernel = new Float32Array(kernelSamples(KERNEL_SIZE, shape).flat());
     const powerScale = 900 * (W / 1000) ** 2;
 
+    if (params.photo) {
+      this.renderPhoto(params, params.photo, { W, H, FW, FH, margin, fpx, kernel, baselinePx, invFocusM });
+      this.develop(params.develop, W, H);
+      return;
+    }
+
     const layers = buildScene(params.subjectMm / 1000, params.backgroundMm / 1000);
 
-    // Sky, straight onto the canvas: a smooth gradient needs no blur.
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    // Sky, straight onto the image: a smooth gradient needs no blur.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.imageFbo);
     gl.viewport(0, 0, W, H);
     gl.disable(gl.SCISSOR_TEST);
     gl.disable(gl.BLEND);
@@ -333,41 +707,14 @@ export class BokehRenderer {
       const bounds = this.layerBounds(layer, project, fpx, cy, W, H, r);
       if (!bounds) continue;
 
-      // 1. Paint the layer into the margin-padded texture.
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.layerFbo);
+      // 1. Paint the layer into the margin-padded texture (colour only).
+      this.clearLayer();
+      gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.NONE]);
       gl.viewport(0, 0, FW, FH);
-      gl.disable(gl.SCISSOR_TEST);
-      gl.disable(gl.BLEND);
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
       this.paintLayer(layer, project, fpx, cx, cy, margin, FW, FH, H, r, fog(layer.z), baselinePx, invFocusM);
 
-      // 2. Mipmaps for the blur.
-      gl.bindTexture(gl.TEXTURE_2D, this.layerTex);
-      gl.generateMipmap(gl.TEXTURE_2D);
-
-      // 3. Blur-composite onto the canvas.
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.viewport(0, 0, W, H);
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      const [bx0, by0, bx1, by1] = bounds;
-      gl.enable(gl.SCISSOR_TEST);
-      gl.scissor(bx0, H - by1, bx1 - bx0, by1 - by0);
-      const blur = this.use("blur", [0, 0, W, H], [W, H]);
-      const count = r < 0.6 ? 1 : KERNEL_SIZE;
-      const spacing = r * Math.sqrt(Math.PI / KERNEL_SIZE);
-      gl.uniform1i(blur.u("uTex"), 0);
-      gl.uniform2f(blur.u("uTexSize"), FW, FH);
-      gl.uniform2f(blur.u("uCanvas"), W, H);
-      gl.uniform1f(blur.u("uMargin"), margin);
-      gl.uniform1f(blur.u("uRadius"), count === 1 ? 0 : r);
-      gl.uniform1f(blur.u("uLod"), count === 1 ? 0 : Math.max(0, Math.log2(spacing)));
-      gl.uniform2fv(blur.u("uKernel"), kernel);
-      gl.uniform1i(blur.u("uCount"), count);
-      gl.uniform1f(blur.u("uCatEye"), shape.catEye);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      gl.disable(gl.SCISSOR_TEST);
+      // 2–3. Mipmaps, then blur-composite onto the image.
+      this.compositeLayer(bounds, r, { W, H, FW, FH, margin, kernel, catEye: shape.catEye });
 
       // 4. Point lights as bokeh, added on top of their own layer.
       if (layer.lights.length) {
@@ -375,6 +722,47 @@ export class BokehRenderer {
         this.drawLights(layer.lights, project, blurRadius, fog, shape, powerScale, W, H);
       }
     }
+
+    this.develop(params.develop, W, H);
+  }
+
+  /** Film or sensor: turns the optical image into the final photo on the canvas. */
+  private develop(dev: DevelopParams | undefined, W: number, H: number) {
+    const gl = this.gl;
+    gl.bindTexture(gl.TEXTURE_2D, this.imageTex);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, W, H);
+    gl.disable(gl.BLEND);
+    gl.disable(gl.SCISSOR_TEST);
+    const p = this.use("develop", [0, 0, W, H], [W, H]);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1i(p.u("uImg"), 0);
+
+    const look = dev?.look;
+    const film = look !== undefined && look.kind !== "digital";
+    gl.uniform1f(p.u("uExposure"), dev?.exposureStops ?? 0);
+    gl.uniform1i(p.u("uCurve"), film ? 1 : 0);
+    gl.uniform1f(p.u("uMono"), look?.mono ? 1 : 0);
+    gl.uniform1f(p.u("uSoft"), look?.softness || 1);
+    gl.uniform1f(p.u("uBias"), look?.bias ?? 0);
+    gl.uniform1f(p.u("uSat"), look?.saturation ?? 1);
+    gl.uniform3fv(p.u("uBalance"), look?.balance ?? [1, 1, 1]);
+    gl.uniform3fv(p.u("uShadowTint"), look?.shadowTint ?? [0, 0, 0]);
+    gl.uniform3fv(p.u("uHighlightTint"), look?.highlightTint ?? [0, 0, 0]);
+    gl.uniform1f(p.u("uBlackLift"), look?.blackLift ?? 0);
+    gl.uniform1f(p.u("uGrain"), dev?.grain ?? 0);
+    // Grain clumps grow with film speed; sensor noise is per pixel.
+    const grainSize = film ? Math.max(0.9, (W / 1100) * 1.5 * ((look?.iso ?? 400) / 400) ** 0.3) : Math.max(0.7, W / 1600);
+    gl.uniform1f(p.u("uGrainSize"), grainSize);
+    gl.uniform1f(p.u("uGrainColor"), film ? 0.35 : 0.5);
+    gl.uniform1f(p.u("uHalation"), look?.halation ?? 0);
+    gl.uniform1f(p.u("uHalLod"), Math.max(1, Math.log2(W / 110)));
+    gl.uniform1f(p.u("uVignette"), dev?.vignetteStops ?? 0);
+    const shakePx = (dev?.shake ?? 0) * W;
+    gl.uniform2f(p.u("uShake"), shakePx * Math.cos(dev?.shakeAngle ?? 0), shakePx * Math.sin(dev?.shakeAngle ?? 0));
+    gl.uniform1f(p.u("uSeed"), ((dev?.seed ?? 0) % 1000) / 1000);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
   /** Canvas-space box the blurred layer can touch, or null when off-screen. */
@@ -490,7 +878,9 @@ export class BokehRenderer {
       const [x, y] = project(light.x, light.y, light.z);
       const R = Math.max(blurRadius(light.z), 1.1);
       if (x < -R || x > W + R || y < -R || y > H + R) continue;
-      const intensity = (1 - Math.exp((-light.power * powerScale) / (Math.PI * R * R))) * (1 - fog(light.z) * 0.6);
+      // Energy spreads over the disc; in HDR a small disc may exceed white.
+      const density = (light.power * powerScale) / (Math.PI * R * R);
+      const intensity = (this.hdr ? Math.min(density * 0.6, 12) : 1 - Math.exp(-density)) * (1 - fog(light.z) * 0.6);
       const [cr, cg, cb] = light.color;
       gl.uniform4f(p.u("uRect"), x - R - 2, y - R - 2, x + R + 2, y + R + 2);
       gl.uniform2f(p.u("uCenter"), x, y);

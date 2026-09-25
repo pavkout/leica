@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Lens } from "../data/gear";
+import { framelinesFor, type Body, type Lens } from "../data/gear";
 import { distanceFromExtension, focusExtension } from "../physics/optics";
 import type { ApertureShape } from "../preview/aperture";
 import {
@@ -7,18 +7,23 @@ import {
   RANGEFINDER_BASE_M,
   finderFieldDeg,
   framelineParallax,
-  framelinePair,
 } from "../preview/rangefinder";
+import type { PhotoScene } from "../preview/photoScene";
 import { BokehRenderer, type RenderParams } from "../preview/renderer";
+import { meterLeds } from "../physics/exposure";
 import { useDrag } from "../utils/useDrag";
 import { useElementWidth } from "../utils/useElementWidth";
 
 interface Props {
+  body: Body;
   lens: Lens;
   focusMm: number;
   subjectMm: number;
   backgroundMm: number;
   shape: ApertureShape;
+  photo?: PhotoScene | null;
+  /** In-finder exposure display: M6-style LEDs or a digital shutter readout. */
+  meter?: { kind: "leds" | "display"; errorStops: number; shutterLabel: string; auto: boolean };
   onFocusChange: (mm: number) => void;
 }
 
@@ -53,7 +58,7 @@ function drawFinderImage(ctx: CanvasRenderingContext2D, main: HTMLCanvasElement,
   ctx.restore();
 }
 
-export default function Viewfinder({ lens, focusMm, subjectMm, backgroundMm, shape, onFocusChange }: Props) {
+export default function Viewfinder({ body, lens, focusMm, subjectMm, backgroundMm, shape, photo, meter, onFocusChange }: Props) {
   const [wrapRef, width] = useElementWidth<HTMLDivElement>();
   const dpr = typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2);
   const W = Math.min(Math.round(width * dpr), MAX_PIXEL_WIDTH);
@@ -80,8 +85,8 @@ export default function Viewfinder({ lens, focusMm, subjectMm, backgroundMm, sha
     }
   }, []);
 
-  const fieldDeg = finderFieldDeg(magnified ? MAGNIFIER : 1);
-  const pair = framelinePair(lens.focalMm);
+  const fieldDeg = finderFieldDeg(body.rangefinder?.magnification ?? 0.72, magnified ? MAGNIFIER : 1);
+  const pair = framelinesFor(body, lens.focalMm);
 
   useEffect(() => {
     const r = renderers.current;
@@ -104,6 +109,7 @@ export default function Viewfinder({ lens, focusMm, subjectMm, backgroundMm, sha
         horizontalAngleDeg: fieldDeg,
         shape,
         sharp: true,
+        photo: photo ?? undefined,
       };
       r.main.render(base);
       r.second.render({ ...base, baselineM: RANGEFINDER_BASE_M });
@@ -143,6 +149,47 @@ export default function Viewfinder({ lens, focusMm, subjectMm, backgroundMm, sha
       ctx.fillStyle = rim;
       ctx.fillRect(0, 0, W, H);
 
+      // Red LED exposure display under the frame.
+      if (meter) {
+        const size = W / 34;
+        const y = H - H * 0.075;
+        const leds = meterLeds(meter.errorStops);
+        const lit = "#ff3b2f";
+        const dim = "rgba(110, 18, 12, 0.6)";
+        const tri = (x: number, dir: 1 | -1, on: boolean) => {
+          ctx.fillStyle = on ? lit : dim;
+          ctx.shadowBlur = on ? size * 0.8 : 0;
+          ctx.beginPath();
+          ctx.moveTo(x - (dir * size) / 2, y - size / 2);
+          ctx.lineTo(x + (dir * size) / 2, y);
+          ctx.lineTo(x - (dir * size) / 2, y + size / 2);
+          ctx.closePath();
+          ctx.fill();
+        };
+        ctx.save();
+        ctx.shadowColor = "#ff2a1a";
+        if (meter.kind === "leds" || !meter.auto) {
+          const gap = meter.kind === "display" ? size * 3.2 : size * 1.4;
+          tri(cx - gap, 1, leds.under);
+          tri(cx + gap, -1, leds.over);
+        }
+        if (meter.kind === "leds") {
+          ctx.fillStyle = leds.ok ? lit : dim;
+          ctx.shadowBlur = leds.ok ? size * 0.8 : 0;
+          ctx.beginPath();
+          ctx.arc(cx, y, size * 0.32, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = lit;
+          ctx.shadowBlur = size * 0.6;
+          ctx.font = `700 ${Math.round(size * 1.05)}px ui-monospace, Menlo, Consolas, monospace`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(`${meter.auto ? "A " : ""}${meter.shutterLabel}`, cx, y);
+        }
+        ctx.restore();
+      }
+
       // Loupe: the patch enlarged, top-right.
       const R = Math.min(W, H) * 0.19;
       const lx = W - R - W * 0.03;
@@ -167,7 +214,7 @@ export default function Viewfinder({ lens, focusMm, subjectMm, backgroundMm, sha
       ctx.fillText(`Patch ${LOUPE_ZOOM}×`, lx, ly + R + W / 35);
     });
     return () => cancelAnimationFrame(frame);
-  }, [W, H, lens, focusMm, subjectMm, backgroundMm, shape, fieldDeg, pair]);
+  }, [W, H, lens, focusMm, subjectMm, backgroundMm, shape, photo, fieldDeg, pair, meter?.kind, meter?.errorStops, meter?.shutterLabel, meter?.auto]);
 
   // Dragging across the finder turns the focus ring, a full throw per width.
   const maxExtension = focusExtension(lens.focalMm, lens.minFocusMm);
@@ -191,9 +238,10 @@ export default function Viewfinder({ lens, focusMm, subjectMm, backgroundMm, sha
       </div>
       <div className="finder-controls">
         <span className="muted small">
+          {body.rangefinder?.magnification}× finder
           {pair
-            ? `${pair[0]}/${pair[1]} frames. Drag across the finder to focus.`
-            : `${lens.focalMm} mm is wider than the finder; use an external finder. Drag to focus.`}
+            ? `, ${pair.join("/")} frames. Drag across the finder to focus.`
+            : `; no ${lens.focalMm} mm frame, so use an external finder. Drag to focus.`}
         </span>
         <button type="button" className="btn btn-small" aria-pressed={magnified} onClick={() => setMagnified(!magnified)}>
           Magnifier {MAGNIFIER}×
