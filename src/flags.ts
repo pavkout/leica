@@ -21,7 +21,7 @@ export interface FeatureFlags {
 }
 
 export const FLAGS: FeatureFlags = {
-  liveView: false,
+  liveView: true,
   filmMode: true,
   motionSensors: false,
   audioHaptics: false,

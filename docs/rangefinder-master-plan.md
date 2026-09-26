@@ -206,9 +206,139 @@ desktop and 390px-wide mobile viewport: My Gear pinning, Zone Focus presets,
 Sunny 16 Trainer, Intent Assistant (including the bug above), and Roll
 Companion notes/export all work as intended; no console errors at any point.
 
+## Roll Companion: IndexedDB persistence (done)
+
+Closed the gap noted above. `src/services/db.ts` — two IndexedDB object
+stores (`filmFrames`/`digitalFrames`), separate from `services/persistence.ts`
+because frame images (base64 JPEG `data:` URLs, ~100-300 kB each) are too
+large/numerous for localStorage's quota; IndexedDB's browser-managed quota
+is built for this. `Frame` moved from `ContactSheet.tsx` to
+`state/rollExport.ts` (re-exported for compatibility) so the service layer
+doesn't depend on a component file. Tests use `fake-indexeddb` (new dev
+dependency, justified the same way as before — standard, dev-only, no
+bundle impact): 8 tests covering round-tripping, per-medium isolation,
+overwrite semantics and note updates.
+
+**Manually verified the acceptance criterion that actually matters** ("Roll
+survives offline reload"): shot a digital frame, reloaded the page, the
+frame and its Export CSV/JSON buttons were still there. Shot a film frame,
+clicked "Rewind & new roll," confirmed `filmFrames` cleared to 0 while
+`digitalFrames` (from the earlier test) was untouched — the two media are
+correctly isolated. No console errors.
+
+## Live View alpha and M3 full-screen viewfinder (done, alpha scope)
+
+**M3 full-screen viewfinder**: a "Full screen" button next to "Focus
+challenge" on the Rangefinder panel opens the existing `Viewfinder`
+component (unchanged) in a fixed, full-viewport, minimal-chrome overlay
+instead of the embedded panel. The two are mutually exclusive — only one
+`Viewfinder` (and its WebGL context) is ever mounted at a time, toggled via
+`viewfinderProps` shared between the inline and full-screen render sites, to
+avoid double GPU work. No new "50 vs 90 toggle" was built: switching lenses
+already changes the frameline pair correctly (verified — M3 + 50mm shows
+`[50]` or `[50,90]`/`[50,135]` depending on which 50mm/90mm lens is
+mounted), so a separate toggle would just duplicate the existing lens
+picker. Live camera feed inside the optical finder simulation (patch
+double-image rendered over real video via a WebGL texture upload) was
+explicitly **not** attempted — real complexity, not an alpha-scope task.
+
+**Live View alpha**: new `src/state/useCameraStream.ts` (the
+`CameraStreamService` capability adapter the spec asks for — permission
+requested only on explicit user action, distinct `idle`/`requesting`/
+`streaming`/`denied`/`unsupported`/`error` states, error classification
+logic pulled into a pure `classifyStreamError` function so it's testable
+without a browser) and `src/components/LiveView.tsx` (full-screen video +
+overlay). Scene brightness for the exposure card is **manual** (reusing the
+Sunny 16 trainer's `LIGHT_CONDITIONS` presets), not derived from webcam
+pixel brightness: a `getUserMedia` feed is already auto-exposed by the
+camera hardware, and the Web API doesn't reliably expose real shutter/ISO/
+gain across browsers (especially iOS Safari) — pretending to compute a real
+EV from pixel values would fabricate precision the browser can't actually
+provide. This matches how the rest of the app already assigns EV to the
+illustrated scene and sample photos, so it's not a rigor regression. The
+frameline overlay is explicitly labeled "approximate framing" against an
+assumed ~69° phone FOV (`ASSUMED_PHONE_FOV_DEG`, shared with the existing
+uploaded-photo FOV assumption in `App.tsx`) via `frameCropRatio` in the new
+`src/physics/liveView.ts`. Aperture/focus reuse `LensBarrel` directly inside
+the shoot card (same component, same tested interaction, no new ring code).
+**Not implemented in this pass**: capturing a Live View frame into the
+roll/contact sheet — the spec's acceptance criteria for the alpha milestone
+don't require it, and conflating a real captured photo with the simulator's
+synthetic-render pipeline needs its own design pass.
+
+**Verification**: 126 tests passing, 0 lint errors, clean typecheck/build.
+Manually verified in Chrome: the M3 full-screen mode opens/closes cleanly
+with no console errors and correct WebGL rendering (confirmed via
+screenshot — framelines, patch, loupe all present). Live View: the actual
+camera-streaming path could **not** be exercised — this sandbox has no
+camera device and the native OS/browser permission prompt isn't reachable
+through page-level browser automation, so a real "streaming" state was
+never observed running end-to-end. What *was* verified by stubbing
+`navigator.mediaDevices.getUserMedia` directly: the `denied` state (message
++ working "Try again" retry), the `unsupported` state (no-getUserMedia
+case), and — most importantly — that the shoot card stays fully live and
+correct throughout (tapping f/5.6 on the aperture ring instantly
+recalculated the DOF band from "34.7 m – ∞" to "14.9 m – ∞" and the shutter
+from 1/1000 to 1/500, with no page reload). This is a real, disclosed gap:
+the actual `<video>` rendering path (object-fit, frameline math against a
+live stream) has only been verified by code review, not by seeing a live
+feed on screen. Worth a real-device pass before calling Live View
+production-ready.
+
+Not confirmed at a narrow mobile viewport in this pass — window resize
+wasn't taking effect in that browser session — though the new CSS uses the
+same fluid/percentage/`env()`-safe-area approach that already passed a
+390px check for the other Phase 1 panels, so risk is judged low, not zero.
+
+## Real-device Live View pass, frame capture, and a second narrow-viewport attempt
+
+**Live View frame capture**: added. A shutter button now sits over the live
+video in `LiveView.tsx`; pressing it draws the actual `<video>` frame to an
+offscreen canvas (`canvas.toDataURL("image/jpeg", 0.92)`, matching the
+simulator's existing capture quality) and hands the URL up to `App.tsx`.
+Refactored `fireShutter`'s frame-construction/persistence logic into a
+shared `addFrame(url, captionSuffix?)` so the simulated-render path and the
+Live View path share the roll-full guard, film-advance sound and IndexedDB
+write instead of duplicating them. Live View captures are tagged
+`"· Live View"` in the caption so they're never confused with simulated
+renders on the contact sheet — a real photo and a synthetic render are
+different kinds of things, and conflating them in the UI would violate the
+project's own "never silently fabricate" ethic.
+
+**Real-device pass**: this environment can't grant camera permission itself
+— the native prompt lives outside page-level browser automation, and
+routing around it via `chrome://settings` is both technically blocked and
+the kind of browser-security tampering this project's operating rules say
+to stay out of. Asked the user to click "Allow" once in their own browser;
+they did, and **Live View then streamed real, live camera video** end to
+end: correct frameline overlay against the live feed, correct badge,
+correct reactive shoot card. Captured a frame with the new shutter button —
+it landed on the contact sheet as a real, sharp photo (not a placeholder),
+with the exact expected caption (`M4 · APO-Telyt-M 135 f/3.4 · f/3.4 ·
+1/30 · Gold 200 · Live View`) and correct metadata. No console errors
+through the whole flow. This closes the gap the previous pass left open —
+the actual `<video>`/frameline/capture path is now confirmed on real
+hardware, not just by code review.
+
+**Narrow-viewport check**: tried again (`resize_window` on a fresh tab, then
+a CSS-zoom workaround) — neither worked in this session; `resize_window`
+silently no-ops here, and `documentElement.style.zoom` turned out to be a
+rendering scale that doesn't change `window.innerWidth` or affect
+`@media` breakpoints at all, so it doesn't substitute for a real resize
+either. Still unconfirmed at a literal narrow viewport; the CSS-review
+reasoning from the previous pass stands unchanged. This is a tooling gap in
+the current session, not something worth spending further effort routing
+around — a real phone or a working DevTools device toolbar would settle it
+in seconds whenever that's available.
+
+**Verification**: 126 tests passing, 0 lint errors, clean typecheck/build,
+plus the real-camera manual pass above.
+
 ## What remains before Phase 1 is complete
 
-- Roll Companion: durable reload persistence via IndexedDB (see above).
-- Live View alpha and the M3 viewfinder full-screen mode: not started.
-- The mobile audit from Phase 0 still wants a dedicated device pass beyond
-  the 390px-viewport spot-check done alongside this phase's manual testing.
+- A narrow-viewport (mobile) check specifically for the two new full-screen
+  overlays — attempted twice this session, blocked by tooling, not by the
+  app.
+- The Phase 0 mobile audit still wants a dedicated real-device pass beyond
+  the spot-checks done alongside Phase 1's manual testing (now includes one
+  real webcam capture, but not a phone/orientation-change pass).

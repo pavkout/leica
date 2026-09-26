@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isMuted, playAdvance, playApertureClick, playDialClick, playRewind, playShutter, setMuted } from "./audio/sounds";
 import BokehPreview, { type PreviewHandle, type PreviewSide } from "./components/BokehPreview";
 import ContactSheet, { type Frame } from "./components/ContactSheet";
@@ -15,6 +15,8 @@ import LensArt from "./components/gear/LensArt";
 import Segmented from "./components/Segmented";
 import Sunny16Trainer from "./components/Sunny16Trainer";
 import IntentAssistant from "./components/IntentAssistant";
+import LiveView from "./components/LiveView";
+import { FLAGS } from "./flags";
 import {
   BODIES,
   apertureStops,
@@ -28,9 +30,16 @@ import {
   type Lens,
 } from "./data/gear";
 import { correctShutter, exposureError, shakeBlurMm } from "./physics/exposure";
+import { ASSUMED_PHONE_FOV_DEG } from "./physics/liveView";
 import { SHARPNESS_STANDARDS, computeShot, type Shot } from "./physics/model";
 import { useOpticalState } from "./state/opticalState";
 import { useBag } from "./state/bag";
+import {
+  clearFrames as clearStoredFrames,
+  loadFrames as loadStoredFrames,
+  saveFrame as saveStoredFrame,
+  updateFrameNote as saveStoredFrameNote,
+} from "./services/db";
 import { GENERIC_BLADES, apertureShape, stopsDown } from "./preview/aperture";
 import { grainStrength, lookFor, type FilmLook } from "./preview/film";
 import type { DevelopParams } from "./preview/renderer";
@@ -62,8 +71,7 @@ const BACKGROUND_PRESETS: Record<Units, { mm: number; label: string }[]> = {
 
 /** The illustrated night street: a lit city street after dark. */
 const STREET_EV = 5;
-/** Phone main cameras see roughly this wide (about a 26 mm equivalent). */
-const PHONE_FOV_DEG = 69;
+const PHONE_FOV_DEG = ASSUMED_PHONE_FOV_DEG;
 const sampleCache = new Map<string, Promise<PhotoScene>>();
 const ROLL_LENGTH = 36;
 
@@ -175,10 +183,16 @@ export default function App() {
   // Focus challenge: the subject stands at a hidden distance instead of at the focus.
   const [picker, setPicker] = useState<"body" | "lens" | null>(null);
   const [challenge, setChallenge] = useState<{ subjectMm: number; shotTaken: boolean } | null>(null);
+  const [liveViewOpen, setLiveViewOpen] = useState(false);
+  const [fullScreenFinder, setFullScreenFinder] = useState(false);
   // Capture.
   const [muted, setMutedState] = useState(isMuted);
   const [rollFrames, setRollFrames] = useState<Frame[]>([]);
   const [cardFrames, setCardFrames] = useState<Frame[]>([]);
+  useEffect(() => {
+    loadStoredFrames("film").then(setRollFrames);
+    loadStoredFrames("digital").then(setCardFrames);
+  }, []);
   const [flash, setFlash] = useState(0);
   const previewRef = useRef<PreviewHandle>(null);
   // Scene: the illustrated street, a sample photo, or the user's own photo.
@@ -284,6 +298,11 @@ export default function App() {
 
   const frames = isFilm ? rollFrames : cardFrames;
   const rollFull = isFilm && rollFrames.length >= ROLL_LENGTH;
+  const frameStatusLabel = isFilm
+    ? rollFull
+      ? "Roll finished: rewind to load a new one"
+      : `Frame ${rollFrames.length + 1} of ${ROLL_LENGTH}`
+    : `${cardFrames.length} on the card`;
 
   function changeAperture(n: number) {
     if (n !== fNumber) playApertureClick();
@@ -295,6 +314,22 @@ export default function App() {
     setManualShutter(t);
   }
 
+  /** Adds a captured image (however it was rendered) to the current roll/card, and persists it. */
+  function addFrame(url: string, captionSuffix?: string) {
+    const number = frames.length + 1;
+    const frame: Frame = {
+      id: Math.floor(Math.random() * 100000),
+      number,
+      url,
+      caption: `${body.name} · ${lens.name} · ${formatFNumber(fNumber)} · ${formatShutter(shutterSec)} · ${isFilm ? look.name : `ISO ${iso}`}${captionSuffix ? ` · ${captionSuffix}` : ""}`,
+      fileName: `rangefinder-${String(number).padStart(2, "0")}.jpg`,
+      meta: { body: body.name, lens: lens.name, fNumber, shutterSec, focusMm, iso, filmOrSensor: isFilm ? look.name : `ISO ${iso}` },
+    };
+    (isFilm ? setRollFrames : setCardFrames)((list) => [...list, frame]);
+    void saveStoredFrame(isFilm ? "film" : "digital", frame);
+    if (isFilm && rollFrames.length + 1 < ROLL_LENGTH) setTimeout(playAdvance, Math.min(shutterSec, 2) * 1000 + 200);
+  }
+
   function fireShutter() {
     if (rollFull) return;
     const seed = Math.floor(Math.random() * 100000);
@@ -303,19 +338,14 @@ export default function App() {
     setFlash((f) => f + 1);
     const side = previewSide(lens, shot, developFor(lens, fNumber, shot.frameWidthMm, seed, angle), photo);
     const url = previewRef.current?.capture(side.params);
-    if (url) {
-      const number = frames.length + 1;
-      const frame: Frame = {
-        id: seed,
-        number,
-        url,
-        caption: `${body.name} · ${lens.name} · ${formatFNumber(fNumber)} · ${formatShutter(shutterSec)} · ${isFilm ? look.name : `ISO ${iso}`}`,
-        fileName: `rangefinder-${String(number).padStart(2, "0")}.jpg`,
-        meta: { body: body.name, lens: lens.name, fNumber, shutterSec, focusMm, iso, filmOrSensor: isFilm ? look.name : `ISO ${iso}` },
-      };
-      (isFilm ? setRollFrames : setCardFrames)((list) => [...list, frame]);
-    }
-    if (isFilm && rollFrames.length + 1 < ROLL_LENGTH) setTimeout(playAdvance, Math.min(shutterSec, 2) * 1000 + 200);
+    if (url) addFrame(url);
+  }
+
+  /** Same roll/card, but the image is a real captured Live View frame, not a simulated render. */
+  function captureLiveFrame(url: string) {
+    if (rollFull) return;
+    playShutter(shutterSec, !isFilm);
+    addFrame(url, "Live View");
   }
 
   async function selectScene(id: string) {
@@ -370,15 +400,28 @@ export default function App() {
   function rewind() {
     playRewind();
     setRollFrames([]);
+    void clearStoredFrames("film");
   }
 
   function updateFrameNote(id: number, note: string) {
     (isFilm ? setRollFrames : setCardFrames)((list) => list.map((f) => (f.id === id ? { ...f, note } : f)));
+    void saveStoredFrameNote(isFilm ? "film" : "digital", id, note);
   }
 
   const shape = apertureShape(lens, fNumber);
   const standardInfo = SHARPNESS_STANDARDS.find((s) => s.id === shot.standard)!;
   const canHyperfocal = shot.dof.hyperfocalMm >= lens.minFocusMm;
+  const viewfinderProps = {
+    body,
+    lens,
+    focusMm,
+    subjectMm: shot.subjectMm,
+    backgroundMm: shot.backgroundMm,
+    shape,
+    photo,
+    meter: body.meter === "none" ? undefined : { kind: body.meter, errorStops, shutterLabel: formatShutter(shutterSec).replace("1/", ""), auto },
+    onFocusChange: setFocusMm,
+  };
 
   return (
     <div className="app">
@@ -428,11 +471,18 @@ export default function App() {
           <section className="panel stage-preview" aria-label="Simulated photo">
             <div className="panel-head">
               <h2>Simulated photo</h2>
-              {lenses.length > 1 && (
-                <button type="button" className="btn btn-small" aria-pressed={compare} onClick={toggleCompare}>
-                  {compare ? "Close comparison" : "Compare lenses"}
-                </button>
-              )}
+              <span className="row-actions">
+                {FLAGS.liveView && (
+                  <button type="button" className="btn btn-small btn-red" onClick={() => setLiveViewOpen(true)}>
+                    Live
+                  </button>
+                )}
+                {lenses.length > 1 && (
+                  <button type="button" className="btn btn-small" aria-pressed={compare} onClick={toggleCompare}>
+                    {compare ? "Close comparison" : "Compare lenses"}
+                  </button>
+                )}
+              </span>
             </div>
             <ScenePicker
               sceneId={sceneId}
@@ -469,7 +519,7 @@ export default function App() {
                   {formatFNumber(fNumber)} · {formatShutter(shutterSec)} · {isFilm ? look.name : `ISO ${iso}`}
                 </span>
                 <span className="gear-meta">
-                  {isFilm ? (rollFull ? "Roll finished: rewind to load a new one" : `Frame ${rollFrames.length + 1} of ${ROLL_LENGTH}`) : `${cardFrames.length} on the card`}
+                  {frameStatusLabel}
                 </span>
               </div>
               <button
@@ -524,23 +574,18 @@ export default function App() {
             <section className="panel stage-finder" aria-label="Rangefinder">
               <div className="panel-head">
                 <h2>Rangefinder · {body.name}</h2>
-                {!challenge && !photo && (
-                  <button type="button" className="btn btn-small" onClick={startChallenge}>
-                    Focus challenge
+                <span className="row-actions">
+                  <button type="button" className="btn btn-small" onClick={() => setFullScreenFinder(true)}>
+                    Full screen
                   </button>
-                )}
+                  {!challenge && !photo && (
+                    <button type="button" className="btn btn-small" onClick={startChallenge}>
+                      Focus challenge
+                    </button>
+                  )}
+                </span>
               </div>
-              <Viewfinder
-                body={body}
-                lens={lens}
-                focusMm={focusMm}
-                subjectMm={shot.subjectMm}
-                backgroundMm={shot.backgroundMm}
-                shape={shape}
-                photo={photo}
-                meter={body.meter === "none" ? undefined : { kind: body.meter, errorStops, shutterLabel: formatShutter(shutterSec).replace("1/", ""), auto }}
-                onFocusChange={setFocusMm}
-              />
+              {!fullScreenFinder && <Viewfinder {...viewfinderProps} />}
               {challenge && (
                 <div className="challenge" role="status">
                   {challenge.shotTaken ? (
@@ -844,6 +889,35 @@ export default function App() {
         trademarks of their owners.{GEAR_IMAGE_CREDITS.length > 0 && ` Product photos: ${GEAR_IMAGE_CREDITS.join("; ")}.`} Lens specs come from public sources; check them against Leica's
         datasheets. Distances are measured from the lens (thin-lens model).
       </footer>
+
+      {fullScreenFinder && (
+        <div className="finder-fullscreen" role="dialog" aria-modal="true" aria-label={`${body.name} viewfinder, full screen`}>
+          <button type="button" className="live-view-close" onClick={() => setFullScreenFinder(false)} aria-label="Close full screen">
+            ×
+          </button>
+          <Viewfinder {...viewfinderProps} />
+        </div>
+      )}
+
+      {liveViewOpen && (
+        <LiveView
+          body={body}
+          lens={lens}
+          fNumber={fNumber}
+          focusMm={focusMm}
+          stops={stops}
+          shutters={speeds}
+          iso={iso}
+          filmOrSensorLabel={isFilm ? look.name : `ISO ${iso}`}
+          frameStatusLabel={frameStatusLabel}
+          captureDisabled={rollFull}
+          units={units}
+          onFNumberChange={changeAperture}
+          onFocusChange={setFocusMm}
+          onCapture={captureLiveFrame}
+          onClose={() => setLiveViewOpen(false)}
+        />
+      )}
     </div>
   );
 }

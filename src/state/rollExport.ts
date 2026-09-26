@@ -21,6 +21,17 @@ export interface ExportableFrame {
   note?: string;
 }
 
+/** A captured frame: the domain model shared by the roll/card UI and its persistence. */
+export interface Frame {
+  id: number;
+  number: number;
+  url: string;
+  caption: string;
+  fileName: string;
+  meta: FrameMeta;
+  note?: string;
+}
+
 const CSV_HEADERS = ["frame", "body", "lens", "aperture", "shutter_s", "focus_mm", "iso", "film_or_sensor", "note", "file"];
 
 function csvField(value: string): string {

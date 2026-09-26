@@ -1,17 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { type ExportableFrame, type FrameMeta, framesToCsv, framesToJson } from "../state/rollExport";
+import { type ExportableFrame, type Frame, type FrameMeta, framesToCsv, framesToJson } from "../state/rollExport";
 
-export type { FrameMeta };
-
-export interface Frame {
-  id: number;
-  number: number;
-  url: string;
-  caption: string;
-  fileName: string;
-  meta: FrameMeta;
-  note?: string;
-}
+export type { Frame, FrameMeta };
 
 interface Props {
   frames: Frame[];
