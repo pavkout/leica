@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { type ExportableFrame, type Frame, type FrameMeta, framesToCsv, framesToJson } from "../state/rollExport";
+import { OUTCOME_TAGS, type ExportableFrame, type Frame, type FrameMeta, type OutcomeTag, framesToCsv, framesToJson } from "../state/rollExport";
 
 export type { Frame, FrameMeta };
 
@@ -12,6 +12,7 @@ interface Props {
   base: "color" | "bw" | "slide" | "digital";
   onRewind: () => void;
   onUpdateNote: (id: number, note: string) => void;
+  onUpdateOutcome: (id: number, outcome: OutcomeTag | undefined) => void;
 }
 
 /** Triggers a browser download of in-memory text; no server round-trip. */
@@ -28,7 +29,7 @@ function toExportable(f: Frame): ExportableFrame {
   return { number: f.number, fileName: f.fileName, meta: f.meta, note: f.note };
 }
 
-export default function ContactSheet({ frames, capacity, filmName, base, onRewind, onUpdateNote }: Props) {
+export default function ContactSheet({ frames, capacity, filmName, base, onRewind, onUpdateNote, onUpdateOutcome }: Props) {
   const [openId, setOpenId] = useState<number | null>(null);
   const open = frames.find((f) => f.id === openId) ?? null;
   const dialog = useRef<HTMLDialogElement>(null);
@@ -79,8 +80,9 @@ export default function ContactSheet({ frames, capacity, filmName, base, onRewin
       ) : (
         <div className={`sheet sheet-${base}`}>
           {frames.map((f) => (
-            <button key={f.id} type="button" className="sheet-frame" onClick={() => setOpenId(f.id)} aria-label={`Frame ${f.number}: ${f.caption}`}>
+            <button key={f.id} type="button" className="sheet-frame" onClick={() => setOpenId(f.id)} aria-label={`Frame ${f.number}: ${f.caption}${f.outcome ? `, tagged ${f.outcome}` : ""}`}>
               {film && <span className="sheet-edge">{f.number}  ▸ {f.number}A</span>}
+              {f.outcome && <span className={`sheet-tag sheet-tag-${f.outcome}`}>{OUTCOME_TAGS.find((t) => t.id === f.outcome)!.label}</span>}
               <img src={f.url} alt="" />
             </button>
           ))}
@@ -95,8 +97,25 @@ export default function ContactSheet({ frames, capacity, filmName, base, onRewin
               <span>
                 <b>#{open.number}</b> {open.caption}
               </span>
+              <div className="field">
+                <span>Outcome</span>
+                <div className="dial" role="radiogroup" aria-label="Outcome tag">
+                  {OUTCOME_TAGS.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={open.outcome === t.id}
+                      className={open.outcome === t.id ? "dial-step dial-on" : "dial-step"}
+                      onClick={() => onUpdateOutcome(open.id, open.outcome === t.id ? undefined : t.id)}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <label className="field">
-                <span>Note</span>
+                <span>Composition note</span>
                 <input
                   type="text"
                   value={open.note ?? ""}

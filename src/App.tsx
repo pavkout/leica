@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { isMuted, playAdvance, playApertureClick, playDialClick, playRewind, playShutter, setMuted } from "./audio/sounds";
 import BokehPreview, { type PreviewHandle, type PreviewSide } from "./components/BokehPreview";
 import ContactSheet, { type Frame } from "./components/ContactSheet";
+import type { OutcomeTag } from "./state/rollExport";
 import ExposurePanel from "./components/ExposurePanel";
 import ScenePicker from "./components/ScenePicker";
 import LensBarrel from "./components/LensBarrel";
@@ -18,6 +19,7 @@ import Iris from "./components/Iris";
 import Sunny16Trainer from "./components/Sunny16Trainer";
 import IntentAssistant from "./components/IntentAssistant";
 import PortraitTrainer from "./components/PortraitTrainer";
+import Insights from "./components/Insights";
 import LiveView from "./components/LiveView";
 import { FLAGS } from "./flags";
 import {
@@ -336,7 +338,7 @@ export default function App() {
       url,
       caption: `${body.name} · ${lens.name} · ${formatFNumber(fNumber)} · ${formatShutter(shutterSec)} · ${isFilm ? look.name : `ISO ${iso}`}${captionSuffix ? ` · ${captionSuffix}` : ""}`,
       fileName: `rangefinder-${String(number).padStart(2, "0")}.jpg`,
-      meta: { body: body.name, lens: lens.name, fNumber, shutterSec, focusMm, iso, filmOrSensor: isFilm ? look.name : `ISO ${iso}` },
+      meta: { body: body.name, lens: lens.name, focalMm: lens.focalMm, fNumber, shutterSec, focusMm, iso, filmOrSensor: isFilm ? look.name : `ISO ${iso}`, evOffset: errorStops },
     };
     (isFilm ? setRollFrames : setCardFrames)((list) => [...list, frame]);
     void saveStoredFrame(isFilm ? "film" : "digital", frame);
@@ -419,6 +421,15 @@ export default function App() {
   function updateFrameNote(id: number, note: string) {
     (isFilm ? setRollFrames : setCardFrames)((list) => list.map((f) => (f.id === id ? { ...f, note } : f)));
     void saveStoredFrameNote(isFilm ? "film" : "digital", id, note);
+  }
+
+  function updateFrameOutcome(id: number, outcome: OutcomeTag | undefined) {
+    const existing = frames.find((f) => f.id === id);
+    if (!existing) return;
+    const updated: Frame = { ...existing, outcome };
+    if (!outcome) delete updated.outcome;
+    (isFilm ? setRollFrames : setCardFrames)((list) => list.map((f) => (f.id === id ? updated : f)));
+    void saveStoredFrame(isFilm ? "film" : "digital", updated);
   }
 
   const shape = apertureShape(lens, fNumber);
@@ -700,7 +711,10 @@ export default function App() {
             base={isFilm ? (look.mono ? "bw" : look.kind === "slide" ? "slide" : "color") : "digital"}
             onRewind={rewind}
             onUpdateNote={updateFrameNote}
+            onUpdateOutcome={updateFrameOutcome}
           />
+
+          <Insights frames={frames} />
 
           <section className="panel stage-scene" aria-label="Scene">
             <div className="panel-head">

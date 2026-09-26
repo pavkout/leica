@@ -5,6 +5,7 @@
 export interface FrameMeta {
   body: string;
   lens: string;
+  focalMm: number;
   fNumber: number;
   shutterSec: number;
   /** `Infinity` for focused at infinity. */
@@ -12,6 +13,8 @@ export interface FrameMeta {
   iso: number;
   /** Film stock name, or "ISO n" for a digital sensor. */
   filmOrSensor: string;
+  /** Exposure deviation (stops) of the chosen settings from a metered exposure for the scene; +over, -under. */
+  evOffset: number;
 }
 
 export interface ExportableFrame {
@@ -20,6 +23,17 @@ export interface ExportableFrame {
   meta: FrameMeta;
   note?: string;
 }
+
+/** A user-tagged shooting outcome — the feedback half of the scan/negatives loop. */
+export type OutcomeTag = "good" | "missed-focus" | "motion-blur" | "underexposed" | "overexposed";
+
+export const OUTCOME_TAGS: { id: OutcomeTag; label: string }[] = [
+  { id: "good", label: "Good" },
+  { id: "missed-focus", label: "Missed focus" },
+  { id: "motion-blur", label: "Motion blur" },
+  { id: "underexposed", label: "Underexposed" },
+  { id: "overexposed", label: "Overexposed" },
+];
 
 /** A captured frame: the domain model shared by the roll/card UI and its persistence. */
 export interface Frame {
@@ -30,6 +44,7 @@ export interface Frame {
   fileName: string;
   meta: FrameMeta;
   note?: string;
+  outcome?: OutcomeTag;
 }
 
 const CSV_HEADERS = ["frame", "body", "lens", "aperture", "shutter_s", "focus_mm", "iso", "film_or_sensor", "note", "file"];

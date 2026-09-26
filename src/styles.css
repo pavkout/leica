@@ -202,8 +202,9 @@ select {
 .stage-iris { order: 9; }
 .readouts { order: 10; }
 .stage-roll { order: 11; }
-.stage-scene { order: 12; }
-.stage-details { order: 13; }
+.stage-insights { order: 12; }
+.stage-scene { order: 13; }
+.stage-details { order: 14; }
 
 .panel {
   position: relative;
@@ -1180,6 +1181,24 @@ input[type="text"]::placeholder {
   color: #cfcfcf;
 }
 
+.sheet-tag {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  background: var(--line-strong);
+  color: var(--text);
+}
+
+.sheet-tag-good { background: var(--red); color: #fff; }
+.sheet-tag-missed-focus,
+.sheet-tag-motion-blur,
+.sheet-tag-underexposed,
+.sheet-tag-overexposed { background: #3a3a3a; }
+
 .lightbox {
   width: min(1100px, calc(100% - 24px));
   max-height: 92dvh;
@@ -1221,6 +1240,27 @@ input[type="text"]::placeholder {
 .lightbox-actions {
   display: flex;
   gap: 8px;
+}
+
+/* ── Insights (learn-from-negatives feedback loop) ───────────── */
+.insight-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insight-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.insight-item p:first-child {
+  margin: 0 0 4px;
 }
 
 .row-actions {

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { clearFrames, loadFrames, saveFrame, updateFrameNote } from "./db";
 import type { Frame } from "../state/rollExport";
 
-const meta = { body: "M11", lens: "Summilux-M 50 f/1.4 ASPH.", fNumber: 1.4, shutterSec: 1 / 500, focusMm: 2000, iso: 400, filmOrSensor: "ISO 400" };
+const meta = { body: "M11", lens: "Summilux-M 50 f/1.4 ASPH.", focalMm: 50, fNumber: 1.4, shutterSec: 1 / 500, focusMm: 2000, iso: 400, filmOrSensor: "ISO 400", evOffset: 0 };
 
 const frame1: Frame = { id: 1, number: 1, url: "data:image/jpeg;base64,AAA", caption: "c1", fileName: "f1.jpg", meta };
 const frame2: Frame = { id: 2, number: 2, url: "data:image/jpeg;base64,BBB", caption: "c2", fileName: "f2.jpg", meta };
