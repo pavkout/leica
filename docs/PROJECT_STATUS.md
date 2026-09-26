@@ -22,7 +22,7 @@ Last updated: 2026-09-26
 
 **Feature #22 — Film Loading Trainer**
 
-Status: **PARTIAL** — implemented and unit-tested for the M3, M6, MP and M-A, each sourced from its manual; not yet checked in a live browser or on mobile, and the M4 and M7 are unsourced (see "Last completed" → #22 and "Next").
+Status: **PARTIAL** — implemented and unit-tested for all six catalog film bodies (M3, M4, M6, M7, MP, M-A), each sourced from its manual; not yet checked in a live browser or on mobile (see "Last completed" → #22 and "Next").
 
 Also open: **#9** is PARTIAL, pending real-phone verification.
 
@@ -36,7 +36,7 @@ Also open: **#9** is PARTIAL, pending real-phone verification.
 - [x] **#18 — Cross-body Leica Viewfinder Comparison** — COMPLETE
 - [x] **#32 — Mechanical Audio + Haptics** — COMPLETE
 - [ ] **#9 — Phone Gyroscope Hand-Stability Trainer** — PARTIAL (awaiting real-device verification)
-- [ ] **#22 — Film Loading Trainer** — PARTIAL (M3/M6/MP/M-A sourced; M4/M7 unsourced; live/mobile check pending)
+- [ ] **#22 — Film Loading Trainer** — PARTIAL (all six film bodies sourced; live/mobile check pending)
 
 ## Recommended Phase 2 order (resequenced — see reasoning below)
 
@@ -203,7 +203,9 @@ Sourcing (the reason this feature was sequenced last): the loading/unloading pro
 - **M6**: Leica M6 Instruction manual M6/EN/2022/10/1, pp. 25–29 (leica-camera.com). This is the current manual for the 2022 re-edition; the catalog's M6 entry is the 1984 original.
 - **MP**: Leica MP Instruction manual, pp. 24–29 (leica-camera.com).
 - **M-A**: Leica M-A Instructions, pp. 36–39 (leica-camera.com).
-- **M4, M7**: no manual obtained this pass. They're listed in `UNSOURCED_FILM_BODY_IDS` and get no tutorial, rather than a guessed one. The panel says so when one of them is the selected body.
+- **M4** (added 2026-09-26, follow-up pass): Leica M4 instruction booklet (Ernst Leitz GmbH, Wetzlar), pp. 20–21. Scanned original via butkus.org (cameramanuals.org). The M4 loads differently from the others: the back panel swings open by itself when the baseplate comes off (no separate open-back step), the frame counter springs back to 2 marks before 0 at the same moment, and the film end is pressed in between two of three loading prongs rather than pulled into a slotted spool. That needed one new catalog action, `seat-on-prongs`. The manual doesn't word a cartridge-removal step for unloading, so that step just says "Take out the cartridge."
+- **M7** (added 2026-09-26): Leica M7 Bedienungsanleitung / Instructions (Leica Camera AG, German/English edition, 930 22 III/04), pp. 77–78. leica-camera.com no longer hosts it, so it's linked via the apotelyt.com mirror of the official PDF. Same sequence shape as the M-A (tension between the first and second wind), plus the DX-contact resistance notes.
+- `UNSOURCED_FILM_BODY_IDS` is now empty. The unsourced-body path stays in the code for future catalog additions. 1 new test covers the M4's prong loading, its back opening with the baseplate, and its counter reset. The existing "every step physically possible" and random-tap fuzz tests cover both new bodies automatically. Validation after this pass: typecheck clean, lint 0 errors (5 pre-existing warnings), 222/222 tests, clean production build.
 
 Implemented:
 - `state/loadingTutorial.ts` (pure finite-state engine): mechanical state is never stored; `stateAt(tutorial, i)` folds step patches, so back-step and restart are just index changes. `attempt()` only advances on the expected action. Anything else returns `blocked`, with the physical reason from the action's `requires` (e.g. working the advance lever with the bottom cover off, citing the manuals' own warning), or `out-of-order`, with the correct next step. Both leave the index unchanged.
@@ -215,15 +217,14 @@ Validation: typecheck clean, lint 0 errors (same 5 pre-existing warnings), 214/2
 
 **Why PARTIAL, not COMPLETE:**
 1. Not checked in a live browser this session (no browser automation available): tapping through a full M3 and M6 load/unload, the feedback copy in context, the source link, and the narrow-viewport layout of the action palette.
-2. M4 and M7 tutorials are missing until their manuals are sourced. The spec's "body-specific sequences" is met for four of the six catalog film bodies.
-3. The M3 source is an OCR'd scan. Step order and warnings were read directly, but a few words in the OCR were garbled and were read in context.
+2. ~~M4 and M7 tutorials missing~~ — resolved 2026-09-26; all six catalog film bodies are now sourced.
+3. The M3 and M4 sources are OCR'd scans. Step order and warnings were read directly, but a few words in the OCR were garbled and were read in context.
 
 ## Next
 
 Phase 2 has now touched every feature; what's left is verification rather than new features:
-1. **Device/browser check** of #9 (real phone, checklist above) and #22 (live browser + narrow viewport), then mark each COMPLETE.
-2. **Decide on #18/#32**: the user was asked whether they stay COMPLETE, or move to PARTIAL until a phone check. Not yet answered.
-3. Optionally source M4/M7 manuals for #22.
+1. **Device/browser check** of #9 (real phone, checklist above) and #22 (live browser + narrow viewport, now including the M4 and M7), then mark each COMPLETE. For the phone: run `npm run dev:phone`, which serves the app over HTTPS on the LAN with a self-signed certificate (`@vitejs/plugin-basic-ssl`, dev-only, active only in `--mode phone`). Open the printed `Network:` URL on the phone and accept the certificate warning. iOS Safari only exposes `DeviceMotionEvent` in a secure context, so plain `npm run dev` over the LAN can only ever show the "unsupported" path.
+2. ~~Decide on #18/#32~~ — decided 2026-09-26: both stay **COMPLETE**. Their remaining gaps are documented, and the unverified mobile layout is app-wide (see Known limitations), not specific to them.
 
 Do not start Phase 3 until Phase 2 is closed out or the user explicitly overrides.
 

@@ -45,6 +45,15 @@ describe("film loading tutorial data", () => {
     expect(tutorialFor("m3", "load")!.steps.map((s) => s.action)).toContain("remove-spool");
     expect(tutorialFor("m6", "load")!.steps.map((s) => s.action)).not.toContain("remove-spool");
   });
+
+  it("the M4 is taught with its loading prongs, and its back opens with the baseplate", () => {
+    const m4 = tutorialFor("m4", "load")!;
+    const actions = m4.steps.map((s) => s.action);
+    expect(actions).toContain("seat-on-prongs");
+    expect(actions).not.toContain("pull-leader");
+    expect(actions).not.toContain("open-back");
+    expect(stateAt(m4, actions.indexOf("remove-cover") + 1)).toMatchObject({ back: "open", counter: "2 marks before 0" });
+  });
 });
 
 describe("film loading tutorial engine", () => {

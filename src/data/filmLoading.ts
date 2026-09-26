@@ -93,6 +93,11 @@ export const LOADING_ACTIONS: Record<string, TutorialAction> = Object.fromEntrie
         ],
       },
       { id: "pull-leader", label: "Pull the leader into the take-up spool", requires: [{ key: "cartridge", oneOf: ["half"], reason: "Put the cartridge in its chamber first." }] },
+      {
+        id: "seat-on-prongs",
+        label: "Press cartridge and film end onto the loading prongs",
+        requires: [{ key: "cartridge", oneOf: ["half"], reason: "Start the cartridge into its chamber first." }],
+      },
       { id: "seat-film", label: "Press cartridge and leader home", requires: [{ key: "leader", oneOf: ["attached"], reason: "Pull the leader into the take-up spool first." }] },
       {
         id: "remove-cartridge",
@@ -189,6 +194,41 @@ const M3_SOURCE = {
   notes: "Scanned original via the butkus.us manual archive.",
   lastVerifiedAt: VERIFIED,
 };
+
+const M4_SOURCE = {
+  kind: "published" as const,
+  sourceName: "Leica M4 instruction booklet (Ernst Leitz GmbH, Wetzlar)",
+  sourceUrl: "https://www.cameramanuals.org/leica_pdf/leica_m4.pdf",
+  pages: "pp. 20–21",
+  notes: "Scanned original via the butkus.org manual archive; a few OCR-garbled words were read in context.",
+  lastVerifiedAt: VERIFIED,
+};
+const M7_SOURCE = {
+  kind: "published" as const,
+  sourceName: "Leica M7 Bedienungsanleitung / Instructions (Leica Camera AG, German/English edition, 930 22 III/04)",
+  sourceUrl: "https://apotelyt.com/abc-doc/leica-manual-m7.pdf",
+  pages: "pp. 77–78",
+  notes: "Official Leica manual; linked via a mirror because leica-camera.com no longer hosts it.",
+  lastVerifiedAt: VERIFIED,
+};
+
+// On the M4 the back panel swings open by itself once the baseplate is off,
+// and the frame counter springs back as it does.
+const M4_OPEN: TutorialStep[] = [
+  { action: "unlock", text: "Turn the baseplate latch to the left.", set: { camera: "unlocked" } },
+  {
+    action: "remove-cover",
+    text: "Remove the baseplate — the back panel swings open. Set the camera on its top, with the lens facing you.",
+    note: "The frame counter springs back to 2 marks before 0.",
+    set: { camera: "open", back: "open", counter: "2 marks before 0" },
+  },
+];
+
+const M7_OPEN: TutorialStep[] = [
+  { action: "unlock", text: "Hold the camera with the base plate pointing up. Raise the latch on the base plate and turn it to the left.", set: { camera: "unlocked" } },
+  { action: "remove-cover", text: "Remove the base plate.", set: { camera: "open" } },
+  { action: "open-back", text: "Fold the back out towards the rear.", set: { back: "open" } },
+];
 
 const MA_OPEN: TutorialStep[] = [
   { action: "unlock", text: "Hold the camera with the bottom cover facing up. Fold up the toggle and turn it to the left.", set: { camera: "unlocked" } },
@@ -309,10 +349,108 @@ export const LOADING_TUTORIALS: Tutorial[] = [
       },
     ],
   },
+  {
+    bodyIds: ["m4"],
+    mode: "load",
+    initial: EMPTY,
+    source: M4_SOURCE,
+    steps: [
+      { action: "check-empty", text: "Before opening, make sure the camera isn't already loaded: unfold the rewind crank and turn it gently in the direction of the arrow. If you feel resistance, a film is in the camera — rewind it first.", set: {} },
+      ...M4_OPEN,
+      { action: "insert-cartridge", text: "Start the cartridge into the left-hand chamber, drawing out only enough film to reach the three prongs in the right-hand chamber.", set: { cartridge: "half" } },
+      {
+        action: "seat-on-prongs",
+        text: "Press the cartridge and the film end straight into the camera. All that matters is that the film end lies between two of the three loading prongs.",
+        note: "Bulk film needs a tongue cut like factory-loaded film, and must be attached very securely to the cartridge spool.",
+        set: { cartridge: "in", leader: "attached" },
+      },
+      { action: "close-back", text: "Close the back panel.", set: { back: "closed" } },
+      { action: "refit-cover", text: "Replace and lock the baseplate. A disc on its inner side presses the film into the correct position.", set: { camera: "closed", film: "loaded" } },
+      { action: "wind", text: "Complete loading with two blank exposures: advance the film…", set: { cocked: true } },
+      { action: "release", text: "…and release the shutter.", set: { cocked: false } },
+      { action: "wind", text: "Advance again.", note: "The rewind crank turning backwards is your proof that the film is being transported properly.", set: { cocked: true } },
+      { action: "release", text: "Release the shutter for the second blank exposure.", set: { cocked: false } },
+      { action: "wind", text: "Advance once more. The frame counter now stands at 1 and the M4 is ready.", set: { cocked: true, counter: "1" } },
+    ],
+  },
+  {
+    bodyIds: ["m4"],
+    mode: "unload",
+    initial: FULL,
+    source: M4_SOURCE,
+    steps: [
+      { action: "set-rewind", text: "When the transport lever can no longer be moved, the last exposure has been made. Set the reversing lever at R and leave it there.", set: { lever: "R" } },
+      {
+        action: "rewind",
+        text: "Unfold the rewinding crank and turn it in the direction of the arrow until no further resistance is felt — the film is then completely rewound.",
+        note: "To leave the film end protruding from the cartridge, stop turning as soon as the resistance drops. Otherwise give a few extra turns so all the film goes into the cartridge.",
+        set: { film: "rewound", leader: "free" },
+      },
+      ...M4_OPEN,
+      { action: "remove-cartridge", text: "Take out the cartridge.", set: { cartridge: "none", film: "none" } },
+    ],
+  },
+  {
+    bodyIds: ["m7"],
+    mode: "load",
+    initial: EMPTY,
+    source: M7_SOURCE,
+    steps: [
+      { action: "check-empty", text: "Always start by making sure there's no film in the camera: turn the rewind crank gently in the direction of the arrow. If there's any resistance, rewind and remove that film first.", set: {} },
+      ...M7_OPEN,
+      {
+        action: "insert-cartridge",
+        text: "Hold the film cartridge in your right hand and insert it about half-way into the empty chamber.",
+        note: "You'll feel slight resistance as the cartridge pushes past the spring-loaded DX contacts.",
+        set: { cartridge: "half" },
+      },
+      {
+        action: "pull-leader",
+        text: "Take the film leader and pull it into the take-up spool, as the schematic diagram inside the camera housing shows.",
+        note: "Trim the leader as for any ready-to-use film. It doesn't matter if the tip pokes out of a slit on the far side of the spool — except in frosty conditions, when it should be taken up by one slit only so the end can't break off.",
+        set: { leader: "attached" },
+      },
+      { action: "seat-film", text: "Carefully press the film cartridge and the leader into the camera with your fingertips.", set: { cartridge: "in" } },
+      { action: "close-back", text: "Replace the camera back.", set: { back: "closed" } },
+      {
+        action: "refit-cover",
+        text: "Hook the base plate onto the retaining pin on the side of the camera, return it to its normal position with the back pressed completely in under it, and lock it with the latch.",
+        note: "Don't check the film transport with the camera open — replacing the base plate is what guides the film into position.",
+        set: { camera: "closed", film: "loaded" },
+      },
+      { action: "wind", text: "Advance the film with the quick-wind lever…", set: { cocked: true } },
+      { action: "release", text: "…and release the shutter.", set: { cocked: false } },
+      { action: "tension", text: "Pull the film taut by carefully turning the rewind crank in the direction of the arrow.", set: {} },
+      { action: "wind", text: "Operate the quick-wind lever again. The film is transporting properly if the rewind crank turns against the arrow as you do.", set: { cocked: true } },
+      { action: "release", text: "Release the shutter again.", set: { cocked: false } },
+      { action: "wind", text: "Cock the shutter a third time. The frame counter now shows 1 — check or set the film speed, and the camera is ready.", set: { cocked: true, counter: "1" } },
+    ],
+  },
+  {
+    bodyIds: ["m7"],
+    mode: "unload",
+    initial: FULL,
+    source: M7_SOURCE,
+    steps: [
+      { action: "set-rewind", text: "When the last frame has been exposed, the quick-wind lever can no longer be operated. Turn the rewind release lever to R.", set: { lever: "R" } },
+      {
+        action: "rewind",
+        text: "Swing out the rewind crank and turn it clockwise, in the direction of the arrow, until you feel slight resistance and the film is freed from the take-up spool.",
+        set: { film: "rewound", leader: "free" },
+      },
+      ...M7_OPEN,
+      {
+        action: "remove-cartridge",
+        text: "Remove the film cartridge.",
+        note: "The spring-loaded DX contacts press on the cartridge, so you'll feel slight resistance. If needed, tap the camera lightly against your hand.",
+        set: { cartridge: "none", film: "none" },
+      },
+    ],
+  },
 ];
 
 /** Film bodies in the catalog whose loading procedure hasn't been sourced from a manual yet. */
-export const UNSOURCED_FILM_BODY_IDS = ["m4", "m7"];
+export const UNSOURCED_FILM_BODY_IDS: string[] = [];
 
 export function tutorialFor(bodyId: string, mode: Tutorial["mode"]): Tutorial | undefined {
   return LOADING_TUTORIALS.find((t) => t.mode === mode && t.bodyIds.includes(bodyId));
