@@ -20,17 +20,17 @@ Last updated: 2026-09-26
 
 ## Current task
 
-**Feature #11 — Push / Pull Simulation**
+**Feature #27 — Portrait Distance Trainer**
 
 Status: **NOT STARTED**
 
-Claude must read Feature #11 in `RANGEFINDER_MASTER_PLAN.md` before implementation, and must not start it until the user says to proceed (one-feature-at-a-time rule).
+Claude must read Feature #27 in `RANGEFINDER_MASTER_PLAN.md` before implementation, and must not start it until the user says to proceed (one-feature-at-a-time rule).
 
 ## Phase 2 checklist
 
 - [x] **#3 — Physical Aperture / Iris Visualization** — COMPLETE
 - [x] **#16 — Interactive Focusing Ring / DOF Scale Trainer** — COMPLETE
-- [ ] **#11 — Push / Pull Simulation** — NOT STARTED
+- [x] **#11 — Push / Pull Simulation** — COMPLETE
 - [ ] **#27 — Portrait Distance Trainer** — NOT STARTED
 - [ ] **#31 — Learn From Negatives / Scan Feedback Loop** — NOT STARTED
 - [ ] **#18 — Cross-body Leica Viewfinder Comparison** — NOT STARTED
@@ -87,13 +87,30 @@ Validation: typecheck clean, lint 0 errors (5 pre-existing warnings, untouched f
 
 Known limitation: same as Feature #3 — not confirmed at a real narrow/mobile viewport this session. The new input uses the existing `.field`/`input[type="text"]` pattern already used (and already mobile-verified) elsewhere in the app (ISO dial, Aperture B selector in Phase 1's compare mode), so risk is judged lower than for Feature #3's custom SVG diagrams, but still not a live-confirmed check.
 
+---
+
+**Feature #11 — Push / Pull Simulation** (Phase 2)
+
+Implemented:
+- `physics/pushPull.ts`: pure module — `eiStops(boxIso, ei)` (metering deviation in stops), `DEVELOP_LEVELS`/`nearestDevelopLevel` (5 discrete levels: Pull 1, Normal, Push 1–3), `softnessForPush`/`grainMultiplier` (contrast steepens and grain increases with push; contrast flattens and grain still increases with pull — clamped so neither runs away at extreme stops). Tagged `PUSH_PULL_PROVENANCE: illustrative` — one generic curve for every stock, since no verified per-stock push/pull data exists to model instead (matches the spec's own explicit allowance for this). 14 new tests.
+- `preview/film.ts`: new `developedLook(look, developStops)` composing that math onto an actual `FilmLook` (no-op for digital sensors and at 0 stops); first tests for this file at all (13 new, also covering the previously-untested `lookFor`/`grainStrength`).
+- `state/opticalState.ts`: two new fields, `filmEI: number | null` (null = box speed) and `pushPullStops: number`, persisted like everything else in `OpticalState`. Added `selectFilm(id)` (mirroring the existing `selectBody`/`selectLens` wrapper pattern) that resets both to defaults when a *different* film stock is loaded — an EI of 1600 calibrated against one stock's box speed would be misleading carried over to a stock with a different box speed. Replaced the raw `setFilmId` in the hook's public surface with `selectFilm`, for consistency with how body/lens switching already works.
+- `components/ExposurePanel.tsx`: two new film-only fields — an EI selector (reuses the existing ISO_STEPS list, filtered to ±3 stops of box speed) with a live "Metering at EI *X* on ISO *Y* film: *N* EV under/over a normal box-speed capture, before push/pull development" line; and a Development segmented control (Pull 1/Normal/Push 1/2/3) with its own separate contrast/grain explanation line — satisfying the spec's explicit requirement that exposure and development effects are explained *separately*, not conflated into one message. Picking an EI auto-suggests the nearest matching development level (the common real-world case: "I rated it at 1600, so push 2"), but the two controls remain genuinely independent afterward — confirmed by manually overriding development without it snapping back.
+- `App.tsx`: `iso` (the metering value fed to the exposure engine) now resolves to `filmEI ?? boxIso` for film bodies; `look` (fed to the renderer and contact-sheet grain calc) is `developedLook(baseLook, pushPullStops)` — so push/pull visibly changes the simulated photo, not just a number in a panel.
+
+Manually verified in Chrome (desktop) — the **exact acceptance-criterion scenario**: loaded Tri-X 400 (box ISO 400), set EI to 1600, and got precisely "Metering at EI 1600 on ISO 400 film: 2 EV under a normal box-speed capture, before push/pull development," Development auto-jumped to "Push 2," and the simulated photo visibly went grainier/higher-contrast. Manually overrode Development to "Pull 1" without touching EI — confirmed EI stayed at 1600 and the two stayed independent. Loaded a different film stock (HP5 Plus) — confirmed EI reset to box speed and Development reset to Normal. No console errors throughout. (One hiccup during testing, not a bug: the film picker was disabled because a roll from earlier Phase 1 testing still had frames on it — expected `filmLocked` behavior, unrelated to this feature; rewound the roll to continue testing.)
+
+Validation: typecheck clean, lint 0 errors (5 pre-existing warnings, untouched files), 164/164 tests passing (was 137), clean production build.
+
+Known limitation: same recurring narrow-viewport gap as the last two features — not confirmed live this session. The new controls reuse the existing `.dial`/`Segmented`/`.field` patterns already used (and mobile-verified) throughout `ExposurePanel.tsx`, so risk is judged low.
+
 ## Next
 
-Start **Feature #11 — Push / Pull Simulation**.
+Start **Feature #27 — Portrait Distance Trainer**.
 
 Do not begin it automatically — wait for the user to say proceed.
 
-Note for whoever picks up #11: `preview/film.ts`'s `FilmLook` already has `iso`/`latitude`/`softness`/`bias`/`grain` per stock, and the exposure engine already treats ISO as a free parameter (`exposureError`, `correctShutter` take `iso` directly) — film ISO is only *fixed* in the current UI because nothing lets you pick an EI separate from box speed, not because of a physics limitation. #11 likely needs: (a) an EI selector for film bodies, parallel to the existing digital ISO dial in `ExposurePanel.tsx`, feeding the *exposure* calculation; and (b) a separate "development intent" control (normal/push/pull) that adjusts the *film-response* curve (steepen/flatten `softness`, nudge `grain`) — keep these two effects visibly distinct in the UI (spec: "explain the distinction between exposure and development"). Per the spec's own allowance ("unsupported film/developer combinations fall back to generic educational mode"), a single generic push/pull curve applied uniformly across all stocks — tagged `illustrative` in `Provenance` — is honest and defensible; there's no verified per-stock push/pull data to model instead.
+Note for whoever picks up #27: this is a clean new slice, not an extension of existing UI (unlike the last three features). It needs: a framing choice (head / head-and-shoulders / half-body / full-body), a configurable assumed subject height (spec: "keep it explicit"), and required-distance math from `angleOfView`/`magnification` in `physics/optics.ts` (thin-lens: image height = frame height means `magnification = frameHeightMm / (assumedHeightM · 1000)`, then invert the existing `magnification(focalMm, focusMm)` formula to solve for distance). Compare the result against `lens.minFocusMm` for the MFD warning — that data's already on every `Lens`. `Sunny16Trainer.tsx`/`IntentAssistant.tsx` are the closest existing components in shape (a self-contained trainer panel reading the current body/lens) — reuse that structure rather than inventing a new one.
 
 ## Blockers
 

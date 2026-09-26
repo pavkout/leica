@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { formatShutter, shutterSpeeds, type Body } from "../data/gear";
 import { FILM_STOCKS, type FilmLook } from "../preview/film";
+import { DEVELOP_LEVELS, eiStops, nearestDevelopLevel } from "../physics/pushPull";
 import FilmArt from "./gear/FilmArt";
 import GearPicker from "./gear/GearPicker";
 import Segmented from "./Segmented";
@@ -26,6 +27,19 @@ interface Props {
   filmLocked: boolean;
   savedFilmIds?: Set<string>;
   onToggleSavedFilm?: (id: string) => void;
+  /** The loaded stock's own box speed — `iso` above may differ from it (rated at a different EI). */
+  boxIso: number;
+  onFilmEI: (ei: number | null) => void;
+  pushPullStops: number;
+  onPushPull: (stops: number) => void;
+}
+
+function developmentEffectText(stops: number): string {
+  if (stops === 0) return "Normal development: no contrast or grain change.";
+  const magnitude = Math.abs(stops);
+  const direction = stops > 0 ? "Push" : "Pull";
+  const contrast = stops > 0 ? "more contrast, less latitude" : "flatter, more forgiving highlights";
+  return `${direction} ${magnitude}: ${contrast}, coarser grain.`;
 }
 
 function formatStops(e: number) {
@@ -46,6 +60,9 @@ export default function ExposurePanel(p: Props) {
   const latitude = p.look.latitude;
   const clipped = p.errorStops > latitude[1] || p.errorStops < -latitude[0];
   const markerPct = 50 + Math.max(-3, Math.min(3, p.errorStops)) * (50 / 3);
+  const eiChoices = ISO_STEPS.filter((i) => Math.abs(Math.log2(i / p.boxIso)) <= 3.1);
+  const eiStopsValue = eiStops(p.boxIso, p.iso);
+  const currentDevelopLevel = nearestDevelopLevel(p.pushPullStops);
 
   return (
     <section className="panel stage-exposure" aria-label="Exposure and film">
@@ -80,6 +97,46 @@ export default function ExposurePanel(p: Props) {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {film && (
+        <div className="field">
+          <span>Exposure index (box ISO {p.boxIso})</span>
+          <div className="dial" role="radiogroup" aria-label="Exposure index">
+            {eiChoices.map((ei) => (
+              <button
+                key={ei}
+                type="button"
+                role="radio"
+                aria-checked={ei === p.iso}
+                className={ei === p.iso ? "dial-step dial-on" : "dial-step"}
+                onClick={() => p.onFilmEI(ei === p.boxIso ? null : ei)}
+              >
+                {ei}
+              </button>
+            ))}
+          </div>
+          <p className="muted small">
+            {p.iso === p.boxIso
+              ? "Metering at box speed."
+              : `Metering at EI ${p.iso} on ISO ${p.boxIso} film: ${Math.abs(eiStopsValue).toFixed(1).replace(/\.0$/, "")} EV ${
+                  eiStopsValue > 0 ? "under" : "over"
+                } a normal box-speed capture, before push/pull development.`}
+          </p>
+        </div>
+      )}
+
+      {film && (
+        <div className="field">
+          <span>Development</span>
+          <Segmented
+            label="Development"
+            value={currentDevelopLevel.id}
+            onChange={(id) => p.onPushPull(DEVELOP_LEVELS.find((l) => l.id === id)!.stops)}
+            options={DEVELOP_LEVELS.map((l) => ({ value: l.id, label: l.label }))}
+          />
+          <p className="muted small">{developmentEffectText(p.pushPullStops)}</p>
         </div>
       )}
 

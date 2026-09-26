@@ -33,6 +33,7 @@ import {
 } from "./data/gear";
 import { correctShutter, exposureError, shakeBlurMm } from "./physics/exposure";
 import { ASSUMED_PHONE_FOV_DEG } from "./physics/liveView";
+import { eiStops, nearestDevelopLevel } from "./physics/pushPull";
 import { SHARPNESS_STANDARDS, computeShot, type Shot } from "./physics/model";
 import { useOpticalState } from "./state/opticalState";
 import { useBag } from "./state/bag";
@@ -43,7 +44,7 @@ import {
   updateFrameNote as saveStoredFrameNote,
 } from "./services/db";
 import { GENERIC_BLADES, apertureShape, stopsDown } from "./preview/aperture";
-import { grainStrength, lookFor, type FilmLook } from "./preview/film";
+import { developedLook, grainStrength, lookFor, type FilmLook } from "./preview/film";
 import type { DevelopParams } from "./preview/renderer";
 import {
   SAMPLE_SCENES,
@@ -164,7 +165,10 @@ export default function App() {
     autoExposure,
     manualShutter,
     tripod,
+    filmEI,
+    pushPullStops,
     selectLens,
+    selectFilm,
     setFNumber,
     setFocusMm,
     setBackgroundOffsetMm,
@@ -172,11 +176,12 @@ export default function App() {
     setCropFocalMm,
     setStandard,
     setUnits,
-    setFilmId,
     setIsoDigital,
     setAutoExposure,
     setManualShutter,
     setTripod,
+    setFilmEI,
+    setPushPullStops,
   } = optical;
   const { savedIds, toggle: toggleBag } = useBag();
   const [compare, setCompare] = useState(false);
@@ -274,8 +279,13 @@ export default function App() {
 
   // Exposure: the film's speed or the sensor's ISO, and aperture priority where the body has it.
   const isFilm = body.medium === "film";
-  const look: FilmLook = lookFor(body, filmId, isoDigital);
-  const iso = look.iso;
+  const baseLook: FilmLook = lookFor(body, filmId, isoDigital);
+  const boxIso = baseLook.iso;
+  // EI is a metering decision (what the meter/auto-exposure sees); push/pull
+  // is a development decision (contrast/grain only) — kept as two separate
+  // parameters, per the master plan, not one derived from the other.
+  const iso = isFilm && filmEI !== null ? filmEI : boxIso;
+  const look: FilmLook = isFilm ? developedLook(baseLook, pushPullStops) : baseLook;
   const auto = body.autoExposure && autoExposure;
   const speeds = shutterSpeeds(body);
   const clampShutter = (t: number) => Math.min(Math.max(t, body.shutter.fastest), body.shutter.slowest);
@@ -714,8 +724,19 @@ export default function App() {
           <ExposurePanel
             body={body}
             look={look}
-            onFilm={setFilmId}
+            onFilm={selectFilm}
             iso={iso}
+            boxIso={boxIso}
+            onFilmEI={(ei) => {
+              playDialClick();
+              setFilmEI(ei);
+              setPushPullStops(ei === null ? 0 : nearestDevelopLevel(eiStops(boxIso, ei)).stops);
+            }}
+            pushPullStops={pushPullStops}
+            onPushPull={(stops) => {
+              playDialClick();
+              setPushPullStops(stops);
+            }}
             onIso={(i) => {
               playDialClick();
               setIsoDigital(i);

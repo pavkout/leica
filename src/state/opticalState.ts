@@ -51,6 +51,10 @@ export interface OpticalState {
   autoExposure: boolean;
   manualShutter: number;
   tripod: boolean;
+  /** Exposure index the film is rated at; `null` means box speed (the film's own ISO). */
+  filmEI: number | null;
+  /** Push/pull development compensation, in stops; 0 = normal. */
+  pushPullStops: number;
 }
 
 export interface OpticalStateActions {
@@ -65,11 +69,14 @@ export interface OpticalStateActions {
   setCropFocalMm: (mm: number | null) => void;
   setStandard: (s: SharpnessStandard) => void;
   setUnits: (u: Units) => void;
-  setFilmId: (id: string) => void;
+  /** Switches the loaded film; resets EI and push/pull to defaults for the new stock. */
+  selectFilm: (id: string) => void;
   setIsoDigital: (iso: number) => void;
   setAutoExposure: (auto: boolean) => void;
   setManualShutter: (t: number) => void;
   setTripod: (v: boolean) => void;
+  setFilmEI: (ei: number | null) => void;
+  setPushPullStops: (stops: number) => void;
 }
 
 export function useOpticalState(): OpticalState & OpticalStateActions {
@@ -108,6 +115,8 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
   const [autoExposure, setAutoExposure] = useState(stored.autoExposure ?? true);
   const [manualShutter, setManualShutter] = useState(stored.manualShutter ?? 1 / 60);
   const [tripod, setTripod] = useState(stored.tripod ?? false);
+  const [filmEI, setFilmEI] = useState<number | null>(stored.filmEI ?? null);
+  const [pushPullStops, setPushPullStops] = useState(stored.pushPullStops ?? 0);
 
   useEffect(() => {
     // Debounced: focus/aperture change continuously while dragging, and
@@ -128,10 +137,29 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
         autoExposure,
         manualShutter,
         tripod,
+        filmEI,
+        pushPullStops,
       });
     }, 400);
     return () => window.clearTimeout(id);
-  }, [bodyId, lensId, fNumber, focusMm, backgroundOffsetMm, megapixels, cropFocalMm, standard, units, filmId, isoDigital, autoExposure, manualShutter, tripod]);
+  }, [
+    bodyId,
+    lensId,
+    fNumber,
+    focusMm,
+    backgroundOffsetMm,
+    megapixels,
+    cropFocalMm,
+    standard,
+    units,
+    filmId,
+    isoDigital,
+    autoExposure,
+    manualShutter,
+    tripod,
+    filmEI,
+    pushPullStops,
+  ]);
 
   const body = findBody(bodyId);
   const lens = findLens(lensId);
@@ -154,6 +182,13 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
     if (!available.some((l) => l.id === lensId)) selectLens(available[0].id);
   }
 
+  /** Loading a different film stock resets EI/push-pull — they were calibrated against the previous stock's box speed. */
+  function selectFilm(id: string) {
+    setFilmId(id);
+    setFilmEI(null);
+    setPushPullStops(0);
+  }
+
   return {
     bodyId,
     lensId,
@@ -173,8 +208,11 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
     autoExposure,
     manualShutter,
     tripod,
+    filmEI,
+    pushPullStops,
     selectBody,
     selectLens,
+    selectFilm,
     setFNumber,
     setFocusMm,
     setBackgroundOffsetMm,
@@ -182,10 +220,11 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
     setCropFocalMm,
     setStandard,
     setUnits,
-    setFilmId,
     setIsoDigital,
     setAutoExposure,
     setManualShutter,
     setTripod,
+    setFilmEI,
+    setPushPullStops,
   };
 }

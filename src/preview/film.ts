@@ -7,6 +7,7 @@
 
 import type { Body } from "../data/gear";
 import type { Provenance } from "../data/provenance";
+import { PUSH_PULL_PROVENANCE, grainMultiplier, softnessForPush } from "../physics/pushPull";
 
 export type LookKind = "color-negative" | "slide" | "bw" | "digital";
 
@@ -137,4 +138,22 @@ export function grainStrength(look: FilmLook, body: Body) {
   // Sensor noise grows with gain above base ISO (shot noise ∝ √gain).
   const base = body.isoRange?.[0] ?? 100;
   return look.grain * Math.sqrt(Math.max(1, look.iso / base)) * 0.6;
+}
+
+/**
+ * A film look after push/pull development compensation (`developStops`: 0 =
+ * normal, positive = pushed, negative = pulled). Digital sensors don't get
+ * "developed" in this sense, so it's a no-op for them; `look.iso` and
+ * exposure itself are unaffected either way — this only reshapes the
+ * response curve and grain, matching "push/pull as film-development
+ * response parameters" in the master plan.
+ */
+export function developedLook(look: FilmLook, developStops: number): FilmLook {
+  if (look.kind === "digital" || developStops === 0) return look;
+  return {
+    ...look,
+    softness: softnessForPush(look.softness, developStops),
+    grain: look.grain * grainMultiplier(developStops),
+    provenance: PUSH_PULL_PROVENANCE,
+  };
 }

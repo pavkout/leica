@@ -28,6 +28,10 @@ export interface StoredOpticalState {
   autoExposure: boolean;
   manualShutter: number;
   tripod: boolean;
+  /** Exposure index the film is rated at; `null` means box speed. */
+  filmEI: number | null;
+  /** Push/pull development compensation, in stops; 0 = normal. */
+  pushPullStops: number;
 }
 
 export function encodeMaybeInfinite(n: number): MaybeInfinite {
