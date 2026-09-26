@@ -22,9 +22,7 @@ Last updated: 2026-09-26
 
 **Feature #9 — Phone Gyroscope Hand-Stability Trainer**
 
-Status: **NOT STARTED**
-
-Claude must read Feature #9 in `RANGEFINDER_MASTER_PLAN.md` before implementation, and must not start it until the user says to proceed (one-feature-at-a-time rule).
+Status: **PARTIAL** — implemented and unit-tested; the two sensor-dependent acceptance criteria still need a live check on a real phone (see "Last completed" → #9 and "Next").
 
 ## Phase 2 checklist
 
@@ -35,7 +33,7 @@ Claude must read Feature #9 in `RANGEFINDER_MASTER_PLAN.md` before implementatio
 - [x] **#31 — Learn From Negatives / Scan Feedback Loop** — COMPLETE
 - [x] **#18 — Cross-body Leica Viewfinder Comparison** — COMPLETE
 - [x] **#32 — Mechanical Audio + Haptics** — COMPLETE
-- [ ] **#9 — Phone Gyroscope Hand-Stability Trainer** — NOT STARTED
+- [ ] **#9 — Phone Gyroscope Hand-Stability Trainer** — PARTIAL (awaiting real-device verification)
 - [ ] **#22 — Film Loading Trainer** — NOT STARTED
 
 ## Recommended Phase 2 order (resequenced — see reasoning below)
@@ -170,11 +168,30 @@ Validation: typecheck clean, lint 0 errors (5 pre-existing warnings, untouched f
 
 Known limitation: haptics were verified via a patched `navigator.vibrate` call count, not felt on a real vibration-capable device this session (no physical phone attached to this browser automation session) — the code path degrades to a silent no-op on unsupported devices by construction, so the risk of this being wrong is low, but it's not a felt/live confirmation. Per-body/lens sound *differentiation* beyond film-vs-digital (already existing in `playShutter`'s `digital` flag) was not added — the spec allows falling back to "generic mechanical samples," and since every sound here is synthesized (not sampled/licensed audio), there was nothing to license or attribute; a real per-body sound "voice" would be a larger, separately-scoped effort if ever requested.
 
+---
+
+**Feature #9 — Phone Gyroscope Hand-Stability Trainer** (Phase 2) — **PARTIAL**
+
+Repository-check note: HEAD commit `787cf0e` is titled "implement Phone Gyroscope Hand-Stability Trainer…", but its diff contains only the #32 audio/haptics work (`audio/sounds.ts`, `App.tsx` mount click, this file). No motion-sensor code existed before this pass, so this file's "NOT STARTED" was correct and the commit message is the thing that's wrong.
+
+Implemented:
+- `physics/stability.ts` (pure): `filterSpeeds` normalizes irregular sample streams (time-constant 15 Hz low-pass, so the result doesn't depend on the device's 30–100 Hz rate; duplicate timestamps dropped; gaps > 250 ms not integrated across). `summarizeStability` gives time-weighted RMS and 90th-percentile angular speed about the two axes perpendicular to the lens (roll ignored), or `null` under 1 s of usable data. `angularBlurMm`/`maxHandheldSec` apply small-angle image-plane blur (focal × ω × t). Stable/marginal/unstable thresholds are calibrated to the **same** 1/focal-length rule as `shakeBlurMm` in `physics/exposure.ts` (0.03 mm at 1/f ⇒ a nominal hand turns at ≈1.72°/s), so the trainer and the simulator's shake kernel agree about what an "average hand" is. That agreement is a unit test. `suggestHandheld` snaps a conservative (p90) and a typical (RMS) limit to the current body's real shutter speeds. Provenance: `approximate`.
+- `services/motionSensor.ts`: the `MotionSensorService` capability adapter from the Master Plan. It detects support, handles iOS 13+ `DeviceMotionEvent.requestPermission()` (called as the first await inside the tap handler, so iOS accepts it), maps granted/denied/default/NotAllowedError/SecurityError to clear statuses and messages, drops events without gyroscope data, and `subscribeMotion` returns an unsubscribe function.
+- `components/StabilityTrainer.tsx`: 5 s / 10 s test using the currently selected lens's focal length and the shot's CoC. It shows a live SVG trace of filtered angular speed with dashed stable/marginal threshold lines, plus a live label (1 s window). The result is "Handheld at 1/X or faster", plus a "1/Y can work with care" line when the typical limit is slower, and copy saying this is personal/device-specific guidance, not a guarantee. The suggestion recomputes live if the lens is changed afterwards, because the summary is focal-independent. Sampling stops on test completion, the Stop button, the page going to the background (`visibilitychange`), and unmount. Raw samples live only in a ref for one test and are cleared when it ends; nothing is persisted. If no gyroscope event arrives within 1.5 s of access being granted (desktop browsers that define `DeviceMotionEvent` but never fire it), it stops and shows a labeled "needs a phone" message.
+- `flags.ts`: `motionSensors` flipped to `true` and now read by `App.tsx` to mount the panel (placed after the Portrait trainer, `.stage-stability`). The stale "nothing reads these yet" comment was removed.
+- 12 new unit tests: 9 for the engine (1/f agreement with `shakeBlurMm`, classification, braced vs shaken streams give different labels and speeds, safe ≤ typical, focal-length ordering, fastest-speed fallback, 30 Hz vs 100 Hz agreement, jitter/duplicate/gap tolerance) and 3 for the adapter (permission/denial mapping, gyro-less events ignored, no samples after unsubscribe).
+
+Validation: typecheck clean, lint 0 errors (5 pre-existing warnings, untouched files), 201/201 tests passing (was 189), clean production build (main JS 311.80 kB, was 304.74 kB).
+
+**Why PARTIAL, not COMPLETE:** no browser automation or physical device was available this session, so nothing was checked live, not even the desktop "no gyroscope data" fallback. Remaining before this can be marked COMPLETE:
+1. On a real phone (ideally iPhone Safari and Android Chrome), run a braced test and a deliberately shaken test and confirm the label and suggestion differ (acceptance criterion 2; only proven against synthetic streams so far).
+2. On iOS, deny the motion prompt and confirm the denial message shows with no broken state (acceptance criterion 1; only proven via the pure `classifyMotionAccess` mapping).
+3. Confirm on-device that background/stop/unmount really ends sampling (acceptance criterion 3; covered by construction and the unsubscribe unit test).
+4. Desktop check of the 1.5 s no-data fallback message, and a narrow-viewport look at the panel.
+
 ## Next
 
-Start **Feature #9 — Phone Gyroscope Hand-Stability Trainer**.
-
-Do not begin it automatically — wait for the user to say proceed. Per the existing resequencing note above, this feature needs a real phone's `DeviceMotionEvent` to verify meaningfully — this development environment has no accelerometer/gyroscope exposed to the browser, so verification here will be limited to the "unsupported" graceful-fallback path plus static code review, not a live motion-data check.
+**Finish verifying Feature #9 on a real phone** (checklist above), then mark it COMPLETE. The next feature after that is **#22 — Film Loading Trainer**. Do not begin it automatically; wait for the user to say proceed.
 
 ## Blockers
 
@@ -184,6 +201,7 @@ None currently recorded.
 
 - Live Leica View may currently be an alpha/v1 implementation rather than the final complete Feature #1 specification (unchanged from Phase 1).
 - Mobile Safari / narrow-viewport verification remains outstanding across the whole app, not just Feature #3 — this environment cannot currently force a narrow browser viewport (`resize_window` no-ops; a CSS-zoom workaround was tried previously and doesn't affect `@media` breakpoints either). Needs a real device or a working device-emulation tool.
+- #9's thresholds use the 1/focal-length rule as a proxy for "a nominal hand" and measure the phone held like a phone, not a rangefinder (different mass/grip). The UI states this, but it remains approximate by design.
 - Phase 3 / Virtual Leica Full 3D has not started and must not be pulled into Phase 2 accidentally.
 
 ## Phase 3 — explicitly not started

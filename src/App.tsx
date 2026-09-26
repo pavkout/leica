@@ -19,6 +19,7 @@ import Iris from "./components/Iris";
 import Sunny16Trainer from "./components/Sunny16Trainer";
 import IntentAssistant from "./components/IntentAssistant";
 import PortraitTrainer from "./components/PortraitTrainer";
+import StabilityTrainer from "./components/StabilityTrainer";
 import Insights from "./components/Insights";
 import FinderCompare from "./components/FinderCompare";
 import LiveView from "./components/LiveView";
@@ -797,6 +798,8 @@ export default function App() {
           />
 
           <PortraitTrainer lens={lens} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} units={units} />
+
+          {FLAGS.motionSensors && <StabilityTrainer focalMm={lens.focalMm} cocMm={shot.cocMm} shutters={speeds} />}
 
           <section className="panel stage-setup" aria-label="Camera and lens">
             <div className="panel-head"><h2>Camera &amp; lens</h2></div>

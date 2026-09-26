@@ -1,9 +1,8 @@
 // Feature flags for capability-gated work: experimental live-camera, sensor,
 // 3D and audio/haptics features must ship behind a flag so the core simulator
 // never depends on them (see RANGEFINDER_MASTER_PLAN.md, "Non-negotiable
-// operating protocol"). Nothing reads these yet — they exist so the first
-// feature that needs one has a place to register it instead of inventing a
-// one-off boolean prop.
+// operating protocol"). Register a flag here rather than inventing a one-off
+// boolean prop.
 
 export interface FeatureFlags {
   /** Phone-camera live overlay (framelines, metering, focus/DOF card). */
@@ -23,7 +22,7 @@ export interface FeatureFlags {
 export const FLAGS: FeatureFlags = {
   liveView: true,
   filmMode: true,
-  motionSensors: false,
+  motionSensors: true,
   audioHaptics: false,
   threeD: false,
   experimentalLensCharacter: false,

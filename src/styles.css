@@ -199,6 +199,7 @@ select {
 .stage-trainer { order: 6; }
 .stage-intent { order: 7; }
 .stage-portrait { order: 8; }
+.stage-stability { order: 8; }
 .stage-barrel { order: 9; }
 .stage-iris { order: 10; }
 .readouts { order: 11; }
@@ -1887,6 +1888,53 @@ input[type="range"] {
 .btn[aria-pressed="true"] {
   border-color: var(--red);
   color: #fff;
+}
+
+/* ── Hand-stability trainer ─────────────────────────────── */
+.stability-trace-wrap {
+  position: relative;
+  margin: 10px 0;
+}
+
+.stability-trace {
+  display: block;
+  width: 100%;
+  height: 80px;
+  border-radius: 10px;
+  background: radial-gradient(110% 100% at 50% 20%, #2e2e2e, #1a1a1a);
+}
+
+.stability-limit {
+  stroke: var(--line-strong);
+  stroke-dasharray: 4 4;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.stability-line {
+  fill: none;
+  stroke: #e8e8e8;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.stability-chip {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: 1px solid var(--line-strong);
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--text);
+}
+
+.stability-unstable {
+  border-color: var(--red);
+  color: var(--red-hover);
+}
+
+.stability-result {
+  margin-bottom: 4px;
 }
 
 /* ── Scene diagram ──────────────────────────────────────── */
