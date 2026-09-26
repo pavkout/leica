@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { playAdvance, playShutter } from "../audio/sounds";
+import { shutterVoiceFor } from "../audio/voices";
 import { findBody } from "../data/gear";
 import { LOADING_ACTIONS, LOADING_TUTORIALS, UNSOURCED_FILM_BODY_IDS, tutorialFor } from "../data/filmLoading";
 import { attempt, paletteFor, stateAt, type MechState, type TutorialMode } from "../state/loadingTutorial";
@@ -47,7 +48,7 @@ export default function FilmLoadingTrainer({ bodyId: appBodyId }: Props) {
     const { outcome, stepIndex: next } = attempt(tutorial, LOADING_ACTIONS, stepIndex, actionId);
     if (outcome.kind === "advanced" || outcome.kind === "complete") {
       if (actionId === "wind") playAdvance();
-      if (actionId === "release") playShutter(1 / 125, false);
+      if (actionId === "release") playShutter(1 / 125, shutterVoiceFor(findBody(bodyId)));
       setStepIndex(next);
       setFeedback(outcome.kind === "complete" ? { tone: "ok", text: mode === "load" ? "Loaded and on frame 1." : "Cartridge out — roll unloaded." } : null);
     } else if (outcome.kind === "blocked") {

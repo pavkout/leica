@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isMuted, playAdvance, playApertureClick, playDialClick, playMountClick, playRewind, playShutter, setMuted } from "./audio/sounds";
+import { shutterVoiceFor } from "./audio/voices";
 import BokehPreview, { type PreviewHandle, type PreviewSide } from "./components/BokehPreview";
 import ContactSheet, { type Frame } from "./components/ContactSheet";
 import type { OutcomeTag } from "./state/rollExport";
@@ -357,7 +358,7 @@ export default function App() {
     if (rollFull) return;
     const seed = Math.floor(Math.random() * 100000);
     const angle = Math.random() * Math.PI;
-    playShutter(shutterSec, !isFilm);
+    playShutter(shutterSec, shutterVoiceFor(body));
     setFlash((f) => f + 1);
     const side = previewSide(lens, shot, developFor(lens, fNumber, shot.frameWidthMm, seed, angle), photo);
     const url = previewRef.current?.capture(side.params);
@@ -367,7 +368,7 @@ export default function App() {
   /** Same roll/card, but the image is a real captured Live View frame, not a simulated render. */
   function captureLiveFrame(url: string) {
     if (rollFull) return;
-    playShutter(shutterSec, !isFilm);
+    playShutter(shutterSec, shutterVoiceFor(body));
     addFrame(url, "Live View");
   }
 

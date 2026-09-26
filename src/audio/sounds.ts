@@ -3,6 +3,7 @@
 // thumps, shaped to evoke the real mechanism.
 
 import { getString, setString } from "../services/persistence";
+import type { ShutterStrike, ShutterVoice } from "./voices";
 
 const MUTE_KEY = "rangefinder-muted";
 
@@ -135,35 +136,41 @@ export function playMountClick() {
 }
 
 /**
- * The cloth focal-plane shutter of an M: the first curtain opens, the second
- * follows after the exposure time. Digital Ms then recock with a small motor.
+ * A shutter release in the given body's voice: the first curtain (or leaf)
+ * opens, the second closes after the exposure time, then a motorised body
+ * recocks. See `voices.ts` for which mechanism each body family gets.
  */
-export function playShutter(exposureSec: number, digital: boolean) {
+export function playShutter(exposureSec: number, voice: ShutterVoice) {
   vibrate(15);
   const ac = audio();
   if (!ac) return;
   const t = ac.currentTime + 0.01;
-  const second = t + Math.min(Math.max(exposureSec, 0.012), 2);
-  click(ac, t, 1400, 1.2, 0.5, 0.05);
-  thump(ac, t, 160, 0.32, 0.06);
-  click(ac, second, 1800, 1.4, 0.42, 0.06);
-  thump(ac, second, 140, 0.26, 0.07);
-  if (digital) {
+  const second = t + Math.min(Math.max(exposureSec, voice.minGapSec), 2);
+  strike(ac, t, voice.open);
+  strike(ac, second, voice.close);
+  if (voice.recock) {
+    const { startHz, endHz, gain, durationSec } = voice.recock;
+    const from = second + 0.08;
     const motor = ac.createOscillator();
     motor.type = "sawtooth";
-    motor.frequency.setValueAtTime(95, second + 0.08);
-    motor.frequency.linearRampToValueAtTime(140, second + 0.22);
+    motor.frequency.setValueAtTime(startHz, from);
+    motor.frequency.linearRampToValueAtTime(endHz, from + durationSec * 0.8);
     const filter = ac.createBiquadFilter();
     filter.type = "lowpass";
     filter.frequency.value = 700;
     const amp = ac.createGain();
-    amp.gain.setValueAtTime(0, second + 0.08);
-    amp.gain.linearRampToValueAtTime(0.06, second + 0.1);
-    amp.gain.linearRampToValueAtTime(0.0001, second + 0.26);
+    amp.gain.setValueAtTime(0, from);
+    amp.gain.linearRampToValueAtTime(gain, from + 0.02);
+    amp.gain.linearRampToValueAtTime(0.0001, from + durationSec);
     motor.connect(filter).connect(amp).connect(ac.destination);
-    motor.start(second + 0.08);
-    motor.stop(second + 0.3);
+    motor.start(from);
+    motor.stop(from + durationSec + 0.04);
   }
+}
+
+function strike(ac: AudioContext, at: number, s: ShutterStrike) {
+  click(ac, at, s.clickHz, s.clickQ, s.clickGain, s.clickDecay);
+  thump(ac, at, s.thumpHz, s.thumpGain, s.thumpDecay);
 }
 
 /** Film advance lever: a ratchet under the thumb, then the lever springs back. */
