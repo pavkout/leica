@@ -69,7 +69,7 @@ function useDialTexture(body: Body, dark: boolean) {
   return texture;
 }
 
-export default function ProceduralBody({ body, materials }: { body: Body; materials: Materials }) {
+export default function ProceduralBody({ body, materials, dialActive }: { body: Body; materials: Materials; dialActive: boolean }) {
   const { width, height, depth, topPlate, basePlate } = BODY;
   const coverHeight = height - topPlate - basePlate;
   const shell = useMemo(
@@ -118,6 +118,11 @@ export default function ProceduralBody({ body, materials }: { body: Body; materi
         <meshStandardMaterial attach="material-1" map={dialTexture} metalness={0.4} roughness={0.45} />
         <meshStandardMaterial attach="material-2" color="#161616" />
       </mesh>
+      {dialActive && (
+        <mesh position={[-0.033, topY + 0.003, -0.002]} material={materials.highlight} raycast={() => null}>
+          <cylinderGeometry args={[DIAL_R * 1.25, DIAL_R * 1.25, 0.0075, 48, 1, true]} />
+        </mesh>
+      )}
       <mesh position={[-0.033, topY + 0.0004, -0.002 + DIAL_R + 0.0022]} material={materials.index}>
         <boxGeometry args={[0.0012, 0.0008, 0.0025]} />
       </mesh>

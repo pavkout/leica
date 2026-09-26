@@ -11,7 +11,17 @@ import { shutterSpeeds, type Body, type Lens } from "../data/gear";
 import ProceduralBody from "./ProceduralBody";
 import ProceduralLens from "./ProceduralLens";
 import { createMaterials, disposeMaterials, type Materials } from "./materials";
-import { MOUNT_CENTER, RIG_PARTS, advanceLeverAngle, apertureRingAngle, focusRingAngle, shutterDialAngle, type QualityTier } from "./rig";
+import {
+  MOUNT_CENTER,
+  RIG_PARTS,
+  TAP_SLOP_PX,
+  advanceLeverAngle,
+  apertureRingAngle,
+  focusRingAngle,
+  shutterDialAngle,
+  type QualityTier,
+  type TurnablePart,
+} from "./rig";
 
 export interface VirtualLeicaProps {
   body: Body;
@@ -25,6 +35,12 @@ export interface VirtualLeicaProps {
   advanceCount: number;
   tier: Exclude<QualityTier, "fallback">;
   reducedMotion: boolean;
+  /** Part being turned in 3D; orbiting is suspended while one is active. */
+  activePart: TurnablePart | null;
+  onPickPart: (part: TurnablePart) => void;
+  /** Horizontal drag while a part is active, in CSS pixels since the last call; `start` marks a gesture's first move. */
+  onTurnDrag: (dxPx: number, start: boolean) => void;
+  onExitPart: () => void;
   onContextLost: () => void;
 }
 
@@ -66,7 +82,7 @@ function Studio({ tier }: { tier: VirtualLeicaProps["tier"] }) {
 }
 
 /** Orbit with limits; demand rendering, so every camera change requests a frame. */
-const Controls = forwardRef<VirtualLeicaHandle, { damping: boolean }>(function Controls({ damping }, ref) {
+const Controls = forwardRef<VirtualLeicaHandle, { damping: boolean; enabled: boolean }>(function Controls({ damping, enabled }, ref) {
   const { camera, gl, invalidate } = useThree();
   const controls = useMemo(() => new OrbitControls(camera, gl.domElement), [camera, gl]);
   useEffect(() => {
@@ -84,6 +100,11 @@ const Controls = forwardRef<VirtualLeicaHandle, { damping: boolean }>(function C
       controls.dispose();
     };
   }, [controls, damping, invalidate]);
+  // Suspended while a part owns the gesture; restored on every exit path, since
+  // `enabled` follows activePart and the controls are disposed on unmount.
+  useEffect(() => {
+    controls.enabled = enabled;
+  }, [controls, enabled]);
   // Damping keeps easing after the pointer lifts; update() fires "change" until it settles.
   useFrame(() => {
     if (damping) controls.update();
@@ -162,6 +183,115 @@ function LeverStroke({ count, enabled }: { count: number; enabled: boolean }) {
   return null;
 }
 
+const PART_BY_NAME: Record<string, TurnablePart> = {
+  [RIG_PARTS.apertureRing]: "aperture",
+  [RIG_PARTS.focusRing]: "focus",
+  [RIG_PARTS.shutterDial]: "shutter",
+};
+
+/**
+ * Tap a ring or dial to pick it; while one is active, horizontal drags turn it
+ * and a tap on empty space exits. Taps and drags are told apart by travel, and
+ * the pointer is captured so a turn can continue past the canvas edge.
+ */
+function Turner({
+  active,
+  onPick,
+  onDrag,
+  onExit,
+}: {
+  active: TurnablePart | null;
+  onPick: (p: TurnablePart) => void;
+  onDrag: (dx: number, start: boolean) => void;
+  onExit: () => void;
+}) {
+  const { gl, camera, scene } = useThree();
+  const latest = useRef({ active, onPick, onDrag, onExit });
+  latest.current = { active, onPick, onDrag, onExit };
+
+  useEffect(() => {
+    const el = gl.domElement;
+    const ray = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+    let down: { id: number; x: number; y: number; lastX: number; moved: boolean; turning: boolean } | null = null;
+    let hoverFrame = 0;
+
+    const partAt = (clientX: number, clientY: number): TurnablePart | null => {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return null;
+      ndc.set((2 * (clientX - r.left)) / r.width - 1, 1 - (2 * (clientY - r.top)) / r.height);
+      ray.setFromCamera(ndc, camera);
+      // Only the nearest surface counts, so a ring hidden behind the body can't be picked.
+      const hit = ray.intersectObjects(scene.children, true)[0];
+      for (let o: THREE.Object3D | null = hit?.object ?? null; o; o = o.parent) {
+        const part = PART_BY_NAME[o.name];
+        if (part) return part;
+      }
+      return null;
+    };
+    const setCursor = (x: number, y: number) => {
+      el.style.cursor = partAt(x, y) ? "pointer" : latest.current.active ? "ew-resize" : "grab";
+    };
+
+    const onDown = (e: PointerEvent) => {
+      down = { id: e.pointerId, x: e.clientX, y: e.clientY, lastX: e.clientX, moved: false, turning: false };
+      if (latest.current.active) {
+        try {
+          el.setPointerCapture(e.pointerId);
+        } catch {
+          // The pointer is already gone (e.g. an interrupted gesture); the turn just ends at the canvas edge.
+        }
+      }
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!down || e.pointerId !== down.id) {
+        if (!hoverFrame && e.pointerType === "mouse") {
+          const { clientX, clientY } = e;
+          hoverFrame = requestAnimationFrame(() => {
+            hoverFrame = 0;
+            setCursor(clientX, clientY);
+          });
+        }
+        return;
+      }
+      if (!down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) > TAP_SLOP_PX) down.moved = true;
+      if (down.moved && latest.current.active) {
+        latest.current.onDrag(e.clientX - down.lastX, !down.turning);
+        down.turning = true;
+        down.lastX = e.clientX;
+      }
+    };
+    const end = (e: PointerEvent, tap: boolean) => {
+      if (!down || e.pointerId !== down.id) return;
+      const wasTap = tap && !down.moved;
+      down = null;
+      if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+      if (!wasTap) return;
+      const part = partAt(e.clientX, e.clientY);
+      if (part) latest.current.onPick(part);
+      else if (latest.current.active) latest.current.onExit();
+    };
+    const onUp = (e: PointerEvent) => end(e, true);
+    const onCancel = (e: PointerEvent) => end(e, false);
+
+    el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onCancel);
+    el.addEventListener("lostpointercapture", onCancel);
+    return () => {
+      el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onCancel);
+      el.removeEventListener("lostpointercapture", onCancel);
+      if (hoverFrame) cancelAnimationFrame(hoverFrame);
+      el.style.cursor = "";
+    };
+  }, [gl, camera, scene]);
+  return null;
+}
+
 /** Development-only handle for browser checks (memory after lens swaps, ring pose). */
 function DevProbe() {
   const { gl, scene, camera, invalidate } = useThree();
@@ -175,6 +305,31 @@ function DevProbe() {
       frames: () => gl.info.render.frame,
       apertureRing: () => scene.getObjectByName(RIG_PARTS.apertureRing)?.rotation.y ?? null,
       pose: (name: string) => scene.getObjectByName(name)?.rotation.y ?? null,
+      /** Screen position (CSS px, page coordinates) of a named part's centre, for pointer tests. */
+      screenOf: (name: string, surface: "centre" | "top" = "centre") => {
+        const o = scene.getObjectByName(name);
+        if (!o) return null;
+        // Precise (per-vertex): a turned ring's transformed local box overshoots its real top by up to √2.
+        const box = new THREE.Box3().setFromObject(o, true);
+        const p = box.getCenter(new THREE.Vector3());
+        // A ring's box centre lies on the lens axis (the glass); its top surface is what a finger lands on.
+        if (surface === "top") p.y = box.max.y - 0.0008;
+        const v = p.project(camera);
+        const r = gl.domElement.getBoundingClientRect();
+        return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height };
+      },
+      /** Names along the first-hit object's parent chain at a page point, as the tap picker sees it. */
+      hitAt: (x: number, y: number) => {
+        const r = gl.domElement.getBoundingClientRect();
+        const ray = new THREE.Raycaster();
+        ray.setFromCamera(new THREE.Vector2((2 * (x - r.left)) / r.width - 1, 1 - (2 * (y - r.top)) / r.height), camera);
+        const hits = ray.intersectObjects(scene.children, true).slice(0, 3);
+        return hits.map((h) => {
+          const chain: string[] = [];
+          for (let o: THREE.Object3D | null = h.object; o; o = o.parent) chain.push(o.name || o.type);
+          return chain.join(" < ");
+        });
+      },
       target: (name: string) => (scene.userData.rigTargets as Record<string, number> | undefined)?.[name] ?? null,
       /** Fixed camera for visual fixtures. */
       lookFrom: (x: number, y: number, z: number, at: [number, number, number] = [TARGET.x, TARGET.y, TARGET.z]) => {
@@ -190,21 +345,21 @@ function DevProbe() {
   return null;
 }
 
-function Scene({ body, lens, fNumber, materials }: { body: Body; lens: Lens; fNumber: number; materials: Materials }) {
+function Scene({ body, lens, fNumber, materials, active }: { body: Body; lens: Lens; fNumber: number; materials: Materials; active: TurnablePart | null }) {
   return (
     <group>
-      <ProceduralBody body={body} materials={materials} />
+      <ProceduralBody body={body} materials={materials} dialActive={active === "shutter"} />
       {/* Lens built along +Y; turn it so its axis points out of the front (+Z). */}
       <group position={MOUNT_CENTER} rotation={[Math.PI / 2, 0, 0]}>
         {/* Key by lens so a swap unmounts the old lens and its resources in one go. */}
-        <ProceduralLens key={lens.id} lens={lens} fNumber={fNumber} materials={materials} />
+        <ProceduralLens key={lens.id} lens={lens} fNumber={fNumber} materials={materials} active={active === "shutter" ? null : active} />
       </group>
     </group>
   );
 }
 
 const VirtualLeica = forwardRef<VirtualLeicaHandle, VirtualLeicaProps>(function VirtualLeica(
-  { body, lens, fNumber, focusMm, shutterSec, auto, advanceCount, tier, reducedMotion, onContextLost },
+  { body, lens, fNumber, focusMm, shutterSec, auto, advanceCount, tier, reducedMotion, activePart, onPickPart, onTurnDrag, onExitPart, onContextLost },
   ref,
 ) {
   const materials = useMemo(createMaterials, []);
@@ -234,10 +389,11 @@ const VirtualLeica = forwardRef<VirtualLeicaHandle, VirtualLeicaProps>(function 
       }}
     >
       <Studio tier={tier} />
-      <Scene body={body} lens={lens} fNumber={fNumber} materials={materials} />
+      <Scene body={body} lens={lens} fNumber={fNumber} materials={materials} active={activePart} />
       <Rig targets={targets} snap={reducedMotion} />
       <LeverStroke count={advanceCount} enabled={!reducedMotion && body.medium === "film"} />
-      <Controls ref={ref} damping={!reducedMotion} />
+      <Controls ref={ref} damping={!reducedMotion} enabled={activePart === null} />
+      <Turner active={activePart} onPick={onPickPart} onDrag={onTurnDrag} onExit={onExitPart} />
       <DevProbe />
     </Canvas>
   );

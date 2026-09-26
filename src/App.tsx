@@ -341,6 +341,16 @@ export default function App() {
     setFNumber(n);
   }
 
+  /** The 3D dial: turning onto A engages auto exposure, turning off it sets that speed manually. */
+  function turnShutterDial(next: { auto: boolean; sec: number }) {
+    playDialClick();
+    if (next.auto) setAutoExposure(true);
+    else {
+      if (body.autoExposure) setAutoExposure(false);
+      setManualShutter(next.sec);
+    }
+  }
+
   function changeShutter(t: number) {
     playDialClick();
     setManualShutter(t);
@@ -827,7 +837,19 @@ export default function App() {
             </div>
 
             {can3D && show3D ? (
-              <Leica3D body={body} lens={lens} fNumber={fNumber} focusMm={focusMm} shutterSec={shutterSec} auto={auto} advanceCount={advanceCount} fallback={<div className="kit"><BodyArt body={body} lens={lens} className="kit-body" /></div>} />
+              <Leica3D
+                body={body}
+                lens={lens}
+                fNumber={fNumber}
+                focusMm={focusMm}
+                shutterSec={shutterSec}
+                auto={auto}
+                advanceCount={advanceCount}
+                units={units}
+                onAperture={changeAperture}
+                onFocus={(mm) => setFocusMm(Math.max(mm, lens.minFocusMm))}
+                onShutter={turnShutterDial}
+                fallback={<div className="kit"><BodyArt body={body} lens={lens} className="kit-body" /></div>} />
             ) : hasGearImage("bodies", body.id) || hasGearImage("lenses", lens.id) ? (
               <div className="kit kit-photos">
                 <GearImage kind="bodies" id={body.id} alt={body.name} sizes="(min-width: 1080px) 180px, 45vw">

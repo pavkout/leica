@@ -196,3 +196,60 @@ export function chooseQualityTier(caps: DeviceCaps): QualityTier {
   if (caps.hardwareConcurrency !== undefined && caps.hardwareConcurrency <= 2) return "reduced";
   return "full";
 }
+
+// ── Turning parts directly in 3D (slice 3) ─────────────────────────────────
+// A part being turned writes through the app's normal setters, so the optical
+// state stays the single source of truth and the 3D pose follows it.
+
+export type TurnablePart = "aperture" | "focus" | "shutter";
+
+/** Horizontal drag distance per detent for click-stop rings and dials. */
+export const DRAG_PX_PER_DETENT = 22;
+/** Focus is smooth, not detented: ring rotation per pixel dragged. */
+export const FOCUS_RAD_PER_PX = (0.6 * Math.PI) / 180;
+/** Pointer travel below this is a tap, not a drag. */
+export const TAP_SLOP_PX = 6;
+
+/** The aperture `steps` clicks away from `fNumber`, clamped to the lens's range. */
+export function stepAperture(lens: Lens, fNumber: number, steps: number): number {
+  const stops = apertureStops(lens);
+  let i = 0;
+  stops.forEach((n, k) => {
+    if (Math.abs(Math.log(n / fNumber)) < Math.abs(Math.log(stops[i] / fNumber))) i = k;
+  });
+  return stops[Math.min(stops.length - 1, Math.max(0, i + steps))];
+}
+
+/**
+ * The dial position `steps` detents away, in dial order (slowest … fastest, then A).
+ * Returns the new speed, or `auto: true` when the dial lands on A.
+ */
+export function stepShutter(speeds: number[], shutterSec: number, auto: boolean, hasAuto: boolean, steps: number): { auto: boolean; sec: number } {
+  const detents = dialDetents(speeds, hasAuto);
+  let i: number;
+  if (auto && hasAuto) i = detents.length - 1;
+  else {
+    i = 0;
+    detents.forEach((d, k) => {
+      if (d.sec !== null && Math.abs(Math.log(d.sec / shutterSec)) < Math.abs(Math.log(detents[i].sec! / shutterSec))) i = k;
+    });
+  }
+  const next = detents[Math.min(detents.length - 1, Math.max(0, i + steps))];
+  return next.sec === null ? { auto: true, sec: shutterSec } : { auto: false, sec: next.sec };
+}
+
+/** Inverse of focusRingAngle: the focus distance a ring angle sets (Infinity at 0). */
+export function focusFromRingAngle(lens: Lens, angle: number): number {
+  const a = Math.min(Math.max(angle, 0), FOCUS_THROW_RAD);
+  if (a <= 1e-9) return Infinity;
+  const f = lens.focalMm;
+  const extMin = (f * f) / (lens.minFocusMm - f);
+  const ext = (a / FOCUS_THROW_RAD) * extMin;
+  return f + (f * f) / ext;
+}
+
+/** Whole detents in an accumulated drag, and the remainder to carry into the next move. */
+export function detentsFromDrag(accumulatedPx: number): { steps: number; remainderPx: number } {
+  const steps = Math.trunc(accumulatedPx / DRAG_PX_PER_DETENT);
+  return { steps, remainderPx: accumulatedPx - steps * DRAG_PX_PER_DETENT };
+}

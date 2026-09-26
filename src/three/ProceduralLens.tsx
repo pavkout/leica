@@ -14,6 +14,8 @@ interface Props {
   lens: Lens;
   fNumber: number;
   materials: Materials;
+  /** Ring being turned in 3D, drawn with a highlight band. */
+  active: "aperture" | "focus" | null;
 }
 
 const RADIAL = 64;
@@ -62,7 +64,15 @@ function useIrisGeometry(lens: Lens, fNumber: number, radius: number) {
   return geometry;
 }
 
-export default function ProceduralLens({ lens, fNumber, materials }: Props) {
+function Highlight({ from, to, radius, material }: { from: number; to: number; radius: number; material: THREE.Material }) {
+  return (
+    <mesh position={[0, (from + to) / 2, 0]} material={material} raycast={() => null}>
+      <cylinderGeometry args={[radius * 1.06, radius * 1.06, to - from + 0.002, RADIAL, 1, true]} />
+    </mesh>
+  );
+}
+
+export default function ProceduralLens({ lens, fNumber, materials, active }: Props) {
   const p = useMemo(() => lensProfile(lens), [lens]);
   const dark = lens.look.finish === "black";
   const barrel = finishMaterial(materials, lens.look.finish);
@@ -119,6 +129,9 @@ export default function ProceduralLens({ lens, fNumber, materials }: Props) {
         <cylinderGeometry args={[p.radius, p.radius, a1 - a0, RADIAL, 1, true]} />
         <meshStandardMaterial map={ringTexture} metalness={dark ? 0.3 : 0.9} roughness={dark ? 0.5 : 0.3} side={THREE.DoubleSide} />
       </mesh>
+
+      {active === "aperture" && <Highlight from={a0} to={a1} radius={p.radius} material={materials.highlight} />}
+      {active === "focus" && <Highlight from={f0} to={f1} radius={p.radius} material={materials.highlight} />}
 
       {/* Front bezel */}
       <mesh position={[0, p.length - 0.0015, 0]} material={barrel}>

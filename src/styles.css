@@ -605,8 +605,41 @@ input[type="text"]::placeholder {
   margin: 0;
 }
 
+/* Three equal columns so Aperture / Focus / Speed stay on one row even at 320px. */
+.leica3d-parts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  flex: 1 1 auto;
+}
+
+.leica3d-parts .btn-small {
+  padding: 0 22px 0 8px;
+}
+
+/* The readout gets its own full-width line; −, + and Done sit below it. */
+.leica3d-turn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.leica3d-turn-value {
+  order: -1;
+  flex: 1 0 100%;
+  margin: 0;
+  text-align: center;
+}
+
+.leica3d-turn .btn-small:last-child {
+  margin-left: auto;
+}
+
 .leica3d-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px;

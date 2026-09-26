@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { LENSES, apertureStops, findBody, findLens, shutterSpeeds } from "../data/gear";
 import {
+  DRAG_PX_PER_DETENT,
   FOCUS_THROW_RAD,
   LEVER_STROKE_RAD,
   RING_RAD_PER_STOP,
@@ -11,12 +12,16 @@ import {
   apertureRingMarks,
   chooseQualityTier,
   dialDetents,
+  detentsFromDrag,
   dialStep,
+  focusFromRingAngle,
   focusRingAngle,
   focusRingMarks,
   irisOpening,
   lensProfile,
   shutterDialAngle,
+  stepAperture,
+  stepShutter,
 } from "./rig";
 
 const summilux50 = findLens("m-50-1.4");
@@ -160,5 +165,38 @@ describe("advance lever stroke", () => {
     expect(advanceLeverAngle(STROKE_OUT_S + STROKE_BACK_S)).toBe(0);
     expect(advanceLeverAngle(STROKE_OUT_S / 2)).toBeGreaterThan(0);
     expect(advanceLeverAngle(STROKE_OUT_S / 2)).toBeLessThan(LEVER_STROKE_RAD);
+  });
+});
+
+describe("turning parts in 3D", () => {
+  it("steps the aperture by clicks and clamps at both ends", () => {
+    expect(stepAperture(summilux50, 1.4, 1)).toBe(apertureStops(summilux50)[1]);
+    expect(stepAperture(summilux50, 1.4, -3)).toBe(1.4);
+    expect(stepAperture(summilux50, 16, 5)).toBe(16);
+    expect(stepAperture(summilux50, 2.8, -2)).toBe(2);
+  });
+
+  it("steps the dial through speeds and onto A, and off A back to manual", () => {
+    const m11 = findBody("m11");
+    const speeds = shutterSpeeds(m11);
+    const fastest = Math.min(...speeds);
+    expect(stepShutter(speeds, fastest, false, true, 1)).toEqual({ auto: true, sec: fastest });
+    expect(stepShutter(speeds, 1 / 60, true, true, -1)).toEqual({ auto: false, sec: fastest });
+    expect(stepShutter(speeds, 1 / 60, false, true, 1).sec).toBeCloseTo(1 / 125);
+    const m6 = findBody("m6");
+    const m6Speeds = shutterSpeeds(m6);
+    expect(stepShutter(m6Speeds, Math.min(...m6Speeds), false, false, 3)).toEqual({ auto: false, sec: Math.min(...m6Speeds) });
+  });
+
+  it("inverts the focus ring angle exactly", () => {
+    expect(focusFromRingAngle(summilux50, 0)).toBe(Infinity);
+    for (const d of [700, 1000, 2000, 5000, 10000]) expect(focusFromRingAngle(summilux50, focusRingAngle(summilux50, d))).toBeCloseTo(d, 3);
+    expect(focusFromRingAngle(summilux50, 99)).toBeCloseTo(summilux50.minFocusMm, 3);
+  });
+
+  it("turns drag distance into whole detents and carries the remainder", () => {
+    expect(detentsFromDrag(DRAG_PX_PER_DETENT * 2 + 5)).toEqual({ steps: 2, remainderPx: 5 });
+    expect(detentsFromDrag(-DRAG_PX_PER_DETENT - 3)).toEqual({ steps: -1, remainderPx: -3 });
+    expect(detentsFromDrag(4)).toEqual({ steps: 0, remainderPx: 4 });
   });
 });

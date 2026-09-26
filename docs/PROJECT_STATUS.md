@@ -22,15 +22,16 @@ Last updated: 2026-09-27
 
 **Feature #2 — Virtual Leica, full 3D camera and lens**
 
-Status: **PARTIAL**. Slices 1–2 are done:
+Status: **PARTIAL**. Slices 1–3 are done:
 - A lazy-loaded React Three Fiber view with procedural models, quality tiers, a 2D fallback, and stable memory across lens swaps.
 - The aperture ring and iris, focus ring, shutter dial and advance lever all follow the app's state.
+- The rings and dial can be turned directly in 3D, with HTML and keyboard equivalents.
 
-Not yet built: interaction modes in 3D, the GLB pipeline, and photoreal assets. See "Last completed" → #2 for what remains.
+Not yet built: the GLB pipeline, photoreal assets, and a real-phone check of the 2.5 s load target. See "Last completed" → #2.
 
 ## Phase 3 checklist
 
-- [ ] **#2 — Virtual Leica, full 3D camera and lens** — PARTIAL (slices 1–2 done)
+- [ ] **#2 — Virtual Leica, full 3D camera and lens** — PARTIAL (slices 1–3 done)
 - [ ] #5 — Lens X-Ray / optical path — NOT STARTED
 - [ ] #4 — Lens DNA — NOT STARTED
 - [ ] #25 — Flare Lab — NOT STARTED
@@ -65,7 +66,45 @@ Not yet built: interaction modes in 3D, the GLB pipeline, and photoreal assets. 
 
 ## Last completed
 
-**Feature #2 — Virtual Leica, full 3D camera and lens** (Phase 3) — **PARTIAL**, slices 1–2 (2026-09-27)
+**Feature #2 — Virtual Leica, full 3D camera and lens** (Phase 3) — **PARTIAL**, slices 1–3 (2026-09-27)
+
+**Slice 3: turning parts directly in 3D** (guided by the `threejs-interaction` and `threejs-accessibility` skills).
+- `rig.ts`:
+  - `stepAperture` (click-stops, clamped).
+  - `stepShutter`: dial order slowest → fastest → A. Turning onto A engages auto; turning off it sets that speed manually.
+  - `focusFromRingAngle`, the exact inverse of `focusRingAngle`; the focus ring is smooth, not detented.
+  - `detentsFromDrag`: 22 px per detent, with the remainder carried within a gesture.
+  - `TAP_SLOP_PX` = 6.
+- `VirtualLeica` `Turner`:
+  - Picks by raycast on a *tap* (under 6 px of travel), so a drag that starts on a ring still orbits.
+  - Only the nearest surface counts, so hidden parts can't be picked.
+  - While a part is active, orbit is suspended (`controls.enabled` follows the active part, restored on every exit path), and horizontal drags turn it.
+  - The pointer is captured so a turn can pass the canvas edge. `setPointerCapture` is guarded for pointers that are already gone.
+  - pointercancel and lostpointercapture end the gesture. Tapping empty space exits.
+  - The mouse cursor shows pointer, grab or ew-resize, updated at most once per frame.
+  - The active part gets a translucent red band that can't itself be picked.
+- `Leica3D`:
+  - Turns write through the app's own setters (`changeAperture` with its rate-limited click and haptic, `setFocusMm`, and a new `turnShutterDial` in `App.tsx` with a dial click), so the optical state stays the single source of truth.
+  - Values in flight are tracked, so fast drags don't lose steps between renders.
+  - Native HTML equivalents: Aperture / Focus / Speed buttons to enter a mode, a live `aria-live` readout, −/+ buttons, and Done. Esc exits. ←/→ turn, but only while focus is inside the viewer, so page keys are never hijacked.
+  - The canvas label now includes focus distance.
+- Real UX fix found in testing: a half-detent left over from one drag leaked into the next. Each gesture now starts clean.
+- Layout at 320px, fixed after inspecting screenshots: the part buttons are a three-column grid on one row, and the turn readout has its own line above −, + and Done.
+- 4 new unit tests (aperture stepping and clamping; dial on/off A and between speeds; exact focus inverse; drag → detents with remainder).
+- Browser checks: **63/63**, stable across 3 consecutive runs, on WebKit (iPhone 13 and iPhone SE) and GPU Chromium. Slice 1 (35/35) and slice 2 (17/17) re-run clean. The slice 3 checks cover:
+  - A drag from a ring orbits and doesn't pick it.
+  - A tap picks it; a 3-detent drag moves the app's aperture slider by exactly 3 stops and the 3D ring reaches it.
+  - The camera doesn't orbit while a part is active; the readout matches the app's value.
+  - Tapping empty space exits and orbit comes back.
+  - The dial goes off A to manual and back onto A to auto.
+  - Keyboard: the HTML Focus button, ←/→ refocus without scrolling the page, and Esc exits.
+  - Dragging the focus ring in 3D refocuses (1.55 m → 0.79 m).
+  - No horizontal scroll, no console errors.
+- Test-harness notes (not app issues):
+  - In touch-emulated WebKit, Playwright's `mouse` and `touchscreen.tap` send no pointer events to the canvas. Touch taps and drags were dispatched as `PointerEvent`s with `pointerType: "touch"`, which is what iOS Safari (Pointer Events since iOS 13) produces.
+  - OrbitControls' own `set/releasePointerCapture` throws for synthetic pointer ids, so the touch contexts wrap those two calls. Real fingers are tracked pointers.
+  - Real multi-touch (pinch) and assistive technology (VoiceOver) were **not** tested.
+
 
 **Slice 2: the other moving controls follow state.**
 - `rig.ts`:
@@ -138,7 +177,7 @@ Browser verification: a Playwright script (scratch directory) on WebKit (iPhone 
 Screenshots were inspected. Top-down fixtures confirm "2.8" and "8" sit exactly under the red index at those stops, the iris shows as a 9-sided opening, and the engravings aren't mirrored.
 
 **Not done in this slice (why #2 is PARTIAL):**
-1. Interaction modes in 3D: tapping a ring or dial to enter a mode and turning it in 3D, with per-detent haptics. For now the parts follow the existing HTML controls, which stay the way to operate them.
+1. ~~Interaction modes in 3D~~ — done in slice 3. Haptics come through the existing aperture and dial click paths, but real-device feel is unverified.
 2. ~~Focus ring, shutter dial, advance lever~~ — done in slice 2 (illustrative throws and detents, labelled as such).
 3. The GLB path: a loader adapter, loading the selected body/lens first and high-detail assets lazily, compression (Draco/meshopt, KTX2), and an asset licence manifest. It waits on real models from the user.
 4. Photorealism depends on those assets.
@@ -322,7 +361,12 @@ Known limitations: checked in WebKit emulation, not on a physical iPhone. The M3
 
 ## Next
 
-Continue **#2** with slice 3: in-3D interaction modes. Tap a ring or dial to enter its mode; drag to turn it, writing through the same setters as the HTML controls; detent clicks and haptics via the existing `playApertureClick` / `playDialClick` and rate limiter; a clear exit, and keyboard equivalents. The GLB pipeline starts when real models are available.
+**#2** has three things left:
+1. **GLB pipeline (slice 4):** a model adapter behind `RIG_PARTS`, loading only the selected body and lens, lazy high-detail assets, Draco/meshopt and KTX2, and an asset licence manifest. Blocked on real models from the user; the model spec was given.
+2. **A real-phone check:** the <2.5 s interactive target, how turning feels by finger, haptics, and pinch zoom.
+3. **VoiceOver pass.**
+
+Without assets, #2 can't reach COMPLETE; the rest of Phase 3 (#5, #4, #25, #33, #35) is available to start instead, if the user prefers.
 
 ## Blockers
 
