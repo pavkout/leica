@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isMuted, playAdvance, playApertureClick, playDialClick, playRewind, playShutter, setMuted } from "./audio/sounds";
+import { isMuted, playAdvance, playApertureClick, playDialClick, playMountClick, playRewind, playShutter, setMuted } from "./audio/sounds";
 import BokehPreview, { type PreviewHandle, type PreviewSide } from "./components/BokehPreview";
 import ContactSheet, { type Frame } from "./components/ContactSheet";
 import type { OutcomeTag } from "./state/rollExport";
@@ -171,7 +171,7 @@ export default function App() {
     tripod,
     filmEI,
     pushPullStops,
-    selectLens,
+    selectLens: selectLensState,
     selectFilm,
     setFNumber,
     setFocusMm,
@@ -269,6 +269,11 @@ export default function App() {
   function selectBody(id: string) {
     if (!isRangefinder(findBody(id))) setChallenge(null);
     optical.selectBody(id);
+  }
+
+  function selectLens(id: string) {
+    playMountClick();
+    selectLensState(id);
   }
 
   // Challenge range: from just past the lens's closest focus out to 6 m.

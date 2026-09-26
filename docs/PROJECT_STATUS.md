@@ -20,11 +20,11 @@ Last updated: 2026-09-26
 
 ## Current task
 
-**Feature #32 — Mechanical Audio + Haptics**
+**Feature #9 — Phone Gyroscope Hand-Stability Trainer**
 
 Status: **NOT STARTED**
 
-Claude must read Feature #32 in `RANGEFINDER_MASTER_PLAN.md` before implementation, and must not start it until the user says to proceed (one-feature-at-a-time rule).
+Claude must read Feature #9 in `RANGEFINDER_MASTER_PLAN.md` before implementation, and must not start it until the user says to proceed (one-feature-at-a-time rule).
 
 ## Phase 2 checklist
 
@@ -34,7 +34,7 @@ Claude must read Feature #32 in `RANGEFINDER_MASTER_PLAN.md` before implementati
 - [x] **#27 — Portrait Distance Trainer** — COMPLETE
 - [x] **#31 — Learn From Negatives / Scan Feedback Loop** — COMPLETE
 - [x] **#18 — Cross-body Leica Viewfinder Comparison** — COMPLETE
-- [ ] **#32 — Mechanical Audio + Haptics** — NOT STARTED
+- [x] **#32 — Mechanical Audio + Haptics** — COMPLETE
 - [ ] **#9 — Phone Gyroscope Hand-Stability Trainer** — NOT STARTED
 - [ ] **#22 — Film Loading Trainer** — NOT STARTED
 
@@ -154,11 +154,27 @@ Validation: typecheck clean, lint 0 errors (5 pre-existing warnings, untouched f
 
 Known limitation: same recurring narrow-viewport gap as the last five features — not confirmed live this session. The panel reuses `Iris.tsx`'s already mobile-considered SVG diagram sizing and the `.dial`/`.field`-adjacent `<select>` pattern already styled globally, so risk is judged low. Swipe-style comparison (an alternative to side-by-side) was not built — side-by-side was chosen instead, which the spec explicitly allows ("side-by-side or swipe"), and reads better once the tablet breakpoint forces the panel full-width. Comparison is limited to two bodies at a time by design (not simultaneous multi-body), which keeps the UI simple and avoids the WebGL-context risk a fuller multi-way comparison using the real renderer would carry.
 
+---
+
+**Feature #32 — Mechanical Audio + Haptics** (Phase 2)
+
+Repository-check note (per `CLAUDE.md`'s source-of-truth rule): this feature was **substantially already implemented** in an earlier phase — `audio/sounds.ts` (a Web-Audio-synthesized, no-samples mechanical sound engine) and an accessible, persistent mute control already existed and were already wired to aperture clicks, shutter-speed dial clicks, shutter fire, film advance, and rewind — none of which `PROJECT_STATUS.md` had ever recorded, since Phase 1's tracker entries predate this file's per-feature narrative format. Verified against the actual code before treating anything as "done": "no sound before interaction" and "persistent, accessible mute" were already true; "rapid dial movement rate-limiting" and the lens-mount click were genuinely missing. Scope for this pass was narrowed to exactly those real gaps, not a re-implementation.
+
+Implemented:
+- `audio/sounds.ts`: new pure, exported `rateLimit(state, key, minIntervalMs, now)` — true at most once per `minIntervalMs` for a given key. `playApertureClick`/`playDialClick` (the two detent sounds a fast ring drag can trigger many times in a few milliseconds) now call through a `allowDetent()` wrapper (30 ms per kind) before scheduling any Web Audio nodes, so a rapid drag crossing several stops produces one clean click instead of overlapping ones stacking into noise. New `playMountClick()` — the lens-bayonet sound the spec lists (rotational scrape + locking click) that was the one genuinely missing mechanical event. New `vibrate(ms)` helper — optional haptic pairing (spec UX requirement, marked optional) via `navigator.vibrate`, gated behind the same mute flag rather than a second setting the spec never asks for, and a silent no-op on devices/contexts without the Vibration API. Wired to the three most meaningful discrete moments (aperture/dial detents, shutter release, lens mount) — deliberately not every sound, per the spec's own "support interaction, not become a toy." 5 new unit tests for `rateLimit` (the only piece of this module that's meaningfully unit-testable without a real `AudioContext`).
+- `App.tsx`: the destructured `selectLens` from `useOpticalState()` is now `selectLensState`; a new local `selectLens(id)` wrapper calls `playMountClick()` then `selectLensState(id)`, mirroring the existing `selectBody` wrapper pattern exactly, and is what's actually passed to the lens `GearPicker`.
+
+Manually verified in Chrome (desktop), instrumented via a patched `window.AudioContext`/`navigator.vibrate` to observe real call counts rather than guessing from behavior: confirmed zero `AudioContext` constructions before any interaction (page load alone never creates one). Dragged the aperture ring fast across four stops (f/2.8 → f/1.4, crossing 2.4 and 2 in between) in one gesture — exactly **one** `vibrate(8)` call was recorded, not four, confirming the rate limiter is working on a real multi-stop drag, not just in the unit test. Toggled mute off/on via the topbar button — `localStorage["rangefinder-muted"]` flipped correctly each time and the accessible label swapped between "Turn sounds on"/"Turn sounds off"; unmuting correctly played a confirmation click. Opened the lens picker and selected a different lens (Noctilux-M 50 f/1.2 ASPH.) — a `vibrate(12)` call fired (the new mount click), the lens updated correctly, and the single shared `AudioContext` was reused rather than a second one being created. Fired the shutter — `vibrate(15)` fired as expected. No console errors through any of this.
+
+Validation: typecheck clean, lint 0 errors (5 pre-existing warnings, untouched files), 189/189 tests passing (was 184), clean production build (main JS 304.74 kB).
+
+Known limitation: haptics were verified via a patched `navigator.vibrate` call count, not felt on a real vibration-capable device this session (no physical phone attached to this browser automation session) — the code path degrades to a silent no-op on unsupported devices by construction, so the risk of this being wrong is low, but it's not a felt/live confirmation. Per-body/lens sound *differentiation* beyond film-vs-digital (already existing in `playShutter`'s `digital` flag) was not added — the spec allows falling back to "generic mechanical samples," and since every sound here is synthesized (not sampled/licensed audio), there was nothing to license or attribute; a real per-body sound "voice" would be a larger, separately-scoped effort if ever requested.
+
 ## Next
 
-Start **Feature #32 — Mechanical Audio + Haptics**.
+Start **Feature #9 — Phone Gyroscope Hand-Stability Trainer**.
 
-Do not begin it automatically — wait for the user to say proceed.
+Do not begin it automatically — wait for the user to say proceed. Per the existing resequencing note above, this feature needs a real phone's `DeviceMotionEvent` to verify meaningfully — this development environment has no accelerometer/gyroscope exposed to the browser, so verification here will be limited to the "unsupported" graceful-fallback path plus static code review, not a live motion-data check.
 
 ## Blockers
 

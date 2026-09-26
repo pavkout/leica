@@ -21,6 +21,41 @@ export function setMuted(value: boolean) {
   setString(MUTE_KEY, value ? "1" : "0");
 }
 
+/**
+ * True once per `minIntervalMs` for a given key, false otherwise — dragging
+ * a ring fast across several detents fires the same click repeatedly, and
+ * without this, overlapping Web Audio nodes stack into noise instead of a
+ * clean click train. Pure and exported so the throttling logic itself is
+ * testable without a real AudioContext.
+ */
+export function rateLimit(lastPlayedAt: Map<string, number>, key: string, minIntervalMs: number, now: number): boolean {
+  const last = lastPlayedAt.get(key) ?? -Infinity;
+  if (now - last < minIntervalMs) return false;
+  lastPlayedAt.set(key, now);
+  return true;
+}
+
+const clickTimes = new Map<string, number>();
+const DETENT_MIN_INTERVAL_MS = 30;
+
+function allowDetent(kind: string) {
+  return rateLimit(clickTimes, kind, DETENT_MIN_INTERVAL_MS, typeof performance !== "undefined" ? performance.now() : Date.now());
+}
+
+/**
+ * Optional haptic pairing on devices that support it. Tied to the same mute
+ * flag as sound rather than a second setting the spec doesn't ask for; a
+ * missing/denied Vibration API is a silent no-op, same as unsupported audio.
+ */
+function vibrate(ms: number) {
+  if (muted || typeof navigator === "undefined" || !("vibrate" in navigator)) return;
+  try {
+    navigator.vibrate(ms);
+  } catch {
+    // Restricted contexts (e.g. some cross-origin iframes) can throw; a haptic is never worth failing over.
+  }
+}
+
 function audio() {
   if (muted || typeof window === "undefined") return null;
   const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -68,6 +103,8 @@ function thump(ac: AudioContext, at: number, freq: number, gain: number, decay: 
 
 /** Aperture ring detent. */
 export function playApertureClick() {
+  if (!allowDetent("aperture")) return;
+  vibrate(8);
   const ac = audio();
   if (!ac) return;
   const t = ac.currentTime;
@@ -77,6 +114,8 @@ export function playApertureClick() {
 
 /** Shutter-speed dial detent: heavier than the aperture ring. */
 export function playDialClick() {
+  if (!allowDetent("dial")) return;
+  vibrate(8);
   const ac = audio();
   if (!ac) return;
   const t = ac.currentTime;
@@ -84,11 +123,23 @@ export function playDialClick() {
   thump(ac, t, 420, 0.05, 0.03);
 }
 
+/** Lens bayonet mount: a short rotational scrape, then the locking click. */
+export function playMountClick() {
+  vibrate(12);
+  const ac = audio();
+  if (!ac) return;
+  const t = ac.currentTime;
+  click(ac, t, 900, 0.6, 0.05, 0.12, "lowpass");
+  click(ac, t + 0.11, 3200, 6, 0.15, 0.02);
+  thump(ac, t + 0.11, 380, 0.05, 0.025);
+}
+
 /**
  * The cloth focal-plane shutter of an M: the first curtain opens, the second
  * follows after the exposure time. Digital Ms then recock with a small motor.
  */
 export function playShutter(exposureSec: number, digital: boolean) {
+  vibrate(15);
   const ac = audio();
   if (!ac) return;
   const t = ac.currentTime + 0.01;
