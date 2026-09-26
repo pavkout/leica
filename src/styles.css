@@ -4,22 +4,37 @@
   --leica-red: #cf2e25;
   --leica-charcoal: #222222;
 
-  --bg: #141414;
+  --bg: #131313;
   --surface: var(--leica-charcoal);
-  --surface-2: #2c2c2c;
+  --surface-2: #2b2b2b;
+  --surface-3: #333333;
   --line: #333333;
   --line-strong: #444444;
-  --text: #ffffff;
-  --muted: #9b9b9b;
+  --hairline: rgba(255, 255, 255, 0.055);
+  --hairline-strong: rgba(255, 255, 255, 0.1);
+  --text: #f4f3f1;
+  --muted: #9b9994;
   --red: var(--leica-red);
   --red-hover: #dd3a30;
+  --red-dim: #8f1c15;
   --red-soft: rgba(207, 46, 37, 0.18);
-  --radius: 14px;
+  --radius: 16px;
   --radius-control: 999px;
   --gutter: 16px;
 
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-fast: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --shadow-lift: 0 20px 44px -30px rgba(0, 0, 0, 0.85), 0 2px 6px -2px rgba(0, 0, 0, 0.5);
+  --shadow-inset-top: inset 0 1px 0 var(--hairline);
+  --shadow-panel:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 var(--hairline),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.015),
+    var(--shadow-lift);
+
   --font: "Outfit", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
-  --font-engraving: "DIN Alternate", "DIN Condensed", "Barlow Condensed", "Arial Narrow", var(--font);
+  --font-engraving: "Oswald", "DIN Alternate", "Barlow Condensed", "Arial Narrow", var(--font);
 
   color-scheme: dark;
   font-family: var(--font);
@@ -37,8 +52,29 @@
 
 body {
   margin: 0;
-  background: var(--bg);
   min-height: 100dvh;
+  background:
+    radial-gradient(120% 70% at 50% -10%, rgba(255, 255, 255, 0.05), transparent 60%),
+    radial-gradient(140% 90% at 50% 110%, rgba(0, 0, 0, 0.5), transparent 55%),
+    var(--bg);
+  position: relative;
+}
+
+/* A whisper of grain across the whole instrument, never a flat digital field. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+#root {
+  position: relative;
+  z-index: 1;
 }
 
 h1,
@@ -56,6 +92,7 @@ select {
 :focus-visible {
   outline: 2px solid var(--red);
   outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .muted {
@@ -84,10 +121,11 @@ select {
   gap: 12px;
   margin: 0 calc(-1 * var(--gutter));
   padding: max(10px, env(safe-area-inset-top)) var(--gutter) 10px;
-  background: rgba(20, 20, 20, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--line);
+  background: rgba(15, 15, 15, 0.82);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border-bottom: 1px solid var(--hairline-strong);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
 }
 
 .topbar .segmented {
@@ -97,26 +135,45 @@ select {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
+/* An aperture iris in miniature, not a logotype: our own instrument mark. */
 .brand-mark {
-  width: 4px;
+  position: relative;
+  flex: none;
+  width: 30px;
   height: 30px;
-  background: var(--red);
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 8deg, #454545 0deg 9deg, #161616 9deg 18deg);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.09),
+    inset 0 2px 3px rgba(0, 0, 0, 0.65),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  inset: 32%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ea5147, var(--red) 58%, var(--red-dim));
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 
 .brand h1 {
   font-size: 18px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
   line-height: 1.1;
 }
 
 .brand p {
+  font-family: var(--font-engraving);
   font-size: 10px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   color: var(--muted);
 }
 
@@ -145,11 +202,13 @@ select {
 .stage-details { order: 9; }
 
 .panel {
+  position: relative;
   min-width: 0;
-  background: var(--surface);
+  background: linear-gradient(180deg, #262626 0%, var(--surface) 8%, var(--surface) 100%);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 14px;
+  box-shadow: var(--shadow-panel);
 }
 
 .panel-head {
@@ -158,6 +217,8 @@ select {
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--hairline);
 }
 
 .panel-head h2 {
@@ -173,29 +234,33 @@ select {
 
 .chip {
   flex: none;
-  padding: 3px 10px;
+  padding: 3px 11px;
   border-radius: var(--radius-control);
+  font-family: var(--font-engraving);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
 
 .chip-red {
-  background: var(--red);
+  background: linear-gradient(180deg, var(--red-hover), var(--red) 60%, var(--red-dim));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -1px 2px rgba(0, 0, 0, 0.25);
   color: #fff;
 }
 
 .hint {
   margin-top: 8px;
   font-size: 12px;
+  line-height: 1.5;
   color: var(--muted);
 }
 
 .footer {
   margin-top: 20px;
   font-size: 11px;
-  line-height: 1.5;
-  color: #6b6b6b;
+  line-height: 1.6;
+  color: #706e69;
 }
 
 /* ── Readouts ───────────────────────────────────────────── */
@@ -204,8 +269,10 @@ select {
 }
 
 .headline {
-  font-size: 20px;
-  font-weight: 700;
+  font-family: var(--font-engraving);
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
   line-height: 1.25;
   margin-bottom: 14px;
   font-variant-numeric: tabular-nums;
@@ -217,6 +284,8 @@ select {
   gap: 1px;
   background: var(--line);
   border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 @container (min-width: 520px) {
@@ -230,7 +299,7 @@ select {
   flex-direction: column;
   gap: 4px;
   padding: 12px;
-  background: var(--surface);
+  background: linear-gradient(180deg, #262626, var(--surface));
 }
 
 .tile-label {
@@ -241,8 +310,9 @@ select {
 }
 
 .tile-value {
+  font-family: var(--font-engraving);
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -254,7 +324,7 @@ select {
 
 .standard-note {
   margin: 10px 0 14px;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .details {
@@ -288,6 +358,7 @@ select {
 .detail dd {
   margin: 0;
   text-align: right;
+  font-family: var(--font-engraving);
   font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
@@ -295,6 +366,7 @@ select {
 .detail dd small {
   display: block;
   margin-top: 2px;
+  font-family: var(--font);
   font-size: 11px;
   color: var(--muted);
 }
@@ -329,12 +401,18 @@ select {
   min-height: 44px;
   padding: 0 44px 0 18px;
   font-size: 16px; /* stops iOS zooming on focus */
-  background: var(--surface-2)
+  background: linear-gradient(180deg, var(--surface-3), var(--surface-2))
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23cf2e25' stroke-width='2'/%3E%3C/svg%3E")
     no-repeat right 18px center;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-control);
+  box-shadow: var(--shadow-inset-top);
   cursor: pointer;
+  transition: border-color 0.2s var(--ease-fast), box-shadow 0.2s var(--ease-fast);
+}
+
+select:hover {
+  border-color: #565656;
 }
 
 select:disabled {
@@ -353,6 +431,8 @@ select optgroup {
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-control);
   overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-inset-top);
 }
 
 .seg {
@@ -362,12 +442,12 @@ select optgroup {
   padding: 0 6px;
   border: 0;
   border-right: 1px solid var(--line-strong);
-  background: var(--surface-2);
+  background: transparent;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 0.12s;
+  transition: background-color 0.18s var(--ease-fast), color 0.18s var(--ease-fast);
 }
 
 .seg:last-child {
@@ -375,12 +455,13 @@ select optgroup {
 }
 
 .seg:hover {
-  background: #242424;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .seg-on,
 .seg-on:hover {
-  background: var(--red);
+  background: linear-gradient(180deg, var(--red-hover), var(--red) 70%, var(--red-dim));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
   color: #fff;
   font-weight: 600;
 }
@@ -399,12 +480,13 @@ select optgroup {
   padding: 0 40px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-control);
-  background: var(--surface-2);
+  background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
+  box-shadow: var(--shadow-inset-top), 0 1px 2px rgba(0, 0, 0, 0.35);
   font-size: 15px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: background-color 0.12s, border-color 0.12s;
+  transition: background-color 0.18s var(--ease-fast), border-color 0.18s var(--ease-fast), transform 0.15s var(--ease-fast), box-shadow 0.18s var(--ease-fast);
 }
 
 /* Leica's button detail: a small red dot at the right end. */
@@ -417,33 +499,42 @@ select optgroup {
   height: 10px;
   margin-top: -5px;
   border-radius: 50%;
-  background: var(--red);
+  background: radial-gradient(circle at 35% 30%, #ea5147, var(--red) 60%, var(--red-dim));
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35);
 }
 
 .btn:hover {
-  background: #363636;
+  background: linear-gradient(180deg, #3c3c3c, #303030);
+  border-color: #565656;
+}
+
+.btn:active {
+  transform: translateY(1px) scale(0.99);
 }
 
 .btn-red {
   flex-basis: 100%;
-  background: var(--red);
-  border-color: var(--red);
+  background: linear-gradient(180deg, var(--red-hover), var(--red) 65%, var(--red-dim));
+  border-color: var(--red-dim);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 10px 24px -16px rgba(207, 46, 37, 0.7);
   color: #fff;
   font-weight: 700;
 }
 
 .btn-red::after {
   background: #fff;
+  box-shadow: none;
 }
 
 .btn-red:hover {
-  background: var(--red-hover);
-  border-color: var(--red-hover);
+  background: linear-gradient(180deg, #ea443a, var(--red-hover) 65%, var(--red-dim));
+  border-color: var(--red-dim);
 }
 
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  transform: none;
 }
 
 @media (min-width: 480px) {
@@ -455,9 +546,10 @@ select optgroup {
 /* ── Gear ───────────────────────────────────────────────── */
 .kit {
   margin: -4px -4px 12px;
-  padding: 8px 12px 0;
+  padding: 10px 12px 0;
   border-radius: 12px;
-  background: radial-gradient(120% 90% at 50% 20%, #3a3a3a 0%, #262626 45%, #1a1a1a 100%);
+  background: radial-gradient(120% 90% at 50% 20%, #3c3c3c 0%, #262626 45%, #171717 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), inset 0 1px 0 var(--hairline);
 }
 
 .kit-body {
@@ -483,13 +575,19 @@ select optgroup {
   text-align: left;
   border: 1px solid var(--line-strong);
   border-radius: 16px;
-  background: var(--surface-2);
+  background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
+  box-shadow: var(--shadow-inset-top);
   cursor: pointer;
-  transition: border-color 0.12s, background-color 0.12s;
+  transition: border-color 0.18s var(--ease-fast), box-shadow 0.18s var(--ease-fast), transform 0.15s var(--ease-fast);
 }
 
 .gear-button:hover:not(:disabled) {
   border-color: var(--red);
+  box-shadow: var(--shadow-inset-top), 0 0 0 1px rgba(207, 46, 37, 0.35);
+}
+
+.gear-button:active:not(:disabled) {
+  transform: scale(0.995);
 }
 
 .gear-button:disabled {
@@ -501,7 +599,8 @@ select optgroup {
   width: 84px;
   height: 56px;
   border-radius: 10px;
-  background: radial-gradient(100% 100% at 50% 30%, #3a3a3a, #1c1c1c);
+  background: radial-gradient(100% 100% at 50% 30%, #3c3c3c, #1a1a1a);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .gear-text {
@@ -532,6 +631,30 @@ select optgroup {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Licensed product photos sit on a white studio tile. */
+.gear-photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.gear-thumb.gear-photo {
+  width: 84px;
+  height: 56px;
+}
+
+.kit-photos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px;
 }
 
 /* Picker: a bottom sheet on phones, a centred panel on larger screens. */
@@ -543,14 +666,15 @@ select optgroup {
   padding: 0;
   border: 1px solid var(--line-strong);
   border-radius: 20px 20px 0 0;
-  background: var(--surface);
+  background: linear-gradient(180deg, #262626 0%, var(--surface) 6%);
   color: var(--text);
+  box-shadow: var(--shadow-panel);
 }
 
 .picker::backdrop {
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .picker-inner {
@@ -569,6 +693,7 @@ select optgroup {
 .picker-head h2 {
   font-size: 18px;
   font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .picker-close {
@@ -576,10 +701,20 @@ select optgroup {
   height: 40px;
   border: 1px solid var(--line-strong);
   border-radius: 50%;
-  background: var(--surface-2);
+  background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
+  box-shadow: var(--shadow-inset-top);
   font-size: 22px;
   line-height: 1;
   cursor: pointer;
+  transition: border-color 0.18s var(--ease-fast), transform 0.15s var(--ease-fast);
+}
+
+.picker-close:hover {
+  border-color: #565656;
+}
+
+.picker-close:active {
+  transform: scale(0.94);
 }
 
 .picker-tabs {
@@ -600,11 +735,12 @@ select optgroup {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  transition: background-color 0.18s var(--ease-fast), border-color 0.18s var(--ease-fast);
 }
 
 .tab-on {
-  background: var(--red);
-  border-color: var(--red);
+  background: linear-gradient(180deg, var(--red-hover), var(--red) 70%, var(--red-dim));
+  border-color: var(--red-dim);
   color: #fff;
 }
 
@@ -625,14 +761,18 @@ select optgroup {
   text-align: left;
   border: 1px solid var(--line-strong);
   border-radius: 16px;
-  background: var(--surface-2);
+  background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
   cursor: pointer;
-  transition: border-color 0.12s;
+  transition: border-color 0.18s var(--ease-fast), box-shadow 0.18s var(--ease-fast), transform 0.15s var(--ease-fast);
 }
 
 .picker-card:hover,
 .picker-card[aria-pressed="true"] {
   border-color: var(--red);
+}
+
+.picker-card:active {
+  transform: scale(0.98);
 }
 
 .picker-card[aria-pressed="true"] {
@@ -643,7 +783,7 @@ select optgroup {
   display: block;
   margin-bottom: 6px;
   border-radius: 10px;
-  background: radial-gradient(110% 100% at 50% 25%, #3c3c3c, #1d1d1d);
+  background: radial-gradient(110% 100% at 50% 25%, #3e3e3e, #1a1a1a);
 }
 
 .picker-art svg {
@@ -670,7 +810,8 @@ select optgroup {
   left: 14px;
   padding: 2px 8px;
   border-radius: var(--radius-control);
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -709,6 +850,11 @@ select optgroup {
   min-width: 0;
 }
 
+.shutter-info .gear-name {
+  font-family: var(--font-engraving);
+  font-variant-numeric: tabular-nums;
+}
+
 .shutter-button {
   position: relative;
   flex: none;
@@ -716,9 +862,16 @@ select optgroup {
   height: 68px;
   border: 0;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #f4f4f4, #9a9a9a 55%, #5a5a5a);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+  background:
+    repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0.05) 0deg 3deg, transparent 3deg 6deg),
+    radial-gradient(circle at 35% 30%, #f6f6f6, #9a9a9a 55%, #545454);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), inset 0 -2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
   cursor: pointer;
+  transition: transform 0.15s var(--ease-fast);
+}
+
+.shutter-button:hover:not(:disabled) {
+  transform: scale(1.03);
 }
 
 .shutter-button::before {
@@ -726,9 +879,9 @@ select optgroup {
   position: absolute;
   inset: 12px;
   border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #e24a40, var(--red) 60%, #8f1c15);
-  box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.25), 0 1px 2px rgba(0, 0, 0, 0.5);
-  transition: transform 0.08s;
+  background: radial-gradient(circle at 40% 35%, #e9564c, var(--red) 60%, var(--red-dim));
+  box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.3), 0 1px 2px rgba(0, 0, 0, 0.5);
+  transition: transform 0.08s var(--ease-fast);
 }
 
 .shutter-button:active::before {
@@ -738,6 +891,7 @@ select optgroup {
 .shutter-button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  transform: none;
 }
 
 /* A brief blackout over the preview when the shutter fires. */
@@ -768,9 +922,15 @@ select optgroup {
   height: 42px;
   border: 1px solid var(--line-strong);
   border-radius: 50%;
-  background: var(--surface-2);
+  background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
+  box-shadow: var(--shadow-inset-top);
   color: var(--muted);
   cursor: pointer;
+  transition: color 0.18s var(--ease-fast), border-color 0.18s var(--ease-fast), transform 0.15s var(--ease-fast);
+}
+
+.icon-button:active {
+  transform: scale(0.92);
 }
 
 .icon-button[aria-pressed="true"] {
@@ -790,17 +950,18 @@ select optgroup {
   width: 84px;
   height: 56px;
   border-radius: 10px;
-  background: radial-gradient(100% 100% at 50% 30%, #3a3a3a, #1c1c1c);
+  background: radial-gradient(100% 100% at 50% 30%, #3c3c3c, #1a1a1a);
 }
 
 .stock-sensor {
   display: grid;
   place-items: center;
-  font-weight: 700;
+  font-family: var(--font-engraving);
+  font-weight: 600;
   font-size: 13px;
   letter-spacing: 0.1em;
   color: var(--muted);
-  background: repeating-linear-gradient(90deg, #2a2a2a 0 3px, #202020 3px 6px), #222;
+  background: repeating-linear-gradient(90deg, #2a2a2a 0 3px, #1e1e1e 3px 6px), #222;
 }
 
 .stock-text {
@@ -831,11 +992,13 @@ select optgroup {
   padding: 0 10px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-control);
-  background: var(--surface-2);
+  background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
+  font-family: var(--font-engraving);
   font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
+  transition: background-color 0.18s var(--ease-fast), border-color 0.18s var(--ease-fast);
 }
 
 .dial-step:disabled {
@@ -846,8 +1009,8 @@ select optgroup {
 .dial-on,
 .dial-on:disabled {
   opacity: 1;
-  background: var(--red);
-  border-color: var(--red);
+  background: linear-gradient(180deg, var(--red-hover), var(--red) 70%, var(--red-dim));
+  border-color: var(--red-dim);
   color: #fff;
 }
 
@@ -866,6 +1029,7 @@ select optgroup {
   position: absolute;
   top: 0;
   transform: translateX(-50%);
+  font-family: var(--font-engraving);
   font-size: 11px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -886,15 +1050,16 @@ select optgroup {
   height: 12px;
   margin-left: -6px;
   border-radius: 50%;
-  background: var(--red);
-  box-shadow: 0 0 8px var(--red);
-  transition: left 0.15s;
+  background: radial-gradient(circle at 35% 30%, #ea5147, var(--red) 60%, var(--red-dim));
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.6);
+  transition: left 0.2s var(--ease);
 }
 
 .meter-text {
   margin-top: 10px;
+  font-family: var(--font-engraving);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .meter-text.warn,
@@ -921,6 +1086,11 @@ select optgroup {
   border: 0;
   background: transparent;
   cursor: pointer;
+  transition: transform 0.15s var(--ease-fast);
+}
+
+.sheet-frame:hover {
+  transform: translateY(-2px);
 }
 
 .sheet-digital .sheet-frame {
@@ -933,6 +1103,7 @@ select optgroup {
   aspect-ratio: 3 / 2;
   object-fit: cover;
   border-radius: 2px;
+  box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.8);
 }
 
 .sheet-digital .sheet-frame img {
@@ -960,12 +1131,14 @@ select optgroup {
   padding: 0;
   border: 1px solid var(--line-strong);
   border-radius: 16px;
-  background: #0d0d0d;
+  background: #0c0c0c;
   color: var(--text);
+  box-shadow: var(--shadow-lift);
 }
 
 .lightbox::backdrop {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(4px);
 }
 
 .lightbox figure {
@@ -1029,8 +1202,9 @@ a.btn {
   line-height: 1.25;
   border: 1px solid var(--line-strong);
   border-radius: 12px;
-  background: var(--surface-2);
+  background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
   cursor: pointer;
+  transition: border-color 0.18s var(--ease-fast);
 }
 
 .scene-chip > span:last-of-type {
@@ -1097,8 +1271,8 @@ a.btn {
 .progress i {
   display: block;
   height: 100%;
-  background: var(--red);
-  transition: width 0.2s;
+  background: linear-gradient(90deg, var(--red-dim), var(--red));
+  transition: width 0.25s var(--ease);
 }
 
 .upload-controls {
@@ -1126,7 +1300,7 @@ input[type="range"] {
   border: 2px solid var(--red);
   border-radius: 4px;
   pointer-events: none;
-  animation: reticle 0.9s ease-out forwards;
+  animation: reticle 0.9s var(--ease-fast) forwards;
 }
 
 @keyframes reticle {
@@ -1143,6 +1317,7 @@ input[type="range"] {
   overflow: hidden;
   background: #000;
   border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
@@ -1173,9 +1348,11 @@ input[type="range"] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--font-engraving);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(6px);
   border-radius: var(--radius-control);
   pointer-events: none;
 }
@@ -1215,11 +1392,11 @@ input[type="range"] {
   height: 36px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: var(--red);
+  background: radial-gradient(circle at 35% 30%, #ea5147, var(--red) 60%, var(--red-dim));
   color: #fff;
   font-size: 14px;
   font-weight: 700;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
 .preview-veil {
@@ -1232,9 +1409,9 @@ input[type="range"] {
   text-align: center;
   font-size: 14px;
   color: var(--muted);
-  background: rgba(20, 20, 20, 0.84);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: rgba(19, 19, 19, 0.86);
+  backdrop-filter: blur(26px);
+  -webkit-backdrop-filter: blur(26px);
 }
 
 /* ── Rangefinder ────────────────────────────────────────── */
@@ -1244,6 +1421,7 @@ input[type="range"] {
   overflow: hidden;
   background: #000;
   border-radius: 10px / 14px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   cursor: ew-resize;
   touch-action: pan-y;
   user-select: none;
@@ -1263,7 +1441,7 @@ input[type="range"] {
   padding-top: 14px;
   border-top: 1px solid var(--line);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .challenge .ok { color: #4cd07d; }
@@ -1334,7 +1512,7 @@ input[type="range"] {
 }
 
 .scene-svg text {
-  font-family: var(--font);
+  font-family: var(--font-engraving);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1361,6 +1539,7 @@ input[type="range"] {
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--line);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .barrel-svg text {
@@ -1369,7 +1548,7 @@ input[type="range"] {
 }
 
 .b-ring { fill: #0f0f0f; }
-.b-knurl { stroke: #262626; stroke-width: 2.5; }
+.b-knurl { stroke: #2a2a2a; stroke-width: 2.5; }
 .b-seam { stroke: #2b2b2b; }
 .b-dof-band { fill: rgba(207, 46, 37, 0.24); }
 .b-label-m text { fill: #f4f4f4; font-size: 14px; }
@@ -1385,9 +1564,9 @@ input[type="range"] {
 .b-index { stroke: var(--red); stroke-width: 2; }
 .b-aperture { fill: #151515; }
 .b-index-tri { fill: var(--red); }
-.b-stop { fill: #cfcfcf; font-size: 15px; }
+.b-stop { fill: #d4d4d4; font-size: 15px; }
 .b-halfstop { fill: #5a5a5a; }
-.b-stop.b-stop-current { fill: var(--red); font-weight: 700; font-size: 17px; }
+.b-stop.b-stop-current { fill: var(--red); font-weight: 600; font-size: 17px; }
 .b-halfstop.b-stop-current { fill: var(--red); }
 .b-shade { fill: url(#barrel-shade); pointer-events: none; }
 .b-edge { fill: url(#barrel-edge); pointer-events: none; }
@@ -1425,11 +1604,11 @@ input[type="range"] {
   }
 
   .panel {
-    padding: 18px;
+    padding: 20px;
   }
 
   .headline {
-    font-size: 24px;
+    font-size: 25px;
   }
 }
 
@@ -1470,5 +1649,6 @@ input[type="range"] {
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
+    animation-duration: 0.001ms !important;
   }
 }

@@ -3,3 +3,9 @@ dist
 *.local
 .DS_Store
 *.tsbuildinfo
+
+# Licensed product-photo originals stay out of the repo; only the
+# generated thumbnails in public/gear/ are published.
+gear-images/bodies/*
+gear-images/lenses/*
+!gear-images/*/.gitkeep

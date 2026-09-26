@@ -9,6 +9,7 @@ import Readouts, { Details } from "./components/Readouts";
 import SceneDiagram from "./components/SceneDiagram";
 import Viewfinder from "./components/Viewfinder";
 import BodyArt from "./components/gear/BodyArt";
+import GearImage, { GEAR_IMAGE_CREDITS, hasGearImage } from "./components/gear/GearImage";
 import GearPicker, { type PickerItem } from "./components/gear/GearPicker";
 import LensArt from "./components/gear/LensArt";
 import Segmented from "./components/Segmented";
@@ -662,13 +663,26 @@ export default function App() {
           <section className="panel stage-setup" aria-label="Camera and lens">
             <div className="panel-head"><h2>Camera &amp; lens</h2></div>
 
-            <div className="kit">
-              <BodyArt body={body} lens={lens} className="kit-body" />
-            </div>
+            {hasGearImage("bodies", body.id) || hasGearImage("lenses", lens.id) ? (
+              <div className="kit kit-photos">
+                <GearImage kind="bodies" id={body.id} alt={body.name} sizes="(min-width: 1080px) 180px, 45vw">
+                  <BodyArt body={body} className="gear-photo-fallback" />
+                </GearImage>
+                <GearImage kind="lenses" id={lens.id} alt={lens.name} sizes="(min-width: 1080px) 180px, 45vw">
+                  <LensArt lens={lens} className="gear-photo-fallback" />
+                </GearImage>
+              </div>
+            ) : (
+              <div className="kit">
+                <BodyArt body={body} lens={lens} className="kit-body" />
+              </div>
+            )}
 
             <div className="gear-buttons">
               <button type="button" className="gear-button" onClick={() => setPicker("body")}>
+                <GearImage kind="bodies" id={body.id} alt="" sizes="84px" className="gear-thumb">
                 <BodyArt body={body} className="gear-thumb" />
+              </GearImage>
                 <span className="gear-text">
                   <span className="gear-label">Camera</span>
                   <span className="gear-name">{body.name}</span>
@@ -676,7 +690,9 @@ export default function App() {
                 </span>
               </button>
               <button type="button" className="gear-button" onClick={() => setPicker("lens")} disabled={lenses.length === 1}>
+                <GearImage kind="lenses" id={lens.id} alt="" sizes="84px" className="gear-thumb">
                 <LensArt lens={lens} className="gear-thumb" />
+              </GearImage>
                 <span className="gear-text">
                   <span className="gear-label">Lens{isAdapted(body, lens) ? " · via adapter" : ""}</span>
                   <span className="gear-name">{lens.name}</span>
@@ -700,7 +716,11 @@ export default function App() {
                 group: b.family,
                 meta: bodyMeta(b),
                 badge: b.medium === "film" ? "Film" : b.medium === "mono" ? "Monochrom" : undefined,
-                art: <BodyArt body={b} />,
+                art: (
+                <GearImage kind="bodies" id={b.id} alt="">
+                  <BodyArt body={b} />
+                </GearImage>
+              ),
               }))}
             />
             <GearPicker
@@ -715,7 +735,11 @@ export default function App() {
                 group: lensGroup(body, l),
                 meta: `${l.year} · f/${l.maxAperture} · closest ${formatDistance(l.minFocusMm, units)}`,
                 badge: l.classic ? "Classic" : l.nickname,
-                art: <LensArt lens={l} />,
+                art: (
+                <GearImage kind="lenses" id={l.id} alt="">
+                  <LensArt lens={l} />
+                </GearImage>
+              ),
               }))}
             />
 
@@ -773,7 +797,7 @@ export default function App() {
 
       <footer className="footer">
         Independent tool, not affiliated with or endorsed by Leica Camera AG. Product names are
-        trademarks of their owners. Lens specs come from public sources; check them against Leica's
+        trademarks of their owners.{GEAR_IMAGE_CREDITS.length > 0 && ` Product photos: ${GEAR_IMAGE_CREDITS.join("; ")}.`} Lens specs come from public sources; check them against Leica's
         datasheets. Distances are measured from the lens (thin-lens model).
       </footer>
     </div>
