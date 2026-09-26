@@ -22,6 +22,8 @@ import IntentAssistant from "./components/IntentAssistant";
 import PortraitTrainer from "./components/PortraitTrainer";
 import StabilityTrainer from "./components/StabilityTrainer";
 import FilmLoadingTrainer from "./components/FilmLoadingTrainer";
+import Leica3D from "./components/Leica3D";
+import { threeDAvailable } from "./three/capabilities";
 import Insights from "./components/Insights";
 import FinderCompare from "./components/FinderCompare";
 import LiveView from "./components/LiveView";
@@ -327,6 +329,10 @@ export default function App() {
       ? "Roll finished: rewind to load a new one"
       : `Frame ${rollFrames.length + 1} of ${ROLL_LENGTH}`
     : `${cardFrames.length} on the card`;
+
+  // 3D view (feature #2): the procedural model is an M body, so it's offered for M rangefinders only.
+  const [show3D, setShow3D] = useState(false);
+  const can3D = FLAGS.threeD && !!body.rangefinder && lens.mount === "M" && threeDAvailable();
 
   function changeAperture(n: number) {
     if (n !== fNumber) playApertureClick();
@@ -806,9 +812,18 @@ export default function App() {
           <FilmLoadingTrainer bodyId={body.id} />
 
           <section className="panel stage-setup" aria-label="Camera and lens">
-            <div className="panel-head"><h2>Camera &amp; lens</h2></div>
+            <div className="panel-head">
+              <h2>Camera &amp; lens</h2>
+              {can3D && (
+                <button type="button" className="btn btn-small" aria-pressed={show3D} onClick={() => setShow3D((v) => !v)}>
+                  3D
+                </button>
+              )}
+            </div>
 
-            {hasGearImage("bodies", body.id) || hasGearImage("lenses", lens.id) ? (
+            {can3D && show3D ? (
+              <Leica3D body={body} lens={lens} fNumber={fNumber} fallback={<div className="kit"><BodyArt body={body} lens={lens} className="kit-body" /></div>} />
+            ) : hasGearImage("bodies", body.id) || hasGearImage("lenses", lens.id) ? (
               <div className="kit kit-photos">
                 <GearImage kind="bodies" id={body.id} alt={body.name} sizes="(min-width: 1080px) 180px, 45vw">
                   <BodyArt body={body} className="gear-photo-fallback" />

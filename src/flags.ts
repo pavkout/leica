@@ -13,7 +13,7 @@ export interface FeatureFlags {
   motionSensors: boolean;
   /** Haptic feedback paired with the existing mechanical sounds. */
   audioHaptics: boolean;
-  /** The lazy-loaded 3D camera/lens renderer. Not implemented. */
+  /** The lazy-loaded 3D camera/lens view (feature #2). */
   threeD: boolean;
   /** Lens character (Lens DNA, Flare Lab) beyond the geometric aperture model. */
   experimentalLensCharacter: boolean;
@@ -24,6 +24,6 @@ export const FLAGS: FeatureFlags = {
   filmMode: true,
   motionSensors: true,
   audioHaptics: false,
-  threeD: false,
+  threeD: true,
   experimentalLensCharacter: false,
 };

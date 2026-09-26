@@ -9,18 +9,29 @@ Last updated: 2026-09-27
 | Phase 0 — Repository Audit & Foundation | ✅ COMPLETE |
 | Phase 1 — M3 Film Companion | ✅ COMPLETE |
 | Phase 2 — Tactile Learning | ✅ COMPLETE |
-| Phase 3 — “WTF” / 3D Layer | ⬜ NOT STARTED |
+| Phase 3 — “WTF” / 3D Layer | 🟡 IN PROGRESS |
 | Phase 4 — Explore / Kiosk / Museum | ⬜ NOT STARTED |
 
 > Phase 0 and Phase 1 were verified directly against the repository (typecheck/lint/test/build all clean, 126 tests passing before this session's work) before Phase 2 began.
 
 ## Current phase
 
-**Phase 2 — Tactile Learning: COMPLETE (2026-09-27).** Phase 3 has not started; it starts only when the user says so.
+**Phase 3 — "WTF" / 3D Layer**, started 2026-09-27 at the user's request, after Phase 2 was closed.
 
 ## Current task
 
-None in progress. All nine Phase 2 features are COMPLETE. The next feature is **#2 — Virtual Leica, full 3D camera and lens** (Phase 3's first milestone item: a lazy-loaded 3D renderer with quality tiers and a 2D fallback). It has not been started and waits for the user's go-ahead.
+**Feature #2 — Virtual Leica, full 3D camera and lens**
+
+Status: **PARTIAL**. First vertical slice done: a lazy-loaded React Three Fiber view with procedural models, the aperture ring and iris bound to the f-stop, quality tiers, a 2D fallback, and stable memory across lens swaps. Not yet built: interaction modes in 3D, the other moving controls, the GLB pipeline, and photoreal assets. See "Last completed" → #2 for what remains.
+
+## Phase 3 checklist
+
+- [ ] **#2 — Virtual Leica, full 3D camera and lens** — PARTIAL (slice 1 done)
+- [ ] #5 — Lens X-Ray / optical path — NOT STARTED
+- [ ] #4 — Lens DNA — NOT STARTED
+- [ ] #25 — Flare Lab — NOT STARTED
+- [ ] #33 — Cinematic virtual lens swap — NOT STARTED
+- [ ] #35 — Signature 60-second "WOW" demo — NOT STARTED
 
 ## Phase 2 checklist
 
@@ -49,6 +60,57 @@ None in progress. All nine Phase 2 features are COMPLETE. The next feature is **
 **Why reordered from the original list** (original had #9 third): #9 needs `DeviceMotionEvent`, and this development environment has no accelerometer/gyroscope exposed to the browser at all — unlike Live View's camera (which streamed real video once permission was granted), there is no path to observing real motion data here, only the "unsupported" fallback. Verifying it meaningfully needs a real phone. Moved it — and #22 (Film Loading Trainer, which needs verified manufacturer-manual sourcing for real mechanical accuracy before writing instructions for someone's real camera) — toward the end, and promoted #11/#27/#31 (all fully implementable and verifiable with existing tooling and existing Phase 1 infrastructure) ahead of them. #18 sits in the middle: achievable, but a real design decision (either multiple simultaneous WebGL viewfinder instances or a new lighter comparison renderer), not a mechanical extension — give it a focused pass on its own. This order may change again if a later feature turns out to have its own dependency issue; Claude must explain and update this file if so.
 
 ## Last completed
+
+**Feature #2 — Virtual Leica, full 3D camera and lens** (Phase 3) — **PARTIAL**, slice 1 (2026-09-27)
+
+Decisions made with the user:
+- Engine: **React Three Fiber v8** (the React 18 line) with `three` 0.170 pinned (same era as R3F 8.18; not the newest 0.186). No `drei`: orbit controls and studio lighting come from `three/examples`.
+- Models: **"the mix"**. Procedural models now, and licensed or commissioned GLB models later for photorealism. The user was given the model spec (named moving parts, pivots, scale, triangle and texture budgets, licence checks).
+- The project's installed `threejs-*` skills guided the work: web (planning), r3f, product-viewer and testing.
+
+Implemented:
+- `three/rig.ts` (pure, no three.js):
+  - `RIG_PARTS` is the named-parts contract (`aperture-ring`, `focus-ring`, `iris`, `shutter-dial`), with the rotation axis in `userData.axis`. That's the same place glTF "extras" land, so a GLB with the same node names works with the same animator.
+  - `apertureRingAngle` (uniform 15° per stop, labelled illustrative), `apertureRingMarks`, `irisOpening`, `lensProfile` (the catalogue's approximate length and diameter), `chooseQualityTier`, and the generic M-body envelope.
+  - `MODEL_PROVENANCE` is `illustrative`.
+- `three/capabilities.ts`: a three.js-free WebGL probe. The probe context is released right away, because mobile Safari caps live contexts. The main bundle decides whether to offer 3D without loading the chunk.
+- `three/ProceduralLens.tsx`: mount, focus ring (with a tab where `look.tab`), barrel, a red index mark, an aperture ring with engraved stops from a canvas texture, the front bezel, and the glass cap. The iris is cut from the same `irisOutline()` as the 2D iris and the bokeh kernel, so all three are provably the same shape.
+- `three/ProceduralBody.tsx`: a generic M body with the catalogue finish. Windows are in M positions. Film bodies get the frosted illumination window, advance lever and rewind knob; digital bodies don't.
+- `three/materials.ts`: shared PBR materials, created once per view and disposed with it.
+- `three/VirtualLeica.tsx`:
+  - Demand rendering (`frameloop="demand"`), so it's idle when nothing moves.
+  - Orbit controls: no panning, zoom limits, damping unless reduced motion is on.
+  - A `Rig` animator that damps named parts toward the pose the optical state implies, and snaps instead when reduced motion is on.
+  - Tiers: `full` has RoomEnvironment reflections via PMREM (no HDR download), DPR up to 2 and antialiasing; `reduced` has lights only and DPR 1.
+  - WebGL context loss falls back to 2D.
+  - The lens is keyed by id, so a swap tears down the old one in one step.
+  - A dev-only `window.__leica3d` probe (memory, ring pose, fixture camera), stripped from production builds.
+- `components/Leica3D.tsx`: `React.lazy` import (the only one), a Suspense fallback showing the 2D art with "Loading 3D…", an error boundary with the 2D fallback, a Reset view button, the tier label, and the provenance note. The canvas wrapper is `role="img"` with a live description of body, lens and f-stop.
+- `App.tsx`: a **3D** toggle (`aria-pressed`) in the Camera & lens panel header. It's shown only for M rangefinder bodies with an M lens and WebGL, since the procedural body is an M. `flags.ts`: `threeD` is now `true`. `styles.css`: a fixed 280px stage, so a drag can't trap page scrolling over a large area.
+- Dependencies added: `three@~0.170.0`, `@react-three/fiber@^8.18.0`, and `@types/three` (dev). The production 3D chunk is **229 KB gzipped**, separate from the main bundle. The main bundle grew by about 4 KB. That's above the 170–200 KB first estimate; R3F's reconciler is the difference.
+- 10 new unit tests: ring angle per stop, monotonic and deterministic across every catalogue lens; every engraved mark lands under the index at its stop; wide open plus full stops only; iris 1/f scaling; both rings fit inside every catalogue lens without overlap; metre scale; tier selection including Safari hiding `deviceMemory`.
+
+Browser verification: a Playwright script (scratch directory) on WebKit (iPhone 13; iPhone SE with reduced motion) and desktop Chromium, plus Chromium with WebGL disabled. **35/35 passed**:
+- three.js isn't requested before 3D is opened, and is when it is.
+- The 3D view appears after tapping 3D, with a semantic readiness signal.
+- f/1.4 → f/2.8 through the existing HTML aperture slider turns the 3D ring to the exact expected angle (0.524 rad).
+- Memory is flat over 28 lens swaps: geometries 31→31, textures 3→3.
+- Turning 3D off removes the canvas and the probe; the simulator still works.
+- No horizontal page scroll; no console errors.
+- Without WebGL, the toggle is hidden and the 2D camera shows.
+
+Screenshots were inspected. Top-down fixtures confirm "2.8" and "8" sit exactly under the red index at those stops, the iris shows as a 9-sided opening, and the engravings aren't mirrored.
+
+**Not done in this slice (why #2 is PARTIAL):**
+1. Interaction modes in 3D: tapping a ring or dial to enter a mode and turning it in 3D, with per-detent haptics. For now the rings follow the existing HTML controls, which stay the way to operate them.
+2. The focus ring, shutter dial and advance lever don't move yet. Focus throw per lens isn't published, so it would need an illustrative mapping like the aperture ring.
+3. The GLB path: a loader adapter, loading the selected body/lens first and high-detail assets lazily, compression (Draco/meshopt, KTX2), and an asset licence manifest. It waits on real models from the user.
+4. Photorealism depends on those assets.
+5. The "<2.5 s interactive on a modern phone" criterion isn't measured on a phone. Dev-server times in emulation (0.3–0.9 s) aren't a benchmark, and headless rendering isn't a mobile GPU.
+6. Non-M bodies (Q, SL, CL, S) get no 3D; they keep the 2D art.
+
+---
+
 
 **Feature #3 — Physical Aperture / Iris Visualization** (Phase 2)
 
@@ -224,9 +286,7 @@ Known limitations: checked in WebKit emulation, not on a physical iPhone. The M3
 
 ## Next
 
-Phase 2 is closed. Next is **Phase 3 — "WTF" / 3D Layer**, starting with **#2 — Virtual Leica, full 3D camera and lens**. Per the Master Plan's Phase 3 milestone, it must be a lazy-loaded route/component (glTF/GLB + PBR), with device quality tiers and a 2D fallback, and no 3D engine or assets loaded for users who never enter it. Adding a 3D engine is a large dependency and needs to be raised with the user before it's added (CLAUDE.md engineering rules).
-
-Do not start it until the user explicitly asks.
+Continue **#2** with slice 2, choosing with the user: (a) in-3D interaction modes (tap a ring to turn it, detent haptics), or (b) binding the focus ring, shutter dial and advance lever to state. The GLB pipeline (slice 3) starts when real models are available.
 
 ## Blockers
 
@@ -237,7 +297,7 @@ None currently recorded.
 - Live Leica View may currently be an alpha/v1 implementation rather than the final complete Feature #1 specification (unchanged from Phase 1).
 - Mobile Safari / narrow-viewport verification: as of 2026-09-27 a working emulation path exists. Playwright's cached WebKit with iPhone device profiles (real `@media` breakpoints, touch, DPR), run from a scratch directory. The whole app has no horizontal overflow at 320/360/375/390px (the only offender, the gear-picker buttons, was fixed), and #9/#22 were checked in depth. Earlier panels (#3–#32) have not each had the same per-panel screenshot review, and nothing substitutes for a pass on a physical iPhone.
 - #9's thresholds use the 1/focal-length rule as a proxy for "a nominal hand" and measure the phone held like a phone, not a rangefinder (different mass/grip). The UI states this, but it remains approximate by design.
-- Phase 3 / Virtual Leica Full 3D has not started. Phase 2 is closed, so it can begin once the user asks.
+- Phase 3 is in progress, starting with #2. The rest of Phase 3 (#5, #4, #25, #33, #35) has not started.
 
 ## Phase 3 — explicitly not started
 
