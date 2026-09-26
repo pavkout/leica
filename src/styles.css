@@ -195,11 +195,13 @@ select {
 .stage-setup { order: 2; }
 .stage-finder { order: 3; }
 .stage-exposure { order: 4; }
-.stage-barrel { order: 5; }
-.readouts { order: 6; }
-.stage-roll { order: 7; }
-.stage-scene { order: 8; }
-.stage-details { order: 9; }
+.stage-trainer { order: 5; }
+.stage-intent { order: 6; }
+.stage-barrel { order: 7; }
+.readouts { order: 8; }
+.stage-roll { order: 9; }
+.stage-scene { order: 10; }
+.stage-details { order: 11; }
 
 .panel {
   position: relative;
@@ -424,6 +426,28 @@ select option,
 select optgroup {
   background: var(--surface-2);
   color: var(--text);
+}
+
+input[type="text"] {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 16px; /* stops iOS zooming on focus */
+  font-family: inherit;
+  color: var(--text);
+  background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-inset-top);
+}
+
+input[type="text"]:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 1px;
+}
+
+input[type="text"]::placeholder {
+  color: var(--muted);
 }
 
 .segmented {
@@ -804,6 +828,35 @@ select optgroup {
   color: var(--muted);
 }
 
+.picker-card-wrap {
+  position: relative;
+}
+
+.picker-star {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.18s var(--ease-fast), border-color 0.18s var(--ease-fast);
+}
+
+.picker-star[aria-pressed="true"] {
+  color: var(--red);
+  border-color: var(--red);
+}
+
 .picker-badge {
   position: absolute;
   top: 14px;
@@ -1168,6 +1221,12 @@ select optgroup {
   gap: 8px;
 }
 
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 a.btn {
   display: inline-flex;
   align-items: center;
@@ -1446,6 +1505,42 @@ input[type="range"] {
 
 .challenge .ok { color: #4cd07d; }
 .challenge .miss { color: var(--red-hover); }
+
+/* ── Intent assistant ──────────────────────────────────── */
+.intent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.intent-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  text-align: left;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
+  cursor: pointer;
+  transition: border-color 0.18s var(--ease-fast);
+}
+
+.intent-pick:hover {
+  border-color: var(--red);
+}
+
+.intent-card {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+}
+
+.intent-card-warn {
+  border-color: var(--red-dim);
+}
 
 .preview-error {
   display: grid;

@@ -13,6 +13,8 @@ import GearImage, { GEAR_IMAGE_CREDITS, hasGearImage } from "./components/gear/G
 import GearPicker, { type PickerItem } from "./components/gear/GearPicker";
 import LensArt from "./components/gear/LensArt";
 import Segmented from "./components/Segmented";
+import Sunny16Trainer from "./components/Sunny16Trainer";
+import IntentAssistant from "./components/IntentAssistant";
 import {
   BODIES,
   apertureStops,
@@ -28,6 +30,7 @@ import {
 import { correctShutter, exposureError, shakeBlurMm } from "./physics/exposure";
 import { SHARPNESS_STANDARDS, computeShot, type Shot } from "./physics/model";
 import { useOpticalState } from "./state/opticalState";
+import { useBag } from "./state/bag";
 import { GENERIC_BLADES, apertureShape, stopsDown } from "./preview/aperture";
 import { grainStrength, lookFor, type FilmLook } from "./preview/film";
 import type { DevelopParams } from "./preview/renderer";
@@ -165,6 +168,7 @@ export default function App() {
     setManualShutter,
     setTripod,
   } = optical;
+  const { savedIds, toggle: toggleBag } = useBag();
   const [compare, setCompare] = useState(false);
   const [lensBId, setLensBId] = useState("m-50-0.95");
   const [fNumberB, setFNumberB] = useState(1.4);
@@ -307,6 +311,7 @@ export default function App() {
         url,
         caption: `${body.name} · ${lens.name} · ${formatFNumber(fNumber)} · ${formatShutter(shutterSec)} · ${isFilm ? look.name : `ISO ${iso}`}`,
         fileName: `rangefinder-${String(number).padStart(2, "0")}.jpg`,
+        meta: { body: body.name, lens: lens.name, fNumber, shutterSec, focusMm, iso, filmOrSensor: isFilm ? look.name : `ISO ${iso}` },
       };
       (isFilm ? setRollFrames : setCardFrames)((list) => [...list, frame]);
     }
@@ -365,6 +370,10 @@ export default function App() {
   function rewind() {
     playRewind();
     setRollFrames([]);
+  }
+
+  function updateFrameNote(id: number, note: string) {
+    (isFilm ? setRollFrames : setCardFrames)((list) => list.map((f) => (f.id === id ? { ...f, note } : f)));
   }
 
   const shape = apertureShape(lens, fNumber);
@@ -596,6 +605,12 @@ export default function App() {
               onApertureChange={changeAperture}
             />
             <div className="actions">
+              <button type="button" className="btn" disabled={lens.minFocusMm > 2000} onClick={() => setFocusMm(2000)}>
+                2 m street
+              </button>
+              <button type="button" className="btn" disabled={lens.minFocusMm > 3000} onClick={() => setFocusMm(3000)}>
+                3 m street
+              </button>
               <button
                 type="button"
                 className="btn btn-red"
@@ -609,6 +624,10 @@ export default function App() {
                 Closest · {formatDistance(lens.minFocusMm, units)}
               </button>
             </div>
+            <p className="hint">
+              Zone focus: pick a preset, then read the near/far band above and on the engraved scale — those are the
+              numbers to copy to a real lens's distance and DOF marks.
+            </p>
           </section>
 
           <ContactSheet
@@ -617,6 +636,7 @@ export default function App() {
             filmName={isFilm ? look.name : null}
             base={isFilm ? (look.mono ? "bw" : look.kind === "slide" ? "slide" : "color") : "digital"}
             onRewind={rewind}
+            onUpdateNote={updateFrameNote}
           />
 
           <section className="panel stage-scene" aria-label="Scene">
@@ -658,6 +678,26 @@ export default function App() {
             shakeLikely={shakeLikely}
             sceneLabel={sceneLabel}
             filmLocked={rollFrames.length > 0}
+            savedFilmIds={savedIds.film}
+            onToggleSavedFilm={(id) => toggleBag("film", id)}
+          />
+
+          <Sunny16Trainer apertures={stops} shutters={speeds} iso={iso} />
+
+          <IntentAssistant
+            sceneEv100={sceneEv}
+            iso={iso}
+            apertures={stops}
+            shutters={speeds}
+            focalMm={lens.focalMm}
+            hyperfocalMm={shot.dof.hyperfocalMm}
+            units={units}
+            onApply={(result) => {
+              changeAperture(result.fNumber);
+              changeShutter(result.shutterSec);
+              if (body.autoExposure) setAutoExposure(false);
+              if (result.focusMm !== undefined) setFocusMm(result.focusMm);
+            }}
           />
 
           <section className="panel stage-setup" aria-label="Camera and lens">
@@ -710,6 +750,8 @@ export default function App() {
               selectedId={bodyId}
               onSelect={selectBody}
               onClose={() => setPicker(null)}
+              saved={savedIds.body}
+              onToggleSaved={(id) => toggleBag("body", id)}
               items={BODIES.map<PickerItem>((b) => ({
                 id: b.id,
                 name: b.name,
@@ -729,6 +771,8 @@ export default function App() {
               selectedId={lensId}
               onSelect={selectLens}
               onClose={() => setPicker(null)}
+              saved={savedIds.lens}
+              onToggleSaved={(id) => toggleBag("lens", id)}
               items={lenses.map<PickerItem>((l) => ({
                 id: l.id,
                 name: l.name,

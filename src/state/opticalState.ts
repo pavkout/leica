@@ -6,10 +6,12 @@
 // — they depend on more than the optical state and belong with the surface
 // that owns them.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  BODIES,
   DEFAULT_BODY_ID,
   DEFAULT_LENS_ID,
+  LENSES,
   apertureStops,
   findBody,
   findLens,
@@ -20,6 +22,12 @@ import {
 } from "../data/gear";
 import type { SharpnessStandard } from "../physics/model";
 import type { Units } from "../utils/format";
+import { decodeMaybeInfinite, encodeMaybeInfinite, loadLastUsed, saveLastUsed } from "./opticalStateStorage";
+
+/** True when `id` is a real row in `rows`, so a stale/corrupt stored id can't leak in. */
+function knownId<T extends { id: string }>(rows: T[], id: string | undefined): id is string {
+  return id !== undefined && rows.some((r) => r.id === id);
+}
 
 export interface OpticalState {
   bodyId: string;
@@ -65,21 +73,65 @@ export interface OpticalStateActions {
 }
 
 export function useOpticalState(): OpticalState & OpticalStateActions {
-  const [bodyId, setBodyId] = useState(DEFAULT_BODY_ID);
-  const [lensId, setLensId] = useState(DEFAULT_LENS_ID);
+  // Read once per mount: the last configuration this browser saved, or {} if
+  // there's none (first visit, storage unavailable, or corrupt data).
+  const [stored] = useState(loadLastUsed);
+
+  const initialBodyId = knownId(BODIES, stored.bodyId) ? stored.bodyId : DEFAULT_BODY_ID;
+  const initialBody = findBody(initialBodyId);
+  const availableForInitialBody = lensesForBody(initialBody);
+  const initialLensId =
+    knownId(LENSES, stored.lensId) && availableForInitialBody.some((l) => l.id === stored.lensId)
+      ? stored.lensId
+      : (availableForInitialBody[0]?.id ?? DEFAULT_LENS_ID);
+  // Same invariant selectBody() maintains during normal use: megapixels/crop
+  // only make sense for the body they were chosen on.
+  const initialMegapixels =
+    stored.megapixels != null && initialBody.megapixels?.includes(stored.megapixels) ? stored.megapixels : (initialBody.megapixels?.[0] ?? null);
+  const initialCropFocalMm =
+    stored.cropFocalMm != null && initialBody.cropFocalLengths?.includes(stored.cropFocalMm) ? stored.cropFocalMm : null;
+
+  const [bodyId, setBodyId] = useState(initialBodyId);
+  const [lensId, setLensId] = useState(initialLensId);
   // Opens on a portrait wide open against the street, where the preview shows most.
-  const [fNumber, setFNumber] = useState(findLens(DEFAULT_LENS_ID).maxAperture);
-  const [focusMm, setFocusMm] = useState(2000);
-  const [backgroundOffsetMm, setBackgroundOffsetMm] = useState(Infinity);
-  const [megapixels, setMegapixels] = useState<number | null>(60);
-  const [cropFocalMm, setCropFocalMm] = useState<number | null>(null);
-  const [standard, setStandard] = useState<SharpnessStandard>("engraved");
-  const [units, setUnits] = useState<Units>("metric");
-  const [filmId, setFilmId] = useState("portra400");
-  const [isoDigital, setIsoDigital] = useState(400);
-  const [autoExposure, setAutoExposure] = useState(true);
-  const [manualShutter, setManualShutter] = useState(1 / 60);
-  const [tripod, setTripod] = useState(false);
+  const [fNumber, setFNumber] = useState(() =>
+    typeof stored.fNumber === "number" ? nearestStop(apertureStops(findLens(lensId)), stored.fNumber) : findLens(lensId).maxAperture
+  );
+  const [focusMm, setFocusMm] = useState(() => Math.max(decodeMaybeInfinite(stored.focusMm, 2000), findLens(lensId).minFocusMm));
+  const [backgroundOffsetMm, setBackgroundOffsetMm] = useState(() => decodeMaybeInfinite(stored.backgroundOffsetMm, Infinity));
+  const [megapixels, setMegapixels] = useState<number | null>(initialMegapixels);
+  const [cropFocalMm, setCropFocalMm] = useState<number | null>(initialCropFocalMm);
+  const [standard, setStandard] = useState<SharpnessStandard>(stored.standard ?? "engraved");
+  const [units, setUnits] = useState<Units>(stored.units ?? "metric");
+  const [filmId, setFilmId] = useState(stored.filmId ?? "portra400");
+  const [isoDigital, setIsoDigital] = useState(stored.isoDigital ?? 400);
+  const [autoExposure, setAutoExposure] = useState(stored.autoExposure ?? true);
+  const [manualShutter, setManualShutter] = useState(stored.manualShutter ?? 1 / 60);
+  const [tripod, setTripod] = useState(stored.tripod ?? false);
+
+  useEffect(() => {
+    // Debounced: focus/aperture change continuously while dragging, and
+    // writing to storage on every intermediate value would be wasteful.
+    const id = window.setTimeout(() => {
+      saveLastUsed({
+        bodyId,
+        lensId,
+        fNumber,
+        focusMm: encodeMaybeInfinite(focusMm),
+        backgroundOffsetMm: encodeMaybeInfinite(backgroundOffsetMm),
+        megapixels,
+        cropFocalMm,
+        standard,
+        units,
+        filmId,
+        isoDigital,
+        autoExposure,
+        manualShutter,
+        tripod,
+      });
+    }, 400);
+    return () => window.clearTimeout(id);
+  }, [bodyId, lensId, fNumber, focusMm, backgroundOffsetMm, megapixels, cropFocalMm, standard, units, filmId, isoDigital, autoExposure, manualShutter, tripod]);
 
   const body = findBody(bodyId);
   const lens = findLens(lensId);

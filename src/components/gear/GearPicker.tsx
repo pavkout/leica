@@ -9,6 +9,8 @@ export interface PickerItem {
   art: ReactNode;
 }
 
+const MY_GEAR = "My Gear";
+
 interface Props {
   open: boolean;
   title: string;
@@ -16,11 +18,14 @@ interface Props {
   selectedId: string;
   onSelect: (id: string) => void;
   onClose: () => void;
+  /** Ids pinned to "My Gear" — adds a filter tab, sorts them first, and shows a star toggle per card. */
+  saved?: Set<string>;
+  onToggleSaved?: (id: string) => void;
 }
 
-export default function GearPicker({ open, title, items, selectedId, onSelect, onClose }: Props) {
+export default function GearPicker({ open, title, items, selectedId, onSelect, onClose, saved, onToggleSaved }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
-  const groups = ["All", ...new Set(items.map((i) => i.group))];
+  const groups = ["All", ...(saved && saved.size > 0 ? [MY_GEAR] : []), ...new Set(items.map((i) => i.group))];
   const [filter, setFilter] = useState("All");
 
   useEffect(() => {
@@ -37,7 +42,10 @@ export default function GearPicker({ open, title, items, selectedId, onSelect, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const shown = filter === "All" ? items : items.filter((i) => i.group === filter);
+  const filtered = filter === "All" ? items : filter === MY_GEAR ? items.filter((i) => saved?.has(i.id)) : items.filter((i) => i.group === filter);
+  // Within "All", pinned items lead — "every selector offers My Gear first".
+  const shown =
+    filter === "All" && saved && saved.size > 0 ? [...filtered].sort((a, b) => Number(saved.has(b.id)) - Number(saved.has(a.id))) : filtered;
 
   return (
     <dialog
@@ -68,21 +76,36 @@ export default function GearPicker({ open, title, items, selectedId, onSelect, o
         )}
         <div className="picker-grid">
           {shown.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className="picker-card"
-              aria-pressed={item.id === selectedId}
-              onClick={() => {
-                onSelect(item.id);
-                onClose();
-              }}
-            >
-              <span className="picker-art">{item.art}</span>
-              <span className="picker-name">{item.name}</span>
-              <span className="picker-meta">{item.meta}</span>
+            <div key={item.id} className="picker-card-wrap">
+              <button
+                type="button"
+                className="picker-card"
+                aria-pressed={item.id === selectedId}
+                onClick={() => {
+                  onSelect(item.id);
+                  onClose();
+                }}
+              >
+                <span className="picker-art">{item.art}</span>
+                <span className="picker-name">{item.name}</span>
+                <span className="picker-meta">{item.meta}</span>
+              </button>
               {item.badge && <span className="picker-badge">{item.badge}</span>}
-            </button>
+              {onToggleSaved && (
+                <button
+                  type="button"
+                  className="picker-star"
+                  aria-pressed={saved?.has(item.id) ?? false}
+                  aria-label={saved?.has(item.id) ? `Remove ${item.name} from My Gear` : `Add ${item.name} to My Gear`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleSaved(item.id);
+                  }}
+                >
+                  ★
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </div>

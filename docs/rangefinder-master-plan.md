@@ -157,11 +157,58 @@ once real-device mobile testing is set up, rather than estimating them here.
   touch. Listed above; left as warnings, not fixed, per "keep UI behavior
   unchanged unless Phase 0 explicitly requires a change."
 
-## What remains before Phase 1
+## Phase 1 — M3 Film Companion vertical slice (partial)
 
-See the chat response this doc accompanies for the full list; in short:
-persistence is unused by any real feature yet (My Bag/Roll Companion are
-Phase 1 work), the mobile audit above needs a live-device confirmation pass,
-and `App.tsx` is still the owner of scene/capture/UI state (intentionally —
-splitting that further should happen alongside the Phase 1 features that
-actually need it, not speculatively).
+Implemented, each as its own reviewable change, verified with
+typecheck/lint/test/build after every slice:
+
+1. **My Leica Bag** — `src/state/opticalState.ts` now restores the last-used
+   body/lens/aperture/focus/film/ISO/exposure-mode on load (debounced write
+   via `src/state/opticalStateStorage.ts`, which also fixes the "Infinity
+   doesn't survive JSON" trap for focus-at-infinity/distant-background).
+   `src/state/bag.ts` adds pinnable "My Gear" favorites; `GearPicker.tsx` now
+   renders a star toggle per card (restructured from `<button>` containing
+   only content to a wrapper `<div>` holding two sibling `<button>`s, since a
+   `<button>` can't nest another one) and a synthetic "My Gear" tab that
+   sorts pinned items first. Wired into the body, lens and film pickers.
+2. **Zone Focus** — most of the spec was already delivered by the existing
+   `SceneDiagram` (near/far/hyperfocal band) and `LensBarrel` (engraved DOF
+   scale), so this added only the missing "2 m street / 3 m street" presets
+   to the existing actions row, rather than a duplicate panel.
+3. **Sunny 16 Trainer** — new `src/physics/sunny16.ts` (EV-guide scenarios,
+   scoring via the existing `exposureError`) and `Sunny16Trainer.tsx`.
+4. **Film Roll Companion** — scoped down from the spec's full "offline
+   IndexedDB persistence" to what's safely testable now: structured CSV/JSON
+   export (`src/state/rollExport.ts`) and a per-frame note field in
+   `ContactSheet.tsx`'s lightbox. Frame images are `canvas.toDataURL()`
+   JPEGs; persisting 36 of them across reloads risks localStorage quota and
+   needs IndexedDB (the spec says so explicitly) with its own test
+   infrastructure (e.g. `fake-indexeddb`) — not yet added, so **rolls still
+   don't survive a reload**. This is the clearest remaining Phase 1 gap.
+5. **Intent Assistant v1** — new `src/physics/intent.ts`, a deterministic
+   solver (no model) for freeze-motion/shallow-background/maximum-depth/
+   street-zone-focus over the existing exposure engine, with parameter
+   locking. **Found and fixed a real bug during manual browser verification**:
+   the "alternatives" for freeze-motion and maximum-depth were sliced from
+   the raw sorted candidate array rather than sorted by distance from the
+   primary pick, so a "slower alternative" could actually be a faster
+   shutter speed than the recommendation. Fixed and covered by regression
+   tests (`intent.test.ts`).
+
+Deliberately not started: **Live View alpha** (camera permission UX and the
+overlay design are real product decisions, not mechanical extensions of
+existing code — needs its own focused pass) and **M3 viewfinder 50/90
+toggle** (the finder/parallax/patch geometry already exists; only a
+dedicated full-screen mode and an explicit 50/90 toggle are missing).
+
+Verified manually in a real browser (Chrome via `claude-in-chrome`) at both
+desktop and 390px-wide mobile viewport: My Gear pinning, Zone Focus presets,
+Sunny 16 Trainer, Intent Assistant (including the bug above), and Roll
+Companion notes/export all work as intended; no console errors at any point.
+
+## What remains before Phase 1 is complete
+
+- Roll Companion: durable reload persistence via IndexedDB (see above).
+- Live View alpha and the M3 viewfinder full-screen mode: not started.
+- The mobile audit from Phase 0 still wants a dedicated device pass beyond
+  the 390px-viewport spot-check done alongside this phase's manual testing.

@@ -24,6 +24,8 @@ interface Props {
   sceneLabel: string;
   /** Film loaded mid-roll can't be swapped without rewinding. */
   filmLocked: boolean;
+  savedFilmIds?: Set<string>;
+  onToggleSavedFilm?: (id: string) => void;
 }
 
 function formatStops(e: number) {
@@ -146,6 +148,8 @@ export default function ExposurePanel(p: Props) {
         selectedId={p.look.id}
         onSelect={p.onFilm}
         onClose={() => setPicking(false)}
+        saved={p.savedFilmIds}
+        onToggleSaved={p.onToggleSavedFilm}
         items={FILM_STOCKS.map((f) => ({
           id: f.id,
           name: f.name,

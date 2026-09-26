@@ -1,0 +1,69 @@
+// CSV/JSON export for a roll or memory card's frames. Pure string-building —
+// no DOM, no Blob — so it's testable without a browser, and the download
+// trigger (a Blob + temporary <a>) lives in the component that calls it.
+
+export interface FrameMeta {
+  body: string;
+  lens: string;
+  fNumber: number;
+  shutterSec: number;
+  /** `Infinity` for focused at infinity. */
+  focusMm: number;
+  iso: number;
+  /** Film stock name, or "ISO n" for a digital sensor. */
+  filmOrSensor: string;
+}
+
+export interface ExportableFrame {
+  number: number;
+  fileName: string;
+  meta: FrameMeta;
+  note?: string;
+}
+
+const CSV_HEADERS = ["frame", "body", "lens", "aperture", "shutter_s", "focus_mm", "iso", "film_or_sensor", "note", "file"];
+
+function csvField(value: string): string {
+  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function csvRow(f: ExportableFrame): string[] {
+  return [
+    String(f.number),
+    f.meta.body,
+    f.meta.lens,
+    String(f.meta.fNumber),
+    String(f.meta.shutterSec),
+    Number.isFinite(f.meta.focusMm) ? String(Math.round(f.meta.focusMm)) : "inf",
+    String(f.meta.iso),
+    f.meta.filmOrSensor,
+    f.note ?? "",
+    f.fileName,
+  ];
+}
+
+/** CSV with a header row; frame order is preserved exactly as given. */
+export function framesToCsv(frames: ExportableFrame[]): string {
+  const rows = [CSV_HEADERS, ...frames.map(csvRow)];
+  return rows.map((row) => row.map(csvField).join(",")).join("\r\n");
+}
+
+/** JSON array, one object per frame, in the given order. */
+export function framesToJson(frames: ExportableFrame[]): string {
+  return JSON.stringify(
+    frames.map((f) => ({
+      frame: f.number,
+      body: f.meta.body,
+      lens: f.meta.lens,
+      fNumber: f.meta.fNumber,
+      shutterSec: f.meta.shutterSec,
+      focusMm: Number.isFinite(f.meta.focusMm) ? f.meta.focusMm : null,
+      iso: f.meta.iso,
+      filmOrSensor: f.meta.filmOrSensor,
+      note: f.note ?? null,
+      file: f.fileName,
+    })),
+    null,
+    2
+  );
+}
