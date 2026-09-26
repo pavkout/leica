@@ -17,6 +17,7 @@ import DistanceInput from "./components/DistanceInput";
 import Iris from "./components/Iris";
 import Sunny16Trainer from "./components/Sunny16Trainer";
 import IntentAssistant from "./components/IntentAssistant";
+import PortraitTrainer from "./components/PortraitTrainer";
 import LiveView from "./components/LiveView";
 import { FLAGS } from "./flags";
 import {
@@ -772,6 +773,8 @@ export default function App() {
               if (result.focusMm !== undefined) setFocusMm(result.focusMm);
             }}
           />
+
+          <PortraitTrainer lens={lens} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} units={units} />
 
           <section className="panel stage-setup" aria-label="Camera and lens">
             <div className="panel-head"><h2>Camera &amp; lens</h2></div>

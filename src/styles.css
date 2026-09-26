@@ -197,12 +197,13 @@ select {
 .stage-exposure { order: 4; }
 .stage-trainer { order: 5; }
 .stage-intent { order: 6; }
-.stage-barrel { order: 7; }
-.stage-iris { order: 8; }
-.readouts { order: 9; }
-.stage-roll { order: 10; }
-.stage-scene { order: 11; }
-.stage-details { order: 12; }
+.stage-portrait { order: 7; }
+.stage-barrel { order: 8; }
+.stage-iris { order: 9; }
+.readouts { order: 10; }
+.stage-roll { order: 11; }
+.stage-scene { order: 12; }
+.stage-details { order: 13; }
 
 .panel {
   position: relative;
@@ -1753,6 +1754,30 @@ input[type="range"] {
   font-size: 11px;
   text-align: center;
   max-width: 150px;
+}
+
+/* ── Portrait distance trainer ────────────────────────────── */
+.portrait-body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 10px 0;
+}
+
+.portrait-guide {
+  flex: none;
+  width: 84px;
+  height: 84px;
+  border-radius: 10px;
+  background: radial-gradient(110% 100% at 50% 20%, #3e3e3e, #1a1a1a);
+}
+
+.portrait-figure {
+  fill: var(--red);
+}
+
+.portrait-result {
+  min-width: 0;
 }
 
 .preview-error {

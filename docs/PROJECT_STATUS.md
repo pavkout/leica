@@ -20,18 +20,18 @@ Last updated: 2026-09-26
 
 ## Current task
 
-**Feature #27 — Portrait Distance Trainer**
+**Feature #31 — Learn From Negatives / Scan Feedback Loop**
 
 Status: **NOT STARTED**
 
-Claude must read Feature #27 in `RANGEFINDER_MASTER_PLAN.md` before implementation, and must not start it until the user says to proceed (one-feature-at-a-time rule).
+Claude must read Feature #31 in `RANGEFINDER_MASTER_PLAN.md` before implementation, and must not start it until the user says to proceed (one-feature-at-a-time rule).
 
 ## Phase 2 checklist
 
 - [x] **#3 — Physical Aperture / Iris Visualization** — COMPLETE
 - [x] **#16 — Interactive Focusing Ring / DOF Scale Trainer** — COMPLETE
 - [x] **#11 — Push / Pull Simulation** — COMPLETE
-- [ ] **#27 — Portrait Distance Trainer** — NOT STARTED
+- [x] **#27 — Portrait Distance Trainer** — COMPLETE
 - [ ] **#31 — Learn From Negatives / Scan Feedback Loop** — NOT STARTED
 - [ ] **#18 — Cross-body Leica Viewfinder Comparison** — NOT STARTED
 - [ ] **#32 — Mechanical Audio + Haptics** — NOT STARTED
@@ -104,13 +104,27 @@ Validation: typecheck clean, lint 0 errors (5 pre-existing warnings, untouched f
 
 Known limitation: same recurring narrow-viewport gap as the last two features — not confirmed live this session. The new controls reuse the existing `.dial`/`Segmented`/`.field` patterns already used (and mobile-verified) throughout `ExposurePanel.tsx`, so risk is judged low.
 
+---
+
+**Feature #27 — Portrait Distance Trainer** (Phase 2)
+
+Implemented:
+- `physics/portrait.ts`: pure module — four `FRAMINGS` (head / head & shoulders / half body / full body), each a fraction of a default 1.7 m standing reference height; `requiredDistanceMm(focalMm, frameHeightMm, subjectHeightM)` inverts the existing thin-lens magnification relationship (`magnification = frameHeightMm / (subjectHeightM · 1000)`, distance = `focal / magnification + focal`); `scaledSubjectHeightM(framing, assumedHeightM)` rescales a framing's fraction against a user-configurable assumed height rather than always assuming 1.7 m. Tagged `PORTRAIT_FRAMING_PROVENANCE: illustrative` — the framing fractions are rough generic proportions, not anthropometric data. 9 new unit tests (rule-of-thumb ~3.6 m sanity check for a 50 mm full-frame full-body portrait, tighter framing ⇒ closer distance, longer focal ⇒ farther distance, taller subject ⇒ farther distance, height-scaling identity/proportionality, framing ordering).
+- `components/DistanceInput.tsx`: added an optional `label?: string` prop (defaults to `"Focus distance"`), so the existing bidirectional-sync input could be reused for "Assumed height" instead of writing a second, near-duplicate input. The pre-existing Focus & Aperture Rings call site (no `label` passed) is unaffected — confirmed live, see below.
+- `components/PortraitTrainer.tsx`: new self-contained panel (framing dial, an SVG silhouette guide, the "stand back to X" readout, and the reused `DistanceInput` for assumed height). The silhouette's crop window is derived from the exact same `subjectHeightM / DEFAULT_ASSUMED_HEIGHT_M` ratio driving the distance math, not a separately hand-tuned visual value, so the guide and the number can't drift apart. Shows an explicit warning when the required distance is closer than `lens.minFocusMm`.
+- `App.tsx`: wired in right after the Intent Assistant panel; `styles.css`: new `.stage-portrait` order slot and a small `.portrait-*` block for the silhouette/result layout.
+
+Manually verified in Chrome (desktop): panel renders with "Head & shoulders" selected by default, reading "Stand back to 0.99 m for a head & shoulders framing with the Summilux-M 50 f/1.4 ASPH." Clicked through all four framing buttons — Head (0.55 m), Half body (1.04 m at assumed height 0.9 m), Full body (1.92 m at assumed height 0.9 m) — the silhouette crop visibly tightened/widened in step with each, and the distance readout changed correctly every time. Lowered "Assumed height" to 0.9 m and selected Head framing: distance dropped to 0.31 m, correctly triggering the MFD warning ("Closer than this lens's minimum focus distance (0.45 m)…") — confirmed the warning is live, not just present in code. Confirmed the reused `DistanceInput` shows "Assumed height (m)" here, and separately confirmed the pre-existing "Focus distance (m)" input in the Focus & Aperture Rings panel is unaffected by the new optional `label` prop. No console errors throughout.
+
+Validation: typecheck clean, lint 0 errors (5 pre-existing warnings, untouched files), 173/173 tests passing (was 164), clean production build (main JS 296.47 kB).
+
+Known limitation: same recurring narrow-viewport gap as the last three features — not confirmed live this session (`resize_window` still non-functional in this environment). The panel reuses the existing `.dial`/`.field` patterns (mobile-verified elsewhere), so risk is judged low. Live View integration (a real-time distance-target overlay in the viewfinder) was deliberately deferred, matching the same staged approach used for Live View's own capture-to-roll feature in Phase 1 — this trainer is a standalone geometric calculator for now, not wired into the camera stream.
+
 ## Next
 
-Start **Feature #27 — Portrait Distance Trainer**.
+Start **Feature #31 — Learn From Negatives / Scan Feedback Loop**.
 
 Do not begin it automatically — wait for the user to say proceed.
-
-Note for whoever picks up #27: this is a clean new slice, not an extension of existing UI (unlike the last three features). It needs: a framing choice (head / head-and-shoulders / half-body / full-body), a configurable assumed subject height (spec: "keep it explicit"), and required-distance math from `angleOfView`/`magnification` in `physics/optics.ts` (thin-lens: image height = frame height means `magnification = frameHeightMm / (assumedHeightM · 1000)`, then invert the existing `magnification(focalMm, focusMm)` formula to solve for distance). Compare the result against `lens.minFocusMm` for the MFD warning — that data's already on every `Lens`. `Sunny16Trainer.tsx`/`IntentAssistant.tsx` are the closest existing components in shape (a self-contained trainer panel reading the current body/lens) — reuse that structure rather than inventing a new one.
 
 ## Blockers
 

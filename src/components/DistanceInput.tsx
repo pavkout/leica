@@ -6,15 +6,17 @@ interface Props {
   units: Units;
   minMm: number;
   onChange: (mm: number) => void;
+  /** Defaults to "Focus distance" — override for other typed distances (e.g. an assumed height). */
+  label?: string;
 }
 
 /**
  * A typed distance, bidirectionally in sync with whatever else sets the same
- * focus distance (the lens barrel's ring, zone-focus presets, Live View...).
- * Local text state while focused so reformatting doesn't fight the user's
- * typing; re-syncs from `mm` once the field is blurred.
+ * value (the lens barrel's ring, zone-focus presets, Live View...). Local
+ * text state while focused so reformatting doesn't fight the user's typing;
+ * re-syncs from `mm` once the field is blurred.
  */
-export default function DistanceInput({ mm, units, minMm, onChange }: Props) {
+export default function DistanceInput({ mm, units, minMm, onChange, label = "Focus distance" }: Props) {
   const [text, setText] = useState(() => (Number.isFinite(mm) ? scaleLabel(mm, units) : ""));
   const [editing, setEditing] = useState(false);
 
@@ -24,7 +26,9 @@ export default function DistanceInput({ mm, units, minMm, onChange }: Props) {
 
   return (
     <label className="field field-narrow">
-      <span>Focus distance ({units === "metric" ? "m" : "ft"})</span>
+      <span>
+        {label} ({units === "metric" ? "m" : "ft"})
+      </span>
       <input
         type="text"
         inputMode="decimal"
