@@ -13,6 +13,7 @@ import GearImage, { GEAR_IMAGE_CREDITS, hasGearImage } from "./components/gear/G
 import GearPicker, { type PickerItem } from "./components/gear/GearPicker";
 import LensArt from "./components/gear/LensArt";
 import Segmented from "./components/Segmented";
+import DistanceInput from "./components/DistanceInput";
 import Iris from "./components/Iris";
 import Sunny16Trainer from "./components/Sunny16Trainer";
 import IntentAssistant from "./components/IntentAssistant";
@@ -640,6 +641,7 @@ export default function App() {
               <h2>Focus &amp; aperture rings</h2>
               <span className="muted small">Drag or tap the rings</span>
             </div>
+            <DistanceInput mm={focusMm} units={units} minMm={lens.minFocusMm} onChange={setFocusMm} />
             <LensBarrel
               lens={lens}
               stops={stops}
@@ -671,8 +673,10 @@ export default function App() {
               </button>
             </div>
             <p className="hint">
-              Zone focus: pick a preset, then read the near/far band above and on the engraved scale — those are the
-              numbers to copy to a real lens's distance and DOF marks.
+              Copy to a real lens: set the distance scale to {formatDistance(focusMm, units)} and the aperture ring
+              to {formatFNumber(fNumber)}, then match the {formatFNumber(fNumber)} marks on the engraved DOF scale
+              against the distance index. Everything from {formatDistance(shot.dof.nearMm, units)} to{" "}
+              {formatDistance(shot.dof.farMm, units)} will be sharp.
             </p>
           </section>
 

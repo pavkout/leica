@@ -52,3 +52,14 @@ export function scaleLabel(mm: number, units: Units) {
   if (units === "metric") return String(+(mm / 1000).toFixed(2));
   return String(+(mm / MM_PER_INCH / 12).toFixed(2));
 }
+
+/**
+ * Inverse of `scaleLabel`: a typed distance in the current unit (metres or
+ * feet) to millimetres. `null` for anything that isn't a positive number —
+ * callers should leave the focus distance unchanged rather than accept it.
+ */
+export function parseDistanceInput(text: string, units: Units): number | null {
+  const value = Number(text.trim());
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return units === "metric" ? value * 1000 : value * 12 * MM_PER_INCH;
+}
