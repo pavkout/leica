@@ -18,12 +18,16 @@ export const RIG_PARTS = {
   focusRing: "focus-ring",
   iris: "iris",
   shutterDial: "shutter-dial",
+  advanceLever: "advance-lever",
 } as const;
+
+/** userData for parts that rotate about their local Y axis. One shared object, so re-renders never look like prop changes. */
+export const AXIS_Y = Object.freeze({ axis: "y" as const });
 
 export const MODEL_PROVENANCE: Provenance = {
   kind: "illustrative",
   notes:
-    "Procedural stand-in, not a scan or a licensed model: lens length and diameter come from the catalogue's approximate sizes, body proportions are generic M-body proportions, and ring spacing is a uniform illustrative scale. The iris uses the same outline as the 2D iris and the bokeh.",
+    "Procedural stand-in, not a scan or a licensed model: lens length and diameter come from the catalogue's approximate sizes, body proportions are generic M-body proportions, and ring, dial and lever travel are illustrative. The iris uses the same outline as the 2D iris and the bokeh; focus-ring rotation follows the lens's real extension (f²/(d−f)) scaled to an illustrative throw.",
 };
 
 /** Generic M-body envelope, metres. Illustrative, not a specific model's dimensions. */
@@ -49,6 +53,82 @@ export function apertureRingMarks(lens: Lens): { label: string; angle: number }[
   return apertureStops(lens)
     .filter((n, i) => i === 0 || isFullStop(n))
     .map((n) => ({ label: String(n), angle: -apertureRingAngle(lens, n) }));
+}
+
+/** Focus-ring travel from infinity to the closest distance. Leica doesn't publish throws; illustrative. */
+export const FOCUS_THROW_RAD = (100 * Math.PI) / 180;
+
+/** Helicoid extension needed to focus at `focusMm` (thin-lens f²/(d−f)); 0 at infinity. */
+function extensionMm(focalMm: number, focusMm: number) {
+  return Number.isFinite(focusMm) ? (focalMm * focalMm) / Math.max(focusMm - focalMm, 1e-6) : 0;
+}
+
+/**
+ * Focus ring rotation: 0 at infinity, FOCUS_THROW_RAD at the closest
+ * distance. A helicoid turns in proportion to extension, so the scale is
+ * crowded near infinity and opens up close — as engraved distance scales do.
+ */
+export function focusRingAngle(lens: Lens, focusMm: number): number {
+  const d = Math.max(focusMm, lens.minFocusMm);
+  return (extensionMm(lens.focalMm, d) / extensionMm(lens.focalMm, lens.minFocusMm)) * FOCUS_THROW_RAD;
+}
+
+const DISTANCE_MARKS_M = [Infinity, 10, 5, 3, 2, 1.5, 1.2, 1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3];
+/** Closest angular spacing that keeps engraved labels from overlapping. */
+const MIN_MARK_GAP_RAD = (16 * Math.PI) / 180;
+
+/**
+ * The engraved distance scale (metres), placed like the aperture marks so the
+ * set distance sits under the index. The closest-focus mark is always kept;
+ * labels that would crowd their neighbour toward infinity are dropped.
+ */
+export function focusRingMarks(lens: Lens): { label: string; angle: number }[] {
+  const minM = lens.minFocusMm / 1000;
+  const candidates = [...DISTANCE_MARKS_M.filter((m) => m > minM + 1e-9), minM];
+  const kept: { label: string; angle: number }[] = [];
+  for (const m of [...candidates].reverse()) {
+    const angle = -focusRingAngle(lens, m * 1000);
+    if (kept.length && Math.abs(kept[kept.length - 1].angle - angle) < MIN_MARK_GAP_RAD && m !== Infinity) continue;
+    if (kept.length && m === Infinity && Math.abs(kept[kept.length - 1].angle - angle) < MIN_MARK_GAP_RAD) kept.pop();
+    kept.push({ label: m === Infinity ? "∞" : String(m), angle });
+  }
+  return kept.reverse();
+}
+
+/** Shutter dial detents, slowest first, plus "A" on bodies with automatic exposure. */
+export function dialDetents(speeds: number[], hasAuto: boolean): { label: string; sec: number | null }[] {
+  const slowestFirst = [...speeds].sort((a, b) => b - a);
+  const marks = slowestFirst.map((t) => ({ label: t > 1 ? `${t}s` : String(Math.round(1 / t)), sec: t as number | null }));
+  return hasAuto ? [...marks, { label: "A", sec: null }] : marks;
+}
+
+/** Detent spacing: up to 24°, tighter on long dials so every position fits within 330°. Illustrative. */
+export function dialStep(detents: number): number {
+  return Math.min((24 * Math.PI) / 180, (330 * Math.PI) / 180 / Math.max(1, detents - 1));
+}
+
+/** Shutter dial rotation: slowest speed at 0, one detent per marked speed, "A" last. */
+export function shutterDialAngle(speeds: number[], shutterSec: number, auto: boolean, hasAuto: boolean): number {
+  const detents = dialDetents(speeds, hasAuto);
+  const step = dialStep(detents.length);
+  if (auto && hasAuto) return (detents.length - 1) * step;
+  let best = 0;
+  detents.forEach((d, i) => {
+    if (d.sec !== null && Math.abs(Math.log(d.sec / shutterSec)) < Math.abs(Math.log(detents[best].sec! / shutterSec))) best = i;
+  });
+  return best * step;
+}
+
+/** Advance-lever stroke: out over STROKE_OUT_S, spring back over STROKE_BACK_S. Travel is illustrative. */
+export const LEVER_STROKE_RAD = (120 * Math.PI) / 180;
+export const STROKE_OUT_S = 0.28;
+export const STROKE_BACK_S = 0.22;
+
+/** Lever angle `t` seconds into a stroke; 0 before it starts and once it has sprung back. */
+export function advanceLeverAngle(t: number): number {
+  if (t <= 0 || t >= STROKE_OUT_S + STROKE_BACK_S) return 0;
+  const ease = (x: number) => x * x * (3 - 2 * x);
+  return t < STROKE_OUT_S ? LEVER_STROKE_RAD * ease(t / STROKE_OUT_S) : LEVER_STROKE_RAD * (1 - ease((t - STROKE_OUT_S) / STROKE_BACK_S));
 }
 
 /** Iris opening radius as a fraction of the wide-open radius (diameter scales as 1/f-number). */

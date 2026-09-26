@@ -332,6 +332,8 @@ export default function App() {
 
   // 3D view (feature #2): the procedural model is an M body, so it's offered for M rangefinders only.
   const [show3D, setShow3D] = useState(false);
+  // Counts film wind-ons so the 3D advance lever strokes in time with the advance sound.
+  const [advanceCount, setAdvanceCount] = useState(0);
   const can3D = FLAGS.threeD && !!body.rangefinder && lens.mount === "M" && threeDAvailable();
 
   function changeAperture(n: number) {
@@ -357,7 +359,10 @@ export default function App() {
     };
     (isFilm ? setRollFrames : setCardFrames)((list) => [...list, frame]);
     void saveStoredFrame(isFilm ? "film" : "digital", frame);
-    if (isFilm && rollFrames.length + 1 < ROLL_LENGTH) setTimeout(playAdvance, Math.min(shutterSec, 2) * 1000 + 200);
+    if (isFilm && rollFrames.length + 1 < ROLL_LENGTH) setTimeout(() => {
+        playAdvance();
+        setAdvanceCount((n) => n + 1);
+      }, Math.min(shutterSec, 2) * 1000 + 200);
   }
 
   function fireShutter() {
@@ -822,7 +827,7 @@ export default function App() {
             </div>
 
             {can3D && show3D ? (
-              <Leica3D body={body} lens={lens} fNumber={fNumber} fallback={<div className="kit"><BodyArt body={body} lens={lens} className="kit-body" /></div>} />
+              <Leica3D body={body} lens={lens} fNumber={fNumber} focusMm={focusMm} shutterSec={shutterSec} auto={auto} advanceCount={advanceCount} fallback={<div className="kit"><BodyArt body={body} lens={lens} className="kit-body" /></div>} />
             ) : hasGearImage("bodies", body.id) || hasGearImage("lenses", lens.id) ? (
               <div className="kit kit-photos">
                 <GearImage kind="bodies" id={body.id} alt={body.name} sizes="(min-width: 1080px) 180px, 45vw">

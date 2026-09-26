@@ -1,4 +1,4 @@
-import { Component, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from "react";
+import { Component, Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Body, Lens } from "../data/gear";
 import { MODEL_PROVENANCE } from "../three/rig";
 import { qualityTier } from "../three/capabilities";
@@ -11,6 +11,10 @@ interface Props {
   body: Body;
   lens: Lens;
   fNumber: number;
+  focusMm: number;
+  shutterSec: number;
+  auto: boolean;
+  advanceCount: number;
   /** The 2D art, shown while loading and whenever 3D can't run. */
   fallback: ReactNode;
 }
@@ -37,11 +41,12 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-export default function Leica3D({ body, lens, fNumber, fallback }: Props) {
+export default function Leica3D({ body, lens, fNumber, focusMm, shutterSec, auto, advanceCount, fallback }: Props) {
   const tier = qualityTier();
   const reducedMotion = usePrefersReducedMotion();
   const [lost, setLost] = useState(false);
   const view = useRef<VirtualLeicaHandle>(null);
+  const onContextLost = useCallback(() => setLost(true), []);
 
   const unavailable = (why: string) => (
     <>
@@ -57,7 +62,7 @@ export default function Leica3D({ body, lens, fNumber, fallback }: Props) {
       <div className="leica3d-stage" role="img" aria-label={`3D model: ${body.name} with ${lens.name}, set to f/${fNumber}. Drag to turn it, pinch or scroll to zoom.`}>
         <Boundary fallback={unavailable("The 3D view couldn't start — showing the 2D camera instead.")}>
           <Suspense fallback={<div className="leica3d-loading">{fallback}<p className="muted small">Loading 3D…</p></div>}>
-            <VirtualLeica ref={view} body={body} lens={lens} fNumber={fNumber} tier={tier} reducedMotion={reducedMotion} onContextLost={() => setLost(true)} />
+            <VirtualLeica ref={view} body={body} lens={lens} fNumber={fNumber} focusMm={focusMm} shutterSec={shutterSec} auto={auto} advanceCount={advanceCount} tier={tier} reducedMotion={reducedMotion} onContextLost={onContextLost} />
           </Suspense>
         </Boundary>
       </div>

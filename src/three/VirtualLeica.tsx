@@ -2,21 +2,27 @@
 // included, reaches users who never open the 3D view. It's a *view* of the
 // optical state — it reads body, lens and f-number and never writes them.
 
-import { useEffect, useImperativeHandle, useMemo, useRef, forwardRef } from "react";
+import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import type { Body, Lens } from "../data/gear";
+import { shutterSpeeds, type Body, type Lens } from "../data/gear";
 import ProceduralBody from "./ProceduralBody";
 import ProceduralLens from "./ProceduralLens";
 import { createMaterials, disposeMaterials, type Materials } from "./materials";
-import { MOUNT_CENTER, RIG_PARTS, apertureRingAngle, type QualityTier } from "./rig";
+import { MOUNT_CENTER, RIG_PARTS, advanceLeverAngle, apertureRingAngle, focusRingAngle, shutterDialAngle, type QualityTier } from "./rig";
 
 export interface VirtualLeicaProps {
   body: Body;
   lens: Lens;
   fNumber: number;
+  focusMm: number;
+  shutterSec: number;
+  /** Automatic exposure engaged (the dial then sits at A). */
+  auto: boolean;
+  /** Increments each time a film body winds on; each change plays one lever stroke. */
+  advanceCount: number;
   tier: Exclude<QualityTier, "fallback">;
   reducedMotion: boolean;
   onContextLost: () => void;
@@ -99,7 +105,11 @@ const Controls = forwardRef<VirtualLeicaHandle, { damping: boolean }>(function C
  */
 function Rig({ targets, snap }: { targets: Record<string, number>; snap: boolean }) {
   const { scene, invalidate } = useThree();
-  useEffect(() => invalidate(), [targets, invalidate]);
+  useEffect(() => {
+    // Published for the dev probe, so browser checks can wait for "pose reached target" instead of sleeping.
+    scene.userData.rigTargets = targets;
+    invalidate();
+  }, [scene, targets, invalidate]);
   useFrame((_, delta) => {
     let moving = false;
     for (const [name, target] of Object.entries(targets)) {
@@ -116,6 +126,42 @@ function Rig({ targets, snap }: { targets: Record<string, number>; snap: boolean
   return null;
 }
 
+/**
+ * One advance-lever stroke per film wind-on. An event, not a pose, so it's
+ * time-driven rather than a Rig target. The stroke's clock starts on the first
+ * frame actually drawn after the trigger, so a busy main thread (e.g. the shot
+ * being saved) delays the stroke instead of swallowing it.
+ */
+function LeverStroke({ count, enabled }: { count: number; enabled: boolean }) {
+  const { scene, clock, invalidate } = useThree();
+  const start = useRef<number | null>(null);
+  const pending = useRef(false);
+  // Compare against the last count seen, so mounting, StrictMode's double
+  // effect run, or switching to a film body never plays a stroke by itself.
+  const seen = useRef(count);
+  useEffect(() => {
+    if (count === seen.current) return;
+    seen.current = count;
+    if (!enabled) return;
+    pending.current = true;
+    invalidate();
+  }, [count, enabled, invalidate]);
+  useFrame(() => {
+    const now = clock.getElapsedTime();
+    if (pending.current) {
+      pending.current = false;
+      start.current = now;
+    }
+    if (start.current === null) return;
+    const lever = scene.getObjectByName(RIG_PARTS.advanceLever);
+    const angle = advanceLeverAngle(now - start.current);
+    if (lever) lever.rotation.y = angle;
+    if (angle === 0 && now > start.current) start.current = null;
+    else invalidate();
+  });
+  return null;
+}
+
 /** Development-only handle for browser checks (memory after lens swaps, ring pose). */
 function DevProbe() {
   const { gl, scene, camera, invalidate } = useThree();
@@ -125,7 +171,11 @@ function DevProbe() {
     w.__leica3d = {
       memory: () => ({ ...gl.info.memory }),
       programs: () => gl.info.programs?.length ?? 0,
+      /** Frames the 3D view has actually rendered (demand mode: should stay flat while nothing moves). */
+      frames: () => gl.info.render.frame,
       apertureRing: () => scene.getObjectByName(RIG_PARTS.apertureRing)?.rotation.y ?? null,
+      pose: (name: string) => scene.getObjectByName(name)?.rotation.y ?? null,
+      target: (name: string) => (scene.userData.rigTargets as Record<string, number> | undefined)?.[name] ?? null,
       /** Fixed camera for visual fixtures. */
       lookFrom: (x: number, y: number, z: number, at: [number, number, number] = [TARGET.x, TARGET.y, TARGET.z]) => {
         camera.position.set(x, y, z);
@@ -154,12 +204,19 @@ function Scene({ body, lens, fNumber, materials }: { body: Body; lens: Lens; fNu
 }
 
 const VirtualLeica = forwardRef<VirtualLeicaHandle, VirtualLeicaProps>(function VirtualLeica(
-  { body, lens, fNumber, tier, reducedMotion, onContextLost },
+  { body, lens, fNumber, focusMm, shutterSec, auto, advanceCount, tier, reducedMotion, onContextLost },
   ref,
 ) {
   const materials = useMemo(createMaterials, []);
   useEffect(() => () => disposeMaterials(materials), [materials]);
-  const targets = useMemo(() => ({ [RIG_PARTS.apertureRing]: apertureRingAngle(lens, fNumber) }), [lens, fNumber]);
+  const targets = useMemo(
+    () => ({
+      [RIG_PARTS.apertureRing]: apertureRingAngle(lens, fNumber),
+      [RIG_PARTS.focusRing]: focusRingAngle(lens, focusMm),
+      [RIG_PARTS.shutterDial]: shutterDialAngle(shutterSpeeds(body), shutterSec, auto, body.autoExposure),
+    }),
+    [lens, fNumber, focusMm, body, shutterSec, auto],
+  );
   const lostRef = useRef(onContextLost);
   lostRef.current = onContextLost;
 
@@ -179,10 +236,13 @@ const VirtualLeica = forwardRef<VirtualLeicaHandle, VirtualLeicaProps>(function 
       <Studio tier={tier} />
       <Scene body={body} lens={lens} fNumber={fNumber} materials={materials} />
       <Rig targets={targets} snap={reducedMotion} />
+      <LeverStroke count={advanceCount} enabled={!reducedMotion && body.medium === "film"} />
       <Controls ref={ref} damping={!reducedMotion} />
       <DevProbe />
     </Canvas>
   );
 });
 
-export default VirtualLeica;
+// Memoized: the app re-renders for many unrelated reasons, and each render of
+// the scene tree can make R3F request a frame. Only real prop changes get through.
+export default memo(VirtualLeica);

@@ -36,7 +36,7 @@ export function createMaterials(): Materials {
     interior: new THREE.MeshBasicMaterial({ color: "#030303" }),
     index: new THREE.MeshBasicMaterial({ color: "#e53935" }),
     window: new THREE.MeshStandardMaterial({ color: "#1d2733", metalness: 0.2, roughness: 0.08 }),
-    frosted: new THREE.MeshStandardMaterial({ color: "#d9d6cc", metalness: 0, roughness: 0.85 }),
+    frosted: new THREE.MeshStandardMaterial({ color: "#8f8c84", metalness: 0, roughness: 0.9 }),
   };
 }
 

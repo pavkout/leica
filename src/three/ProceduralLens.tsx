@@ -7,7 +7,7 @@ import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import type { Lens } from "../data/gear";
 import { apertureShape, irisOutline } from "../preview/aperture";
-import { RIG_PARTS, apertureRingMarks, irisOpening, lensProfile } from "./rig";
+import { AXIS_Y, RIG_PARTS, apertureRingMarks, focusRingMarks, irisOpening, lensProfile } from "./rig";
 import { finishMaterial, type Materials } from "./materials";
 
 interface Props {
@@ -21,8 +21,8 @@ const RADIAL = 64;
 const CAP_CURVE = 2.4;
 const CAP_THETA = Math.asin(1 / CAP_CURVE);
 
-/** Engraved stop numbers around the aperture ring, placed so the set stop sits under the top index. */
-function useRingTexture(lens: Lens, dark: boolean) {
+/** Engraved marks around a ring, placed so the set value sits under the top index. */
+function useRingTexture(marks: { label: string; angle: number }[], dark: boolean) {
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 1024;
@@ -31,10 +31,10 @@ function useRingTexture(lens: Lens, dark: boolean) {
     g.fillStyle = dark ? "#141414" : "#c9c9c9";
     g.fillRect(0, 0, canvas.width, canvas.height);
     g.fillStyle = dark ? "#e8e8e8" : "#1a1a1a";
-    g.font = "600 30px system-ui, sans-serif";
+    g.font = "600 26px system-ui, sans-serif";
     g.textAlign = "center";
     g.textBaseline = "middle";
-    for (const { label, angle } of apertureRingMarks(lens)) {
+    for (const { label, angle } of marks) {
       // CylinderGeometry's u runs with the angle about Y starting at +Z; the
       // top of the lens (local -Z) is at π. See rig.apertureRingAngle.
       const u = ((((Math.PI + angle) / (2 * Math.PI)) % 1) + 1) % 1;
@@ -44,7 +44,7 @@ function useRingTexture(lens: Lens, dark: boolean) {
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 4;
     return t;
-  }, [lens, dark]);
+  }, [marks, dark]);
   useEffect(() => () => texture.dispose(), [texture]);
   return texture;
 }
@@ -66,7 +66,10 @@ export default function ProceduralLens({ lens, fNumber, materials }: Props) {
   const p = useMemo(() => lensProfile(lens), [lens]);
   const dark = lens.look.finish === "black";
   const barrel = finishMaterial(materials, lens.look.finish);
-  const ringTexture = useRingTexture(lens, dark);
+  const apertureMarks = useMemo(() => apertureRingMarks(lens), [lens]);
+  const distanceMarks = useMemo(() => focusRingMarks(lens), [lens]);
+  const ringTexture = useRingTexture(apertureMarks, dark);
+  const focusTexture = useRingTexture(distanceMarks, dark);
   const iris = useIrisGeometry(lens, fNumber, p.frontRadius);
   const [f0, f1] = p.focusRing;
   const [a0, a1] = p.apertureRing;
@@ -81,9 +84,14 @@ export default function ProceduralLens({ lens, fNumber, materials }: Props) {
       </mesh>
 
       {/* Focus ring, with the focusing tab where the lens has one */}
-      <group name={RIG_PARTS.focusRing} userData={{ axis: "y" }}>
-        <mesh position={[0, (f0 + f1) / 2, 0]} material={barrel}>
-          <cylinderGeometry args={[p.radius, p.radius, f1 - f0, RADIAL]} />
+      <group name={RIG_PARTS.focusRing} userData={AXIS_Y}>
+        {/* Knurled grip toward the mount, engraved distance scale toward the front */}
+        <mesh position={[0, f0 + (f1 - f0) * 0.3, 0]} material={barrel}>
+          <cylinderGeometry args={[p.radius, p.radius, (f1 - f0) * 0.6, RADIAL]} />
+        </mesh>
+        <mesh position={[0, f0 + (f1 - f0) * 0.8, 0]}>
+          <cylinderGeometry args={[p.radius, p.radius, (f1 - f0) * 0.4, RADIAL, 1, true]} />
+          <meshStandardMaterial map={focusTexture} metalness={dark ? 0.3 : 0.9} roughness={dark ? 0.5 : 0.3} side={THREE.DoubleSide} />
         </mesh>
         {lens.look.tab && (
           <mesh position={[0, f0 + 0.004, p.radius + 0.004]} material={barrel}>
@@ -98,13 +106,16 @@ export default function ProceduralLens({ lens, fNumber, materials }: Props) {
           <cylinderGeometry args={[p.radius * 0.96, p.radius * 0.96, barrelEnd - barrelStart, RADIAL]} />
         </mesh>
       )}
-      {/* Index mark on the barrel, at the top of the lens (local -Z) */}
+      {/* Index marks on the barrel, at the top of the lens (local -Z): distance, then aperture */}
+      <mesh position={[0, barrelStart + 0.0015, -p.radius * 0.965]} material={materials.index}>
+        <boxGeometry args={[0.0012, 0.0025, 0.0006]} />
+      </mesh>
       <mesh position={[0, barrelEnd - 0.0015, -p.radius * 0.965]} material={materials.index}>
         <boxGeometry args={[0.0012, 0.0025, 0.0006]} />
       </mesh>
 
       {/* Aperture ring with engraved stops */}
-      <mesh name={RIG_PARTS.apertureRing} userData={{ axis: "y" }} position={[0, (a0 + a1) / 2, 0]}>
+      <mesh name={RIG_PARTS.apertureRing} userData={AXIS_Y} position={[0, (a0 + a1) / 2, 0]}>
         <cylinderGeometry args={[p.radius, p.radius, a1 - a0, RADIAL, 1, true]} />
         <meshStandardMaterial map={ringTexture} metalness={dark ? 0.3 : 0.9} roughness={dark ? 0.5 : 0.3} side={THREE.DoubleSide} />
       </mesh>

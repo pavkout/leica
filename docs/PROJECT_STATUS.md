@@ -22,11 +22,15 @@ Last updated: 2026-09-27
 
 **Feature #2 — Virtual Leica, full 3D camera and lens**
 
-Status: **PARTIAL**. First vertical slice done: a lazy-loaded React Three Fiber view with procedural models, the aperture ring and iris bound to the f-stop, quality tiers, a 2D fallback, and stable memory across lens swaps. Not yet built: interaction modes in 3D, the other moving controls, the GLB pipeline, and photoreal assets. See "Last completed" → #2 for what remains.
+Status: **PARTIAL**. Slices 1–2 are done:
+- A lazy-loaded React Three Fiber view with procedural models, quality tiers, a 2D fallback, and stable memory across lens swaps.
+- The aperture ring and iris, focus ring, shutter dial and advance lever all follow the app's state.
+
+Not yet built: interaction modes in 3D, the GLB pipeline, and photoreal assets. See "Last completed" → #2 for what remains.
 
 ## Phase 3 checklist
 
-- [ ] **#2 — Virtual Leica, full 3D camera and lens** — PARTIAL (slice 1 done)
+- [ ] **#2 — Virtual Leica, full 3D camera and lens** — PARTIAL (slices 1–2 done)
 - [ ] #5 — Lens X-Ray / optical path — NOT STARTED
 - [ ] #4 — Lens DNA — NOT STARTED
 - [ ] #25 — Flare Lab — NOT STARTED
@@ -61,7 +65,39 @@ Status: **PARTIAL**. First vertical slice done: a lazy-loaded React Three Fiber 
 
 ## Last completed
 
-**Feature #2 — Virtual Leica, full 3D camera and lens** (Phase 3) — **PARTIAL**, slice 1 (2026-09-27)
+**Feature #2 — Virtual Leica, full 3D camera and lens** (Phase 3) — **PARTIAL**, slices 1–2 (2026-09-27)
+
+**Slice 2: the other moving controls follow state.**
+- `rig.ts`:
+  - `focusRingAngle` turns in proportion to the helicoid extension f²/(d−f) (calculated), scaled to an illustrative 100° throw. The scale crowds toward ∞ as real ones do.
+  - `focusRingMarks` gives the engraved distances in metres. It always keeps ∞ and the closest distance, and drops labels closer than 16° to a neighbour.
+  - `dialDetents` / `dialStep` / `shutterDialAngle`: one detent per marked speed, slowest at 0. There's an "A" position on bodies with auto exposure, and the dial sits there when auto is engaged. Spacing adapts to fit 19 positions within 330°.
+  - `advanceLeverAngle`: an illustrative 120° stroke, 0.28 s out and 0.22 s back. `RIG_PARTS` gains `advance-lever`. `AXIS_Y` is a shared, frozen userData object.
+- Lens: the focus ring has a knurled grip plus an engraved distance scale, with a second index mark.
+- Body:
+  - The shutter dial's top is engraved with the body's real marked speeds, radially as on a real dial (tangential labels didn't fit a digital M's 19 positions), with an index on the top plate.
+  - The film advance lever is rebuilt around a pivot on the release-button axis.
+- `VirtualLeica`:
+  - The focus ring and dial go through the existing `Rig` animator.
+  - `LeverStroke` plays one stroke per film wind-on. Its clock starts on the first frame drawn after the trigger, so a busy main thread delays the stroke instead of swallowing it.
+  - It compares against the last count seen, so mounting, StrictMode, or switching to a film body never plays a spurious stroke. That was a real bug in the first version, caught in testing.
+  - Reduced motion means no stroke.
+  - The component is memoized, and the context-loss callback is stable.
+  - The rig publishes its targets for the dev probe.
+- `App.tsx`: an `advanceCount`, incremented in the same timeout as `playAdvance()`, so the lever strokes in sync with the sound.
+- 9 new unit tests: focus 0 at ∞ and full throw at closest; monotonic and clamped; helicoid crowding; ∞ plus closest engraved with no collisions and each mark under the index at its distance on every catalogue lens; dial slowest at 0 and per-speed detents; A only on auto bodies; ≤330° on long dials; label formats; lever stroke curve.
+- Browser checks (WebKit iPhone 13, Chromium on the real GPU): **17/17** plus the slice-1 suite **35/35** again.
+  - Dial 0 → 2.88 → 5.44 rad across speeds, and A at 5.76.
+  - The focus ring follows 2.00 m → 3.54 m.
+  - The lever rests, strokes to ~2.07 rad on an M6 wind-on, and returns to 0; it doesn't move under reduced motion.
+  - Every pose is checked against the rig's published target (semantic readiness, no sleeps).
+  - Screenshots were inspected; dial and distance-scale legibility was fixed after the first look.
+- Performance findings:
+  - The view renders about 40 frames while the rings ease in, then **0 frames per second at idle** in Chromium and WebKit.
+  - A pre-existing ~0.2 s main-thread task on each shot exists on a real GPU (Apple M2 via Metal), with or without 3D; the 3D view adds nothing measurable (172 vs 159 frames in 3 s).
+  - Headless Chromium's default software GPU (SwiftShader) inflates that stall to seconds. Chromium checks therefore use `--use-angle=metal`.
+
+**Slice 1:**
 
 Decisions made with the user:
 - Engine: **React Three Fiber v8** (the React 18 line) with `three` 0.170 pinned (same era as R3F 8.18; not the newest 0.186). No `drei`: orbit controls and studio lighting come from `three/examples`.
@@ -102,8 +138,8 @@ Browser verification: a Playwright script (scratch directory) on WebKit (iPhone 
 Screenshots were inspected. Top-down fixtures confirm "2.8" and "8" sit exactly under the red index at those stops, the iris shows as a 9-sided opening, and the engravings aren't mirrored.
 
 **Not done in this slice (why #2 is PARTIAL):**
-1. Interaction modes in 3D: tapping a ring or dial to enter a mode and turning it in 3D, with per-detent haptics. For now the rings follow the existing HTML controls, which stay the way to operate them.
-2. The focus ring, shutter dial and advance lever don't move yet. Focus throw per lens isn't published, so it would need an illustrative mapping like the aperture ring.
+1. Interaction modes in 3D: tapping a ring or dial to enter a mode and turning it in 3D, with per-detent haptics. For now the parts follow the existing HTML controls, which stay the way to operate them.
+2. ~~Focus ring, shutter dial, advance lever~~ — done in slice 2 (illustrative throws and detents, labelled as such).
 3. The GLB path: a loader adapter, loading the selected body/lens first and high-detail assets lazily, compression (Draco/meshopt, KTX2), and an asset licence manifest. It waits on real models from the user.
 4. Photorealism depends on those assets.
 5. The "<2.5 s interactive on a modern phone" criterion isn't measured on a phone. Dev-server times in emulation (0.3–0.9 s) aren't a benchmark, and headless rendering isn't a mobile GPU.
@@ -286,7 +322,7 @@ Known limitations: checked in WebKit emulation, not on a physical iPhone. The M3
 
 ## Next
 
-Continue **#2** with slice 2, choosing with the user: (a) in-3D interaction modes (tap a ring to turn it, detent haptics), or (b) binding the focus ring, shutter dial and advance lever to state. The GLB pipeline (slice 3) starts when real models are available.
+Continue **#2** with slice 3: in-3D interaction modes. Tap a ring or dial to enter its mode; drag to turn it, writing through the same setters as the HTML controls; detent clicks and haptics via the existing `playApertureClick` / `playDialClick` and rate limiter; a clear exit, and keyboard equivalents. The GLB pipeline starts when real models are available.
 
 ## Blockers
 
