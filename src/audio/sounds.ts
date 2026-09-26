@@ -2,19 +2,13 @@
 // Each sound is built from short filtered noise bursts ("clicks") and low
 // thumps, shaped to evoke the real mechanism.
 
+import { getString, setString } from "../services/persistence";
+
 const MUTE_KEY = "rangefinder-muted";
 
 let ctx: AudioContext | null = null;
 let noise: AudioBuffer | null = null;
-let muted = readMuted();
-
-function readMuted() {
-  try {
-    return localStorage.getItem(MUTE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
+let muted = getString(MUTE_KEY) === "1";
 
 export function isMuted() {
   return muted;
@@ -22,11 +16,9 @@ export function isMuted() {
 
 export function setMuted(value: boolean) {
   muted = value;
-  try {
-    localStorage.setItem(MUTE_KEY, value ? "1" : "0");
-  } catch {
-    // Storage unavailable (private mode); the setting lasts for this visit.
-  }
+  // Storage may be unavailable (private mode); the setting then lasts for
+  // this visit only, same as before — setString() already swallows that.
+  setString(MUTE_KEY, value ? "1" : "0");
 }
 
 function audio() {

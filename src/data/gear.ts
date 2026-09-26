@@ -6,6 +6,8 @@
 // blades, so `apertureBlades` is set only where the count is consistently
 // published; other lenses render with a generic rounded iris.
 
+import type { Provenance } from "./provenance";
+
 export type Mount = "M" | "L" | "TL" | "S" | "fixed";
 export type BodyFamily = "M film" | "M digital" | "Q" | "SL" | "CL" | "S";
 export type Finish = "black" | "silver";
@@ -59,6 +61,8 @@ export interface Lens {
   minAperture: number;
   minFocusMm: number;
   apertureBlades?: number;
+  /** Where `apertureBlades` comes from; omitted when the value itself is omitted. */
+  apertureBladesProvenance?: Provenance;
   /** Launch year of this optical design. */
   year: number;
   /** No longer made. */
@@ -227,12 +231,12 @@ export const LENSES: Lens[] = [
   m({ id: "m-50-2-rigid", name: "Summicron 50 f/2 (rigid)", focalMm: 50, maxAperture: 2, minAperture: 16, minFocusMm: 1000, year: 1956, classic: true }, { lengthMm: 41, diameterMm: 51, finish: "silver", hood: "clip" }),
   m({ id: "m-50-2.4", name: "Summarit-M 50 f/2.4", focalMm: 50, maxAperture: 2.4, minAperture: 16, minFocusMm: 800, year: 2014 }, { lengthMm: 36, diameterMm: 51, finish: "black", hood: "screw" }),
   m({ id: "m-50-2", name: "Summicron-M 50 f/2", focalMm: 50, maxAperture: 2, minAperture: 16, minFocusMm: 700, year: 1979 }, { lengthMm: 43, diameterMm: 53, finish: "black", hood: "builtin" }),
-  m({ id: "m-50-2-apo", name: "APO-Summicron-M 50 f/2 ASPH.", focalMm: 50, maxAperture: 2, minAperture: 16, minFocusMm: 700, year: 2012, apertureBlades: 11 }, { lengthMm: 47, diameterMm: 53, finish: "black", hood: "builtin" }),
+  m({ id: "m-50-2-apo", name: "APO-Summicron-M 50 f/2 ASPH.", focalMm: 50, maxAperture: 2, minAperture: 16, minFocusMm: 700, year: 2012, apertureBlades: 11, apertureBladesProvenance: { kind: "published", notes: "Consistently published in Leica's datasheet for this lens." } }, { lengthMm: 47, diameterMm: 53, finish: "black", hood: "builtin" }),
   m({ id: "m-50-1.4-pre", name: "Summilux 50 f/1.4 (pre-ASPH)", focalMm: 50, maxAperture: 1.4, minAperture: 16, minFocusMm: 1000, year: 1961, classic: true }, { lengthMm: 44, diameterMm: 53, finish: "black", hood: "builtin" }),
   m({ id: "m-50-1.4", name: "Summilux-M 50 f/1.4 ASPH.", focalMm: 50, maxAperture: 1.4, minAperture: 16, minFocusMm: 450, year: 2023 }, { lengthMm: 53, diameterMm: 54, finish: "black", hood: "builtin" }),
   m({ id: "m-50-1.2", name: "Noctilux-M 50 f/1.2 ASPH.", focalMm: 50, maxAperture: 1.2, minAperture: 16, minFocusMm: 1000, year: 2021, nickname: "1966 design, reissued" }, { lengthMm: 52, diameterMm: 61, finish: "silver", hood: "clip" }),
   m({ id: "m-50-1.0", name: "Noctilux-M 50 f/1.0", focalMm: 50, maxAperture: 1.0, minAperture: 16, minFocusMm: 1000, year: 1976, classic: true }, { lengthMm: 62, diameterMm: 69, finish: "black", hood: "builtin" }),
-  m({ id: "m-50-0.95", name: "Noctilux-M 50 f/0.95 ASPH.", focalMm: 50, maxAperture: 0.95, minAperture: 16, minFocusMm: 1000, year: 2008, apertureBlades: 11 }, { lengthMm: 75, diameterMm: 73, finish: "black", hood: "builtin" }),
+  m({ id: "m-50-0.95", name: "Noctilux-M 50 f/0.95 ASPH.", focalMm: 50, maxAperture: 0.95, minAperture: 16, minFocusMm: 1000, year: 2008, apertureBlades: 11, apertureBladesProvenance: { kind: "published", notes: "Consistently published in Leica's datasheet for this lens." } }, { lengthMm: 75, diameterMm: 73, finish: "black", hood: "builtin" }),
   // M: 75–135
   m({ id: "m-75-2.4", name: "Summarit-M 75 f/2.4", focalMm: 75, maxAperture: 2.4, minAperture: 16, minFocusMm: 700, year: 2014 }, { lengthMm: 61, diameterMm: 55, finish: "black", hood: "screw" }),
   m({ id: "m-75-2-apo", name: "APO-Summicron-M 75 f/2 ASPH.", focalMm: 75, maxAperture: 2, minAperture: 16, minFocusMm: 700, year: 2005 }, { lengthMm: 67, diameterMm: 55, finish: "black", hood: "builtin" }),

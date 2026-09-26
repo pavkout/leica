@@ -15,13 +15,10 @@ import LensArt from "./components/gear/LensArt";
 import Segmented from "./components/Segmented";
 import {
   BODIES,
-  DEFAULT_BODY_ID,
-  DEFAULT_LENS_ID,
   apertureStops,
   findBody,
   findLens,
   isAdapted,
-  lensesForBody,
   formatShutter,
   nearestStop,
   shutterSpeeds,
@@ -29,7 +26,8 @@ import {
   type Lens,
 } from "./data/gear";
 import { correctShutter, exposureError, shakeBlurMm } from "./physics/exposure";
-import { SHARPNESS_STANDARDS, computeShot, type SharpnessStandard, type Shot } from "./physics/model";
+import { SHARPNESS_STANDARDS, computeShot, type Shot } from "./physics/model";
+import { useOpticalState } from "./state/opticalState";
 import { GENERIC_BLADES, apertureShape, stopsDown } from "./preview/aperture";
 import { grainStrength, lookFor, type FilmLook } from "./preview/film";
 import type { DevelopParams } from "./preview/renderer";
@@ -133,28 +131,47 @@ function LensOptions({ body, lenses }: { body: Body; lenses: Lens[] }) {
 }
 
 export default function App() {
-  const [bodyId, setBodyId] = useState(DEFAULT_BODY_ID);
-  const [lensId, setLensId] = useState(DEFAULT_LENS_ID);
-  // Opens on a portrait wide open against the street, where the preview shows most.
-  const [fNumber, setFNumber] = useState(findLens(DEFAULT_LENS_ID).maxAperture);
-  const [focusMm, setFocusMm] = useState(2000);
-  const [backgroundOffsetMm, setBackgroundOffsetMm] = useState(Infinity);
-  const [megapixels, setMegapixels] = useState<number | null>(60);
-  const [cropFocalMm, setCropFocalMm] = useState<number | null>(null);
-  const [standard, setStandard] = useState<SharpnessStandard>("engraved");
-  const [units, setUnits] = useState<Units>("metric");
+  const optical = useOpticalState();
+  const {
+    bodyId,
+    lensId,
+    body,
+    lens,
+    lenses,
+    stops,
+    fNumber,
+    focusMm,
+    backgroundOffsetMm,
+    megapixels,
+    cropFocalMm,
+    standard,
+    units,
+    filmId,
+    isoDigital,
+    autoExposure,
+    manualShutter,
+    tripod,
+    selectLens,
+    setFNumber,
+    setFocusMm,
+    setBackgroundOffsetMm,
+    setMegapixels,
+    setCropFocalMm,
+    setStandard,
+    setUnits,
+    setFilmId,
+    setIsoDigital,
+    setAutoExposure,
+    setManualShutter,
+    setTripod,
+  } = optical;
   const [compare, setCompare] = useState(false);
   const [lensBId, setLensBId] = useState("m-50-0.95");
   const [fNumberB, setFNumberB] = useState(1.4);
   // Focus challenge: the subject stands at a hidden distance instead of at the focus.
   const [picker, setPicker] = useState<"body" | "lens" | null>(null);
   const [challenge, setChallenge] = useState<{ subjectMm: number; shotTaken: boolean } | null>(null);
-  // Exposure and capture.
-  const [filmId, setFilmId] = useState("portra400");
-  const [isoDigital, setIsoDigital] = useState(400);
-  const [autoExposure, setAutoExposure] = useState(true);
-  const [manualShutter, setManualShutter] = useState(1 / 60);
-  const [tripod, setTripod] = useState(false);
+  // Capture.
   const [muted, setMutedState] = useState(isMuted);
   const [rollFrames, setRollFrames] = useState<Frame[]>([]);
   const [cardFrames, setCardFrames] = useState<Frame[]>([]);
@@ -172,11 +189,6 @@ export default function App() {
     distanceM: number;
     ev100: number;
   } | null>(null);
-
-  const body = findBody(bodyId);
-  const lens = findLens(lensId);
-  const lenses = lensesForBody(body);
-  const stops = useMemo(() => apertureStops(lens), [lens]);
 
   const uploadScene = useMemo(
     () => (upload ? sceneFromCanvases(upload.key, upload.photo, upload.depth, PHONE_FOV_DEG, { ...upload.anchor, distanceM: upload.distanceM }) : null),
@@ -225,21 +237,9 @@ export default function App() {
     setCompare(!compare);
   }
 
-  function selectLens(id: string) {
-    const next = findLens(id);
-    setLensId(id);
-    setFNumber((n) => nearestStop(apertureStops(next), n));
-    setFocusMm((mm) => Math.max(mm, next.minFocusMm));
-  }
-
   function selectBody(id: string) {
-    const next = findBody(id);
-    setBodyId(id);
-    if (!isRangefinder(next)) setChallenge(null);
-    setMegapixels(next.megapixels?.[0] ?? null);
-    setCropFocalMm(null);
-    const available = lensesForBody(next);
-    if (!available.some((l) => l.id === lensId)) selectLens(available[0].id);
+    if (!isRangefinder(findBody(id))) setChallenge(null);
+    optical.selectBody(id);
   }
 
   // Challenge range: from just past the lens's closest focus out to 6 m.
