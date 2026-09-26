@@ -13,6 +13,7 @@ import GearImage, { GEAR_IMAGE_CREDITS, hasGearImage } from "./components/gear/G
 import GearPicker, { type PickerItem } from "./components/gear/GearPicker";
 import LensArt from "./components/gear/LensArt";
 import Segmented from "./components/Segmented";
+import Iris from "./components/Iris";
 import Sunny16Trainer from "./components/Sunny16Trainer";
 import IntentAssistant from "./components/IntentAssistant";
 import LiveView from "./components/LiveView";
@@ -674,6 +675,8 @@ export default function App() {
               numbers to copy to a real lens's distance and DOF marks.
             </p>
           </section>
+
+          <Iris lens={lens} fNumber={fNumber} />
 
           <ContactSheet
             frames={frames}

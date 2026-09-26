@@ -51,6 +51,22 @@ export function apertureRadius(theta: number, shape: Pick<ApertureShape, "blades
 }
 
 /**
+ * Points tracing the aperture opening's outline (unit scale, radius 0–1),
+ * for drawing it as a diagram. Same edge function as the blur kernel, so the
+ * iris diagram and the bokeh highlight shape are never two different shapes
+ * pretending to be the same lens.
+ */
+export function irisOutline(shape: Pick<ApertureShape, "blades" | "roundness" | "rotation">, samples = 96): [number, number][] {
+  const points: [number, number][] = [];
+  for (let i = 0; i <= samples; i++) {
+    const theta = (i / samples) * Math.PI * 2;
+    const r = apertureRadius(theta, shape);
+    points.push([Math.cos(theta) * r, Math.sin(theta) * r]);
+  }
+  return points;
+}
+
+/**
  * Evenly spread sample points filling the opening (a golden-angle spiral
  * stretched to the aperture outline). Used as the blur kernel.
  */

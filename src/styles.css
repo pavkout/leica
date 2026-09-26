@@ -198,10 +198,11 @@ select {
 .stage-trainer { order: 5; }
 .stage-intent { order: 6; }
 .stage-barrel { order: 7; }
-.readouts { order: 8; }
-.stage-roll { order: 9; }
-.stage-scene { order: 10; }
-.stage-details { order: 11; }
+.stage-iris { order: 8; }
+.readouts { order: 9; }
+.stage-roll { order: 10; }
+.stage-scene { order: 11; }
+.stage-details { order: 12; }
 
 .panel {
   position: relative;
@@ -1687,6 +1688,73 @@ input[type="range"] {
   border-color: var(--red-dim);
 }
 
+/* ── Aperture iris ─────────────────────────────────────── */
+.iris-diagrams {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 4px 0 10px;
+}
+
+.iris-diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.iris-diagram svg {
+  display: block;
+  width: 168px;
+  height: 168px;
+}
+
+.iris-bokeh svg {
+  width: 96px;
+  height: 96px;
+}
+
+.iris-barrel {
+  fill: #111;
+  stroke: var(--line-strong);
+  stroke-width: 1.5;
+}
+
+.iris-opening {
+  fill: var(--red);
+  transition: d 0.2s var(--ease-fast);
+}
+
+.iris-tube {
+  fill: #161616;
+  stroke: var(--line-strong);
+  stroke-width: 1.5;
+}
+
+.iris-element {
+  fill: rgba(140, 190, 230, 0.14);
+  stroke: rgba(140, 190, 230, 0.4);
+  stroke-width: 1;
+}
+
+.iris-diaphragm {
+  fill: var(--red);
+  transition: y 0.2s var(--ease-fast), height 0.2s var(--ease-fast);
+}
+
+.iris-bokeh-bg {
+  fill: #0a0a0a;
+}
+
+.iris-diagram figcaption {
+  font-size: 11px;
+  text-align: center;
+  max-width: 150px;
+}
+
 .preview-error {
   display: grid;
   place-items: center;
@@ -1837,6 +1905,7 @@ input[type="range"] {
   .stage-preview,
   .stage-finder,
   .stage-barrel,
+  .stage-iris,
   .stage-roll,
   .stage-scene,
   .readouts {

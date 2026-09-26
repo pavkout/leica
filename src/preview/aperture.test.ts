@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { findLens } from "../data/gear";
-import { apertureRadius, apertureShape, kernelSamples, stopsDown } from "./aperture";
+import { apertureRadius, apertureShape, irisOutline, kernelSamples, stopsDown } from "./aperture";
 
 const nocti = findLens("m-50-0.95");
 
@@ -35,6 +35,39 @@ describe("apertureRadius", () => {
     const hex = { blades: 6, roundness: 0, rotation: 0 };
     expect(apertureRadius(0, hex)).toBeCloseTo(1, 9); // corner
     expect(apertureRadius(Math.PI / 6, hex)).toBeCloseTo(Math.cos(Math.PI / 6), 9); // edge midpoint
+  });
+});
+
+describe("irisOutline", () => {
+  it("closes the loop: first and last point coincide", () => {
+    const points = irisOutline({ blades: 8, roundness: 0.6, rotation: 0.3 });
+    const [x0, y0] = points[0];
+    const [xN, yN] = points[points.length - 1];
+    expect(xN).toBeCloseTo(x0, 9);
+    expect(yN).toBeCloseTo(y0, 9);
+  });
+
+  it("traces a perfect circle at roundness 1, regardless of blade count", () => {
+    const points = irisOutline({ blades: 5, roundness: 1, rotation: 0 });
+    for (const [x, y] of points) expect(Math.hypot(x, y)).toBeCloseTo(1, 9);
+  });
+
+  it("every point matches apertureRadius at its own angle (same edge function as the blur kernel)", () => {
+    const shape = { blades: 6, roundness: 0.4, rotation: 0.2 };
+    const samples = 24;
+    for (const [i, [x, y]] of irisOutline(shape, samples).entries()) {
+      const theta = (i / samples) * Math.PI * 2;
+      expect(Math.hypot(x, y)).toBeCloseTo(apertureRadius(theta, shape), 9);
+    }
+  });
+
+  it("is deterministic: the same shape always produces the same geometry", () => {
+    const shape = { blades: 9, roundness: 0.5, rotation: 1.2 };
+    expect(irisOutline(shape)).toEqual(irisOutline(shape));
+  });
+
+  it("respects a custom sample count", () => {
+    expect(irisOutline({ blades: 6, roundness: 1, rotation: 0 }, 12)).toHaveLength(13);
   });
 });
 

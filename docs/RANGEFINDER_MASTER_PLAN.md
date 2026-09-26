@@ -119,9 +119,23 @@ Deliver these items before implementing the spectacular features:
 - A mobile layout audit and a concrete plan to translate the current desktop sidebar into mobile sheets/bottom controls.
 - A performance baseline: main bundle, interaction latency, biggest assets and likely 3D budget.
 
+## Priority label legend
+
+Priority labels:
+- Priority 1 = high-value / earlier implementation priority
+- Priority 2 = secondary implementation priority
+- Priority 3 = later / advanced implementation priority
+- Priority 4 = long-term / exploratory implementation priority
+
+**IMPORTANT: Priority numbers are NOT development phases.**
+
+Development phases are separate roadmap milestones: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4.
+
+A Priority 1 feature is not automatically part of Phase 1. A Priority 2 feature is not automatically part of Phase 2. Feature completion must be determined from `PROJECT_STATUS.md` and the explicit milestone sections of this Master Plan.
+
 ## Feature implementation briefs (1–35)
 
-### 1. Live Leica View  — P1
+### 1. Live Leica View  — Priority 1
 **Goal:** Turn the phone into a live shooting companion that overlays the selected Leica body/lens behavior on the real camera feed. The goal is not to pretend the phone is optically identical to the Leica; it is to help the photographer make a better decision before exposing film or pressing the shutter.
 
 **UX requirements**
@@ -144,7 +158,7 @@ Deliver these items before implementing the spectacular features:
 - Changing aperture updates DOF instantly without restarting the stream.
 - Unsupported sensor capabilities degrade gracefully with an explanatory label, never a broken control.
 
-### 2. Virtual Leica — full 3D camera and lens  — P3
+### 2. Virtual Leica — full 3D camera and lens  — Priority 3
 **Goal:** A tactile, photorealistic 3D camera/lens experience where the physical object responds to the same optical state as the simulator. This becomes the emotional centerpiece of the product and the entry point to configuration, education and store/kiosk experiences.
 
 **UX requirements**
@@ -166,7 +180,7 @@ Deliver these items before implementing the spectacular features:
 - 3D mode can be disabled without losing any core simulator functionality.
 - Memory usage remains stable after swapping lenses repeatedly.
 
-### 3. Physical aperture / iris visualization  — P2
+### 3. Physical aperture / iris visualization  — Priority 2
 **Goal:** Show aperture as a physical iris rather than only as an f-number. The user should immediately see why changing from f/1.4 to f/8 changes light, depth of field and out-of-focus highlight shape.
 
 **UX requirements**
@@ -184,7 +198,7 @@ Deliver these items before implementing the spectacular features:
 - Lens with unknown blade data is clearly labeled as generic approximation.
 - Animation stays at 60 fps on mid-tier mobile hardware.
 
-### 4. Lens DNA  — P2
+### 4. Lens DNA  — Priority 2
 **Goal:** A structured visual fingerprint for each lens: what changes with aperture, focus distance and scene conditions. It should teach character without making false claims of laboratory precision.
 
 **UX requirements**
@@ -203,7 +217,7 @@ Deliver these items before implementing the spectacular features:
 - Comparison keeps exposure/focus state synchronized between lenses.
 - Unverified claims are not shown as objective measurements.
 
-### 5. Lens X-Ray / optical path mode  — P3
+### 5. Lens X-Ray / optical path mode  — Priority 3
 **Goal:** Reveal the internal lens groups and a simplified light path. This is an education and spectacle mode, not a full optical ray-tracing claim unless prescription data is available.
 
 **UX requirements**
@@ -221,7 +235,7 @@ Deliver these items before implementing the spectacular features:
 - Focus animation and aperture animation remain synchronized with simulator state.
 - UI explicitly distinguishes schematic from prescription-accurate modes.
 
-### 6. Rangefinder Focus Challenge  — P1
+### 6. Rangefinder Focus Challenge  — Priority 1
 **Goal:** Turn rangefinder focusing into a repeatable game. Users learn patch alignment and the cost of small focus errors at wide apertures.
 
 **UX requirements**
@@ -240,7 +254,7 @@ Deliver these items before implementing the spectacular features:
 - At f/0.95 the tolerance is visibly and numerically tighter than at f/8.
 - Keyboard, touch and pointer interactions all work.
 
-### 7. Rangefinder calibration simulator  — P3
+### 7. Rangefinder calibration simulator  — Priority 3
 **Goal:** Explain what vertical/horizontal rangefinder misalignment does and how focus error changes with focal length and distance. It must be educational and avoid presenting repair instructions as a substitute for professional service.
 
 **UX requirements**
@@ -258,7 +272,7 @@ Deliver these items before implementing the spectacular features:
 - Changing focal length recalculates sensitivity immediately.
 - No feature tells users to open or mechanically adjust the camera.
 
-### 8. Motion Simulator  — P1
+### 8. Motion Simulator  — Priority 1
 **Goal:** Teach the difference between subject motion blur and camera shake using animated scene elements and shutter speed.
 
 **UX requirements**
@@ -277,7 +291,7 @@ Deliver these items before implementing the spectacular features:
 - Turning off camera shake leaves subject blur unaffected.
 - Performance stays interactive during slider movement.
 
-### 9. Phone gyroscope hand-stability trainer  — P2
+### 9. Phone gyroscope hand-stability trainer  — Priority 2
 **Goal:** Use device motion to estimate how steadily the user is holding the phone and translate that into a practical shutter-speed learning signal.
 
 **UX requirements**
@@ -295,7 +309,7 @@ Deliver these items before implementing the spectacular features:
 - Results change when the device is intentionally shaken versus braced.
 - No sensor sampling continues after leaving the mode.
 
-### 10. Film stock mode  — P1
+### 10. Film stock mode  — Priority 1
 **Goal:** Model the practical behavior of film stocks—speed, latitude tendency, grain/contrast/color look—without reducing them to a social-media filter.
 
 **UX requirements**
@@ -313,7 +327,7 @@ Deliver these items before implementing the spectacular features:
 - Changing exposure compensation shifts film response predictably.
 - Every film profile exposes source/confidence metadata.
 
-### 11. Push / Pull simulation  — P2
+### 11. Push / Pull simulation  — Priority 2
 **Goal:** Teach rating and processing changes as a system: metering at a different EI plus development compensation.
 
 **UX requirements**
@@ -330,7 +344,7 @@ Deliver these items before implementing the spectacular features:
 - UI explains the distinction between exposure and development.
 - Unsupported film/developer combinations fall back to generic educational mode.
 
-### 12. Sunny 16 Trainer  — P1
+### 12. Sunny 16 Trainer  — Priority 1
 **Goal:** A fast drill mode for learning exposure estimation without a meter—especially useful for meterless film bodies.
 
 **UX requirements**
@@ -348,7 +362,7 @@ Deliver these items before implementing the spectacular features:
 - Questions cover bright sun through low-light cases.
 - User can disable gamification and use pure practice mode.
 
-### 13. Real-world light meter  — P1
+### 13. Real-world light meter  — Priority 1
 **Goal:** Provide a practical incident-like/reflective-style guidance tool from the phone camera, with transparent limitations. For a meterless Leica, this is one of the most directly useful features.
 
 **UX requirements**
@@ -366,7 +380,7 @@ Deliver these items before implementing the spectacular features:
 - Equivalent exposure table updates instantly when user locks an aperture or shutter.
 - Calibration offset can be reset and is stored locally.
 
-### 14. Intent-based shooting assistant (“What do you want?”)  — P1
+### 14. Intent-based shooting assistant (“What do you want?”)  — Priority 1
 **Goal:** Translate photographic intent into constraints. Instead of asking a beginner to understand all settings first, ask the visual goal and explain the recommended trade-off.
 
 **UX requirements**
@@ -384,7 +398,7 @@ Deliver these items before implementing the spectacular features:
 - If constraints cannot all be satisfied, the app says which constraint fails and why.
 - Recommendation copy remains concise in shooting mode.
 
-### 15. Zone Focus Mode  — P1
+### 15. Zone Focus Mode  — Priority 1
 **Goal:** Make the lens depth-of-field scale understandable and actionable. This should become a bridge from digital visualization to the markings on the real Leica lens.
 
 **UX requirements**
@@ -402,7 +416,7 @@ Deliver these items before implementing the spectacular features:
 - Infinity behavior is mathematically correct.
 - UI remains readable on a phone outdoors.
 
-### 16. Interactive lens focusing-ring / DOF-scale trainer  — P2
+### 16. Interactive lens focusing-ring / DOF-scale trainer  — Priority 2
 **Goal:** Teach the engraved distance and aperture scales found on manual-focus lenses by mirroring them interactively.
 
 **UX requirements**
@@ -419,7 +433,7 @@ Deliver these items before implementing the spectacular features:
 - Scale remains legible at narrow mobile widths.
 - Unknown lens scale artwork falls back to generic semantic scale.
 
-### 17. M3 viewfinder simulator  — P1
+### 17. M3 viewfinder simulator  — Priority 1
 **Goal:** Create a faithful educational representation of the M3 viewing experience: magnification, frame lines, rangefinder patch and parallax behavior.
 
 **UX requirements**
@@ -437,7 +451,7 @@ Deliver these items before implementing the spectacular features:
 - Parallax visualization changes with focus distance.
 - Viewfinder can be used with synthetic scene and live camera feed.
 
-### 18. Cross-body Leica viewfinder comparison  — P2
+### 18. Cross-body Leica viewfinder comparison  — Priority 2
 **Goal:** Let users see the same scene through different M-system finder profiles to learn body ergonomics and framing differences.
 
 **UX requirements**
@@ -454,7 +468,7 @@ Deliver these items before implementing the spectacular features:
 - Switching body never changes lens DOF/exposure unless body format genuinely differs.
 - Metadata notes source/assumption for each finder.
 
-### 19. Try Before You Buy — focal-length and lens trial  — P2
+### 19. Try Before You Buy — focal-length and lens trial  — Priority 2
 **Goal:** A product-discovery tool: users can experience framing, DOF and practical handling consequences of a lens before buying it.
 
 **UX requirements**
@@ -471,7 +485,7 @@ Deliver these items before implementing the spectacular features:
 - Shared link recreates camera, lens, distance and scene state.
 - Warnings are factual, not sales recommendations.
 
-### 20. Virtual Leica Store / kiosk mode  — P4
+### 20. Virtual Leica Store / kiosk mode  — Priority 4
 **Goal:** Transform the simulator into an in-store or event experience: configure body/lens, attach it virtually, then immediately try the finder/simulation.
 
 **UX requirements**
@@ -489,7 +503,7 @@ Deliver these items before implementing the spectacular features:
 - Idle reset restores a clean home state.
 - Core app and kiosk share feature code rather than fork.
 
-### 21. Exploded camera view / mechanical education  — P4
+### 21. Exploded camera view / mechanical education  — Priority 4
 **Goal:** An interactive mechanical anatomy view showing major subsystems and the sequence of a shutter release. The point is understanding and appreciation, not service instructions.
 
 **UX requirements**
@@ -507,7 +521,7 @@ Deliver these items before implementing the spectacular features:
 - Animation can be scrubbed and paused.
 - No repair/adjustment steps are presented as instructions.
 
-### 22. Film loading trainer  — P2
+### 22. Film loading trainer  — Priority 2
 **Goal:** A safe rehearsal of loading/unloading a classic Leica body before doing it with real film.
 
 **UX requirements**
@@ -525,7 +539,7 @@ Deliver these items before implementing the spectacular features:
 - Restart and back-step are supported.
 - Each body tutorial cites its source in the info panel.
 
-### 23. Leica timeline / interactive museum  — P4
+### 23. Leica timeline / interactive museum  — Priority 4
 **Goal:** A browsable history layer connecting cameras, eras, lenses and technology milestones to the simulator.
 
 **UX requirements**
@@ -543,7 +557,7 @@ Deliver these items before implementing the spectacular features:
 - Every factual historical note has provenance metadata.
 - “Simulate this” only appears for models with sufficient data.
 
-### 24. Lens generations / collector mode  — P3
+### 24. Lens generations / collector mode  — Priority 3
 **Goal:** Differentiate versions of the same focal-length family rather than flattening everything into “50 mm Summicron.” This makes the tool collector-grade.
 
 **UX requirements**
@@ -561,7 +575,7 @@ Deliver these items before implementing the spectacular features:
 - Lens revision changes can alter geometric specs independently of marketing name.
 - No fabricated historical/spec data.
 
-### 25. Flare Lab  — P3
+### 25. Flare Lab  — Priority 3
 **Goal:** Move a virtual bright source around the frame and demonstrate flare/ghosting tendencies, hood effects and aperture-dependent ghost shapes.
 
 **UX requirements**
@@ -579,7 +593,7 @@ Deliver these items before implementing the spectacular features:
 - Hood toggle changes only the flare model, not base exposure engine.
 - Approximation label is visible in unsupported lenses.
 
-### 26. Focus breathing / perspective lab  — P3
+### 26. Focus breathing / perspective lab  — Priority 3
 **Goal:** Teach the difference between focusing-induced field-of-view changes and perspective changes caused by moving the camera.
 
 **UX requirements**
@@ -596,7 +610,7 @@ Deliver these items before implementing the spectacular features:
 - Perspective changes only when camera position changes.
 - Comparison can be reset to identical framing.
 
-### 27. Portrait distance trainer  — P2
+### 27. Portrait distance trainer  — Priority 2
 **Goal:** Help users learn how focal length, distance and minimum focus affect portrait framing, while optionally using AR/distance estimation where available.
 
 **UX requirements**
@@ -614,7 +628,7 @@ Deliver these items before implementing the spectacular features:
 - MFD warnings are exact from lens data.
 - Framing guide scales correctly with viewport orientation.
 
-### 28. Photo Recipes  — P1
+### 28. Photo Recipes  — Priority 1
 **Goal:** Offer explainable starting setups for common situations—night street, sunny Mediterranean, indoor window portrait—without presenting them as guaranteed exposure recipes.
 
 **UX requirements**
@@ -631,7 +645,7 @@ Deliver these items before implementing the spectacular features:
 - App warns if live metered EV is materially outside recipe range.
 - Recipe copy is framed as a starting point.
 
-### 29. My Leica Bag  — P1
+### 29. My Leica Bag  — Priority 1
 **Goal:** Personalize the whole app around the actual bodies, lenses and film stocks the user owns. This turns a broad database into a practical daily tool.
 
 **UX requirements**
@@ -649,7 +663,7 @@ Deliver these items before implementing the spectacular features:
 - Deleting a catalog item from a future dataset does not corrupt user data; show archived item gracefully.
 - User can clear all personalization easily.
 
-### 30. Film Roll Companion  — P1
+### 30. Film Roll Companion  — Priority 1
 **Goal:** Log the exposure metadata that film cameras cannot embed. Each frame becomes a learning record that can later be matched to scans.
 
 **UX requirements**
@@ -668,7 +682,7 @@ Deliver these items before implementing the spectacular features:
 - Roll survives offline reload and phone sleep.
 - Export preserves exact frame order and settings.
 
-### 31. Learn from your negatives / scan feedback loop  — P2
+### 31. Learn from your negatives / scan feedback loop  — Priority 2
 **Goal:** Close the loop between what the user intended and what came back from the lab/scanner. The system should surface trends in missed focus, shake and exposure from user-tagged outcomes.
 
 **UX requirements**
@@ -686,7 +700,7 @@ Deliver these items before implementing the spectacular features:
 - Small sample sizes show “not enough data” rather than overconfident advice.
 - User can delete scans/metadata independently.
 
-### 32. Mechanical sound system  — P2
+### 32. Mechanical sound system  — Priority 2
 **Goal:** Give the app restrained mechanical tactility: aperture detents, lens mount click, shutter, film advance and rewind. The sound should support interaction, not become a toy.
 
 **UX requirements**
@@ -704,7 +718,7 @@ Deliver these items before implementing the spectacular features:
 - Rapid dial movement rate-limits overlapping samples cleanly.
 - Mute persists and is accessible.
 
-### 33. Cinematic virtual lens swap  — P3
+### 33. Cinematic virtual lens swap  — Priority 3
 **Goal:** Replace a plain lens dropdown transition with a brief physical M-mount detachment/attachment moment, while keeping the normal selector for speed.
 
 **UX requirements**
@@ -722,7 +736,7 @@ Deliver these items before implementing the spectacular features:
 - Interrupting halfway resolves to a valid final state.
 - No visible asset pop-in after warm cache.
 
-### 34. Darkroom mode  — P4
+### 34. Darkroom mode  — Priority 4
 **Goal:** Extend the film learning journey into development: time, temperature, agitation and push/pull can be explored as an educational model tied back to captured frames.
 
 **UX requirements**
@@ -740,7 +754,7 @@ Deliver these items before implementing the spectacular features:
 - Conceptual preview is clearly separated from actionable process instructions.
 - Development state can link back to Film Roll Companion.
 
-### 35. Signature 60-second “WOW” demo journey  — P3/P4
+### 35. Signature 60-second “WOW” demo journey  — Priority 3/Priority 4
 **Goal:** A polished, scripted-but-interactive one-minute experience designed for a portfolio, Leica meeting, event booth or social demo. It should compress the product thesis into one memorable flow.
 
 **UX requirements**
