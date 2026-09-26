@@ -200,6 +200,7 @@ select {
 .stage-intent { order: 7; }
 .stage-portrait { order: 8; }
 .stage-stability { order: 8; }
+.stage-loading { order: 8; }
 .stage-barrel { order: 9; }
 .stage-iris { order: 10; }
 .readouts { order: 11; }
@@ -1935,6 +1936,66 @@ input[type="range"] {
 
 .stability-result {
   margin-bottom: 4px;
+}
+
+/* ── Film loading trainer ───────────────────────────────── */
+.loading-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.loading-controls .field {
+  margin: 0;
+}
+
+.loading-state {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.loading-state > div {
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.loading-state dt {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.loading-state dd {
+  margin: 0;
+  font-family: var(--font-engraving);
+  font-size: 13px;
+}
+
+.loading-step {
+  min-height: 72px;
+}
+
+.loading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.loading-actions .btn-small {
+  padding-right: 14px;
+}
+
+.loading-actions .btn-small::after {
+  display: none;
+}
+
+.loading-nav {
+  margin-top: 10px;
 }
 
 /* ── Scene diagram ──────────────────────────────────────── */

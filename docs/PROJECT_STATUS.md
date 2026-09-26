@@ -20,9 +20,11 @@ Last updated: 2026-09-26
 
 ## Current task
 
-**Feature #9 — Phone Gyroscope Hand-Stability Trainer**
+**Feature #22 — Film Loading Trainer**
 
-Status: **PARTIAL** — implemented and unit-tested; the two sensor-dependent acceptance criteria still need a live check on a real phone (see "Last completed" → #9 and "Next").
+Status: **PARTIAL** — implemented and unit-tested for the M3, M6, MP and M-A, each sourced from its manual; not yet checked in a live browser or on mobile, and the M4 and M7 are unsourced (see "Last completed" → #22 and "Next").
+
+Also open: **#9** is PARTIAL, pending real-phone verification.
 
 ## Phase 2 checklist
 
@@ -34,7 +36,7 @@ Status: **PARTIAL** — implemented and unit-tested; the two sensor-dependent ac
 - [x] **#18 — Cross-body Leica Viewfinder Comparison** — COMPLETE
 - [x] **#32 — Mechanical Audio + Haptics** — COMPLETE
 - [ ] **#9 — Phone Gyroscope Hand-Stability Trainer** — PARTIAL (awaiting real-device verification)
-- [ ] **#22 — Film Loading Trainer** — NOT STARTED
+- [ ] **#22 — Film Loading Trainer** — PARTIAL (M3/M6/MP/M-A sourced; M4/M7 unsourced; live/mobile check pending)
 
 ## Recommended Phase 2 order (resequenced — see reasoning below)
 
@@ -189,9 +191,38 @@ Validation: typecheck clean, lint 0 errors (5 pre-existing warnings, untouched f
 3. Confirm on-device that background/stop/unmount really ends sampling (acceptance criterion 3; covered by construction and the unsubscribe unit test).
 4. Desktop check of the 1.5 s no-data fallback message, and a narrow-viewport look at the panel.
 
+---
+
+**Feature #22 — Film Loading Trainer** (Phase 2) — **PARTIAL**
+
+Sourcing (the reason this feature was sequenced last): the loading/unloading procedures were read from the manufacturer manuals themselves, not written from general knowledge:
+- **M3**: Leica M3 Instruction Book (Ernst Leitz, Wetzlar), pp. 28–32. Scanned original from the butkus.us archive (cameramanuals.org mirror).
+- **M6**: Leica M6 Instruction manual M6/EN/2022/10/1, pp. 25–29 (leica-camera.com). This is the current manual for the 2022 re-edition; the catalog's M6 entry is the 1984 original.
+- **MP**: Leica MP Instruction manual, pp. 24–29 (leica-camera.com).
+- **M-A**: Leica M-A Instructions, pp. 36–39 (leica-camera.com).
+- **M4, M7**: no manual obtained this pass. They're listed in `UNSOURCED_FILM_BODY_IDS` and get no tutorial, rather than a guessed one. The panel says so when one of them is the selected body.
+
+Implemented:
+- `state/loadingTutorial.ts` (pure finite-state engine): mechanical state is never stored; `stateAt(tutorial, i)` folds step patches, so back-step and restart are just index changes. `attempt()` only advances on the expected action. Anything else returns `blocked`, with the physical reason from the action's `requires` (e.g. working the advance lever with the bottom cover off, citing the manuals' own warning), or `out-of-order`, with the correct next step. Both leave the index unchanged.
+- `data/filmLoading.ts` (all body-specific content): a shared action catalog with mechanical preconditions, plus a load and an unload tutorial for each sourced body, each carrying a `published` provenance with source name, URL, pages and verified date. Real mechanical differences are modelled: the M3's removable take-up spool, clipping the leader and inserting cartridge and spool as a pair, the sprocket check, rewind-knob tensioning, and the counter returning to "2 marks before 0" on spool removal, versus the M6/MP/M-A fixed spool and counter reset on opening the bottom cover. The M-A's tensioning step comes between the first and second wind, exactly as its manual orders it. The counter is only shown where the manual states a value; elsewhere it shows "—" rather than an invented intermediate.
+- `components/FilmLoadingTrainer.tsx`: body picker (defaults to the app's current body when sourced, otherwise M6), Load/Unload toggle, live mechanical-state readout (bottom cover, rear panel, M3 take-up spool, cartridge, rewind lever, shutter, counter), the current instruction with the previous step's manual note, an action palette in catalog order (so it doesn't give away the sequence), gentle feedback in an `aria-live` region, Back a step, Restart, and a linked source citation with pages. The existing synthesized advance and shutter sounds play on correct wind/release steps (muted by the existing mute control). Mounted after the stability trainer (`.stage-loading`).
+- 13 new tests: every film body in the catalog is either covered or explicitly unsourced (never both); every tutorial cites a published source with pages and URL; every scripted step is physically possible in the state it runs from, which catches data mistakes in CI; load ends closed/loaded/counter 1 and unload ends with the cartridge out; the M3 uses the removable spool and the M6 doesn't; the engine advances only on the expected action, explains blocked actions, points out-of-order ones to the right step, and a 2,000-tap random fuzz never reaches an off-path state; back-step/restart and completion; palette order.
+
+Validation: typecheck clean, lint 0 errors (same 5 pre-existing warnings), 214/214 tests passing (was 201), clean production build (main JS 330.39 kB, was 311.80 kB; mostly tutorial text, which could be lazy-loaded later if size matters).
+
+**Why PARTIAL, not COMPLETE:**
+1. Not checked in a live browser this session (no browser automation available): tapping through a full M3 and M6 load/unload, the feedback copy in context, the source link, and the narrow-viewport layout of the action palette.
+2. M4 and M7 tutorials are missing until their manuals are sourced. The spec's "body-specific sequences" is met for four of the six catalog film bodies.
+3. The M3 source is an OCR'd scan. Step order and warnings were read directly, but a few words in the OCR were garbled and were read in context.
+
 ## Next
 
-**Finish verifying Feature #9 on a real phone** (checklist above), then mark it COMPLETE. The next feature after that is **#22 — Film Loading Trainer**. Do not begin it automatically; wait for the user to say proceed.
+Phase 2 has now touched every feature; what's left is verification rather than new features:
+1. **Device/browser check** of #9 (real phone, checklist above) and #22 (live browser + narrow viewport), then mark each COMPLETE.
+2. **Decide on #18/#32**: the user was asked whether they stay COMPLETE, or move to PARTIAL until a phone check. Not yet answered.
+3. Optionally source M4/M7 manuals for #22.
+
+Do not start Phase 3 until Phase 2 is closed out or the user explicitly overrides.
 
 ## Blockers
 
