@@ -11,6 +11,7 @@ import {
   isFullStop,
   lensesForBody,
   nearestStop,
+  rangefinderBodies,
 } from "./gear";
 
 describe("findBody/findLens", () => {
@@ -73,6 +74,15 @@ describe("framelinesFor", () => {
     expect(framelinesFor(m11, 21)).toBeNull();
     const q3 = findBody("q3");
     expect(framelinesFor(q3, 28)).toBeNull();
+  });
+});
+
+describe("rangefinderBodies", () => {
+  it("includes only bodies with an optical rangefinder", () => {
+    const bodies = rangefinderBodies();
+    expect(bodies.every((b) => b.rangefinder !== undefined)).toBe(true);
+    expect(bodies.some((b) => b.id === "m3")).toBe(true);
+    expect(bodies.some((b) => b.id === "q3")).toBe(false);
   });
 });
 

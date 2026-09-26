@@ -20,11 +20,11 @@ Last updated: 2026-09-26
 
 ## Current task
 
-**Feature #18 — Cross-body Leica Viewfinder Comparison**
+**Feature #32 — Mechanical Audio + Haptics**
 
 Status: **NOT STARTED**
 
-Claude must read Feature #18 in `RANGEFINDER_MASTER_PLAN.md` before implementation, and must not start it until the user says to proceed (one-feature-at-a-time rule).
+Claude must read Feature #32 in `RANGEFINDER_MASTER_PLAN.md` before implementation, and must not start it until the user says to proceed (one-feature-at-a-time rule).
 
 ## Phase 2 checklist
 
@@ -33,7 +33,7 @@ Claude must read Feature #18 in `RANGEFINDER_MASTER_PLAN.md` before implementati
 - [x] **#11 — Push / Pull Simulation** — COMPLETE
 - [x] **#27 — Portrait Distance Trainer** — COMPLETE
 - [x] **#31 — Learn From Negatives / Scan Feedback Loop** — COMPLETE
-- [ ] **#18 — Cross-body Leica Viewfinder Comparison** — NOT STARTED
+- [x] **#18 — Cross-body Leica Viewfinder Comparison** — COMPLETE
 - [ ] **#32 — Mechanical Audio + Haptics** — NOT STARTED
 - [ ] **#9 — Phone Gyroscope Hand-Stability Trainer** — NOT STARTED
 - [ ] **#22 — Film Loading Trainer** — NOT STARTED
@@ -138,9 +138,25 @@ Validation: typecheck clean, lint 0 errors (5 pre-existing warnings, untouched f
 
 Known limitation: same recurring narrow-viewport gap as the last four features — not confirmed live this session. Insights is scoped to whichever single medium (film roll or digital card) is currently active, matching the existing Contact Sheet's scope — "Rewind & new roll" clears film frames (and therefore their tags) exactly as it always has, so cross-roll historical trends spanning multiple physical rolls are out of scope for this v1 (the spec's "scan attached from a lab/scanner" flow — a real external-image-upload feature with its own consent UI — was deliberately not built; this app's existing captured/rendered frames stand in for that data, which is the same scope decision already made for the rest of the Film Roll Companion).
 
+---
+
+**Feature #18 — Cross-body Leica Viewfinder Comparison** (Phase 2)
+
+Implemented:
+- `preview/rangefinder.ts`: new pure `frameLineFraction(fieldDeg, focalMm, frameWidthMm?, frameHeightMm?)`, extracted from math that was previously inlined only in `Viewfinder.tsx` (`hw`/`hh` from `fpx`) — returns the frame line's half-width/half-height as a fraction of the finder's field, independent of any pixel size, so it works for a live canvas or a plain CSS/SVG overlay alike. `Viewfinder.tsx` now calls this helper instead of duplicating the formula, per the engineering rule against duplicating optical formulas in UI components. 3 new unit tests, plus the existing `Viewfinder` behavior re-verified unchanged (see below).
+- `data/gear.ts`: new `rangefinderBodies()` (every body with an optical rangefinder — the M film/digital family; Q/SL/CL/S are correctly excluded since they have no `rangefinder` field) and `FINDER_PROVENANCE` (published, since finder magnification/frame-line sets are the same already-curated public-spec data the rest of `gear.ts` uses — no new data was fabricated). 1 new unit test.
+- `components/FinderCompare.tsx`: new panel — two independent body pickers (plain `<select>`s, reusing existing global `select` styling), each driving a schematic SVG "finder field" circle (styling reused directly from `Iris.tsx`'s `.iris-diagram`/`.iris-barrel` classes) with the current lens's bright-line frame overlaid via `frameLineFraction`, sized correctly relative to each body's own magnification. When a real sample-scene photo is loaded, that same image (`sampleInfo.image`, the URL already used by the scene picker) is reused as the shared background so both panels visibly show "the same scene, framed differently" — a lightweight `<image>`/`<clipPath>` reuse rather than standing up two more WebGL bokeh renderers (which would risk exceeding mobile Safari's WebGL context limit for a comparison feature not central to the shot pipeline); it falls back to a plain reference grid when no photo is loaded (e.g. the default illustrated street scene). Body selection is fully local component state — it never touches `OpticalState`'s real `body`, so switching finder-comparison bodies cannot affect the app's actual DOF/exposure display, trivially satisfying that acceptance criterion by construction rather than by a runtime guard.
+- `App.tsx`: wired in right after the conditional Rangefinder panel (`lens={lens}`, `sceneImageUrl={sampleInfo?.image}`); `styles.css`: new `.stage-finder-compare` order slot (added to the tablet-breakpoint full-width panel list alongside `.stage-iris`/`.stage-barrel`, since it's a wide two-diagram panel) plus `.finder-compare-pickers`/`.finder-frameline`/`.finder-grid`.
+
+Manually verified in Chrome (desktop): panel renders with sensible defaults (Body A = M3 · 0.91×, Body B = M6 · 0.72×) showing correct frame-line captions ("M3 · 0.91× · 50 mm frames" vs "M6 · 0.72× · 50/75 mm frames," matching each body's real frame-set data) and a visibly larger frame rectangle in the higher-magnification M3 circle. Switched Body A to M9 (0.68×) via the dropdown — the diagram and caption updated live, and the frame rectangle correctly shrank relative to M6's (lower magnification ⇒ wider field ⇒ frame occupies less of it). Selected a real sample scene ("Amsterdam, Christmas lights") — both finder circles correctly switched from the placeholder grid to the same photo, confirming the shared-reference-scene requirement. Confirmed the pre-existing main `Viewfinder` panel (which now calls the extracted `frameLineFraction` instead of its own inline formula) still renders its bright-line frames and rangefinder patch correctly and unchanged. No console errors throughout.
+
+Validation: typecheck clean, lint 0 errors (5 pre-existing warnings, untouched files), 184/184 tests passing (was 180), clean production build (main JS 304.20 kB).
+
+Known limitation: same recurring narrow-viewport gap as the last five features — not confirmed live this session. The panel reuses `Iris.tsx`'s already mobile-considered SVG diagram sizing and the `.dial`/`.field`-adjacent `<select>` pattern already styled globally, so risk is judged low. Swipe-style comparison (an alternative to side-by-side) was not built — side-by-side was chosen instead, which the spec explicitly allows ("side-by-side or swipe"), and reads better once the tablet breakpoint forces the panel full-width. Comparison is limited to two bodies at a time by design (not simultaneous multi-body), which keeps the UI simple and avoids the WebGL-context risk a fuller multi-way comparison using the real renderer would carry.
+
 ## Next
 
-Start **Feature #18 — Cross-body Leica Viewfinder Comparison**.
+Start **Feature #32 — Mechanical Audio + Haptics**.
 
 Do not begin it automatically — wait for the user to say proceed.
 

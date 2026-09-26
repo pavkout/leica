@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { findBody, framelinesFor } from "../data/gear";
-import { doubleImageOffset, finderFieldDeg, framelineParallax } from "./rangefinder";
+import { doubleImageOffset, finderFieldDeg, frameLineFraction, framelineParallax } from "./rangefinder";
 
 describe("framelinesFor", () => {
   const m6 = findBody("m6");
@@ -55,5 +55,25 @@ describe("framelineParallax", () => {
   it("shrinks with distance and is zero at infinity", () => {
     expect(framelineParallax(0.7).x).toBeGreaterThan(framelineParallax(2).x);
     expect(framelineParallax(Infinity)).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("frameLineFraction", () => {
+  it("has the standard 3:2 aspect ratio for the default full-frame format", () => {
+    const { halfWidthFrac, halfHeightFrac } = frameLineFraction(finderFieldDeg(0.72), 50);
+    expect(halfWidthFrac / halfHeightFrac).toBeCloseTo(36 / 24, 6);
+  });
+
+  it("occupies more of the finder for a higher-magnification (narrower-field) body at the same focal length", () => {
+    const wide = frameLineFraction(finderFieldDeg(0.72), 50);
+    const tight = frameLineFraction(finderFieldDeg(0.91), 50);
+    expect(tight.halfWidthFrac).toBeGreaterThan(wide.halfWidthFrac);
+  });
+
+  it("occupies less of the finder for a longer focal length at the same magnification", () => {
+    const field = finderFieldDeg(0.72);
+    const wide = frameLineFraction(field, 35);
+    const tele = frameLineFraction(field, 135);
+    expect(tele.halfWidthFrac).toBeLessThan(wide.halfWidthFrac);
   });
 });

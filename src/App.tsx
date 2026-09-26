@@ -20,6 +20,7 @@ import Sunny16Trainer from "./components/Sunny16Trainer";
 import IntentAssistant from "./components/IntentAssistant";
 import PortraitTrainer from "./components/PortraitTrainer";
 import Insights from "./components/Insights";
+import FinderCompare from "./components/FinderCompare";
 import LiveView from "./components/LiveView";
 import { FLAGS } from "./flags";
 import {
@@ -657,6 +658,8 @@ export default function App() {
               )}
             </section>
           )}
+
+          <FinderCompare lens={lens} sceneImageUrl={sampleInfo?.image} />
 
           <section className="panel stage-barrel" aria-label="Lens">
             <div className="panel-head">

@@ -194,17 +194,18 @@ select {
 .stage-preview { order: 1; }
 .stage-setup { order: 2; }
 .stage-finder { order: 3; }
-.stage-exposure { order: 4; }
-.stage-trainer { order: 5; }
-.stage-intent { order: 6; }
-.stage-portrait { order: 7; }
-.stage-barrel { order: 8; }
-.stage-iris { order: 9; }
-.readouts { order: 10; }
-.stage-roll { order: 11; }
-.stage-insights { order: 12; }
-.stage-scene { order: 13; }
-.stage-details { order: 14; }
+.stage-finder-compare { order: 4; }
+.stage-exposure { order: 5; }
+.stage-trainer { order: 6; }
+.stage-intent { order: 7; }
+.stage-portrait { order: 8; }
+.stage-barrel { order: 9; }
+.stage-iris { order: 10; }
+.readouts { order: 11; }
+.stage-roll { order: 12; }
+.stage-insights { order: 13; }
+.stage-scene { order: 14; }
+.stage-details { order: 15; }
 
 .panel {
   position: relative;
@@ -1796,6 +1797,29 @@ input[type="range"] {
   max-width: 150px;
 }
 
+/* ── Finder comparison ────────────────────────────────────── */
+.finder-compare-pickers {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+
+.finder-compare-pickers select {
+  min-width: 180px;
+}
+
+.finder-frameline {
+  fill: none;
+  stroke: rgba(252, 248, 236, 0.95);
+  stroke-width: 1.5;
+}
+
+.finder-grid {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
 /* ── Portrait distance trainer ────────────────────────────── */
 .portrait-body {
   display: flex;
@@ -1969,6 +1993,7 @@ input[type="range"] {
 
   .stage-preview,
   .stage-finder,
+  .stage-finder-compare,
   .stage-barrel,
   .stage-iris,
   .stage-roll,

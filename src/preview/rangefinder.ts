@@ -37,3 +37,18 @@ export function framelineParallax(focusM: number) {
   if (!Number.isFinite(focusM)) return { x: 0, y: 0 };
   return { x: FINDER_OFFSET_M.x / focusM, y: FINDER_OFFSET_M.y / focusM };
 }
+
+/**
+ * How much of the finder's width/height a lens's bright-line frame occupies,
+ * as a fraction — independent of any pixel size, so it works equally for a
+ * live-rendered canvas or a plain CSS overlay. `frameWidthMm`/`frameHeightMm`
+ * default to the 36×24mm full-frame format every M body's finder is built
+ * around, regardless of the body's actual sensor/film gate.
+ */
+export function frameLineFraction(fieldDeg: number, focalMm: number, frameWidthMm = 36, frameHeightMm = 24) {
+  const halfTan = Math.tan(((fieldDeg / 2) * Math.PI) / 180);
+  return {
+    halfWidthFrac: frameWidthMm / 2 / focalMm / (2 * halfTan),
+    halfHeightFrac: frameHeightMm / 2 / focalMm / (2 * halfTan),
+  };
+}

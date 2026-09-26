@@ -296,6 +296,16 @@ export function framelinesFor(body: Body, focalMm: number): number[] | null {
   return body.rangefinder?.frameSets.find((set) => set.includes(focalMm)) ?? null;
 }
 
+/** Every body with an optical rangefinder — the M film/digital family this app models; Q/SL/CL/S have none. */
+export function rangefinderBodies(): Body[] {
+  return BODIES.filter((b) => b.rangefinder);
+}
+
+export const FINDER_PROVENANCE: Provenance = {
+  kind: "published",
+  notes: "Finder magnification and frame-line sets are from Leica's published body specifications, checked against public datasheets.",
+};
+
 // Full and half stops, as clicked on Leica aperture rings.
 const STANDARD_STOPS = [1.2, 1.4, 1.7, 2, 2.4, 2.8, 3.4, 4, 4.8, 5.6, 6.7, 8, 9.5, 11, 13, 16, 19, 22, 25, 32];
 

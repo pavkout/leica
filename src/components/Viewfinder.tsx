@@ -6,6 +6,7 @@ import {
   MAGNIFIER,
   RANGEFINDER_BASE_M,
   finderFieldDeg,
+  frameLineFraction,
   framelineParallax,
 } from "../preview/rangefinder";
 import type { PhotoScene } from "../preview/photoScene";
@@ -134,8 +135,9 @@ export default function Viewfinder({ body, lens, focusMm, subjectMm, backgroundM
       ctx.shadowColor = "rgba(255, 250, 235, 0.6)";
       ctx.shadowBlur = W / 300;
       for (const f of pair ?? []) {
-        const hw = (fpx * 18) / f;
-        const hh = (fpx * 12) / f;
+        const { halfWidthFrac, halfHeightFrac } = frameLineFraction(fieldDeg, f);
+        const hw = halfWidthFrac * W;
+        const hh = halfHeightFrac * W;
         const x = cx + fpx * parallax.x;
         const y = cy + fpx * parallax.y;
         ctx.strokeRect(x - hw, y - hh, hw * 2, hh * 2);
