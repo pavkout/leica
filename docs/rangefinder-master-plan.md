@@ -334,11 +334,51 @@ in seconds whenever that's available.
 **Verification**: 126 tests passing, 0 lint errors, clean typecheck/build,
 plus the real-camera manual pass above.
 
-## What remains before Phase 1 is complete
+## Closing out the milestone against its own Definition of Done
 
-- A narrow-viewport (mobile) check specifically for the two new full-screen
-  overlays — attempted twice this session, blocked by tooling, not by the
-  app.
-- The Phase 0 mobile audit still wants a dedicated real-device pass beyond
-  the spot-checks done alongside Phase 1's manual testing (now includes one
-  real webcam capture, but not a phone/orientation-change pass).
+The master plan's "M3 Film Companion" milestone (all 9 features above) is
+functionally complete. Checked it against the 6 explicit Definition-of-Done
+criteria the spec lists:
+
+- **"No regression to current comparison simulator."** Re-tested manually:
+  "Compare lenses" still opens the split-screen view correctly (Lens
+  B/Aperture B selectors, draggable divider) — the only change near it was
+  wrapping the panel header's buttons in a flex `row-actions` span to fit
+  the new "Live" button alongside it, and that didn't touch the comparison
+  logic. No console errors.
+- **"Math covered by unit tests."** 126 tests across physics/exposure/
+  catalog/state/services.
+- **"Every approximate behavior is labeled."** Consistent throughout —
+  provenance metadata on film looks and blade counts (Phase 0), the Sunny
+  16 trainer's EV-guide disclaimer, Live View's framing/scene-light labels,
+  the M3 finder's existing calibrated/approximate distinctions.
+- **"A README/demo script explains a 2-minute walkthrough."** Was
+  genuinely missing until now — `README.md` rewritten with every Phase 1
+  feature and an explicit numbered 2-minute walkthrough (gear → DOF → zone
+  focus → finder → Sunny 16 → intent assistant → shoot → Live View).
+- **"Core user path can be demonstrated without internet after the app is
+  loaded."** True by construction for the core path (gear/exposure/DOF/
+  finder/trainer/assistant/shoot are all local computation); the one
+  intentional exception (documented in the README) is the optional
+  photo-upload depth model, which is lazy-loaded from a CDN on first use.
+- **"Works on desktop Chromium and mobile Safari with graceful capability
+  fallbacks."** Desktop Chromium: extensively verified throughout Phase 1,
+  including one real end-to-end Live View pass on real camera hardware.
+  Mobile Safari: **not verified** — this remains the one open item, and
+  isn't something further work in this environment can close (see below).
+
+## What remains — needs a real device, not more work here
+
+- A live mobile Safari pass (touch interactions, safe-area insets, the two
+  new full-screen overlays, Live View's `facingMode: environment` back
+  camera preference) — genuinely needs a physical iPhone or a mobile
+  simulator with a real WebKit engine, neither available in this session.
+- The narrow-viewport check for the two new full-screen overlays —
+  attempted twice this session (`resize_window`, then a CSS-zoom
+  workaround), both blocked by tooling, not by the app. Low-risk by static
+  CSS review, not yet confirmed.
+- The Phase 0 mobile audit's dedicated real-device pass, for the same
+  reason.
+
+Everything else in the milestone is done, tested, and — where the tooling
+allowed it — manually verified end to end.
