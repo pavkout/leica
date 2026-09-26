@@ -1,6 +1,6 @@
 # Rangefinder — Project Status
 
-Last updated: 2026-09-26
+Last updated: 2026-09-27
 
 ## Current state
 
@@ -8,7 +8,7 @@ Last updated: 2026-09-26
 |---|---|
 | Phase 0 — Repository Audit & Foundation | ✅ COMPLETE |
 | Phase 1 — M3 Film Companion | ✅ COMPLETE |
-| Phase 2 — Tactile Learning | 🟡 IN PROGRESS |
+| Phase 2 — Tactile Learning | ✅ COMPLETE |
 | Phase 3 — “WTF” / 3D Layer | ⬜ NOT STARTED |
 | Phase 4 — Explore / Kiosk / Museum | ⬜ NOT STARTED |
 
@@ -16,15 +16,11 @@ Last updated: 2026-09-26
 
 ## Current phase
 
-**Phase 2 — Tactile Learning**
+**Phase 2 — Tactile Learning: COMPLETE (2026-09-27).** Phase 3 has not started; it starts only when the user says so.
 
 ## Current task
 
-**Feature #22 — Film Loading Trainer**
-
-Status: **PARTIAL** — implemented and unit-tested for all six catalog film bodies (M3, M4, M6, M7, MP, M-A), each sourced from its manual; not yet checked in a live browser or on mobile (see "Last completed" → #22 and "Next").
-
-Also open: **#9** is PARTIAL, pending real-phone verification.
+None in progress. All nine Phase 2 features are COMPLETE. The next feature is **#2 — Virtual Leica, full 3D camera and lens** (Phase 3's first milestone item: a lazy-loaded 3D renderer with quality tiers and a 2D fallback). It has not been started and waits for the user's go-ahead.
 
 ## Phase 2 checklist
 
@@ -35,8 +31,8 @@ Also open: **#9** is PARTIAL, pending real-phone verification.
 - [x] **#31 — Learn From Negatives / Scan Feedback Loop** — COMPLETE
 - [x] **#18 — Cross-body Leica Viewfinder Comparison** — COMPLETE
 - [x] **#32 — Mechanical Audio + Haptics** — COMPLETE
-- [ ] **#9 — Phone Gyroscope Hand-Stability Trainer** — PARTIAL (awaiting real-device verification)
-- [ ] **#22 — Film Loading Trainer** — PARTIAL (all six film bodies sourced; live/mobile check pending)
+- [x] **#9 — Phone Gyroscope Hand-Stability Trainer** — COMPLETE
+- [x] **#22 — Film Loading Trainer** — COMPLETE
 
 ## Recommended Phase 2 order (resequenced — see reasoning below)
 
@@ -175,7 +171,7 @@ Limitations: the voices differ only by mechanism, not by individual model. How a
 
 ---
 
-**Feature #9 — Phone Gyroscope Hand-Stability Trainer** (Phase 2) — **PARTIAL**
+**Feature #9 — Phone Gyroscope Hand-Stability Trainer** (Phase 2) — **COMPLETE** (2026-09-27)
 
 Repository-check note: HEAD commit `787cf0e` is titled "implement Phone Gyroscope Hand-Stability Trainer…", but its diff contains only the #32 audio/haptics work (`audio/sounds.ts`, `App.tsx` mount click, this file). No motion-sensor code existed before this pass, so this file's "NOT STARTED" was correct and the commit message is the thing that's wrong.
 
@@ -188,15 +184,20 @@ Implemented:
 
 Validation: typecheck clean, lint 0 errors (5 pre-existing warnings, untouched files), 201/201 tests passing (was 189), clean production build (main JS 311.80 kB, was 304.74 kB).
 
-**Why PARTIAL, not COMPLETE:** no browser automation or physical device was available this session, so nothing was checked live, not even the desktop "no gyroscope data" fallback. Remaining before this can be marked COMPLETE:
-1. On a real phone (ideally iPhone Safari and Android Chrome), run a braced test and a deliberately shaken test and confirm the label and suggestion differ (acceptance criterion 2; only proven against synthetic streams so far).
-2. On iOS, deny the motion prompt and confirm the denial message shows with no broken state (acceptance criterion 1; only proven via the pure `classifyMotionAccess` mapping).
-3. Confirm on-device that background/stop/unmount really ends sampling (acceptance criterion 3; covered by construction and the unsubscribe unit test).
-4. Desktop check of the 1.5 s no-data fallback message, and a narrow-viewport look at the panel.
+**Browser verification (2026-09-27):** driven with Playwright (installed in a scratch directory, not a project dependency) against the running dev app. It used WebKit, Safari's engine, with iPhone 13 and iPhone SE emulation, plus desktop Chromium. Real `devicemotion` events carrying `rotationRate` were dispatched into the page at 60 Hz, so the full listener → filter → summary → UI path ran, not just the pure functions. iOS's `DeviceMotionEvent.requestPermission` was emulated. `devicemotion` listener registrations were counted to prove sampling actually stops. 21/21 checks passed:
+- Criterion 1: an emulated iOS denial shows the "Motion access was declined…" message, the Start button returns, retrying works, no listener is left and no console errors.
+- Criterion 2: a braced stream (σ 0.4°/s) → **Stable**, "Handheld at 1/15" at 21 mm, averaging 0.6°/s. A shaken stream (σ 12°/s) → **Unstable**, "1/500", averaging 16.3°/s. The live label shows while sampling.
+- Criterion 3: exactly one listener while sampling, and zero after Stop, after completion, and after the page goes to the background (`visibilitychange` → hidden). Unmount stays covered by the effect cleanup plus the unsubscribe unit test.
+- Desktop Chromium, which has `DeviceMotionEvent` but never fires it: the "isn't reporting gyroscope data" fallback appears after 1.5 s and releases the listener.
+- 320px: no clipped text, no horizontal page scroll. Screenshots were inspected.
+
+**Real-phone check (2026-09-27), which moved this to COMPLETE:** the user ran `npm run dev:phone` and a 10 s test on their own phone with a 24 mm lens. Motion access was granted from the tap, and real gyroscope data flowed and drew the trace. The result was **Stable**, averaging 1.7°/s, "Handheld at 1/30 or faster". That settles the two things emulation couldn't prove. Real iOS/phone permission-from-tap works. The units are degrees per second: 1.7°/s is a realistic still hand and sits on the 1.72°/s nominal-hand calibration, whereas radians per second would have read about 57× lower. A shaken run on the device wasn't separately reported. Braced-vs-shaken differentiation is proven through the same event path in the browser check above, and with the units confirmed the on-device behaviour follows.
+
+Known limitations: the real-device denial path was checked only via the emulated iOS prompt. The trace shows the Start tap itself as a brief spike at the beginning of the test, which is included in the average and makes the result slightly conservative. A short settle-in period (e.g. dropping the first ~0.5 s) would remove it; noted as a possible refinement, not done.
 
 ---
 
-**Feature #22 — Film Loading Trainer** (Phase 2) — **PARTIAL**
+**Feature #22 — Film Loading Trainer** (Phase 2) — **COMPLETE** (2026-09-27)
 
 Sourcing (the reason this feature was sequenced last): the loading/unloading procedures were read from the manufacturer manuals themselves, not written from general knowledge:
 - **M3**: Leica M3 Instruction Book (Ernst Leitz, Wetzlar), pp. 28–32. Scanned original from the butkus.us archive (cameramanuals.org mirror).
@@ -215,18 +216,17 @@ Implemented:
 
 Validation: typecheck clean, lint 0 errors (same 5 pre-existing warnings), 214/214 tests passing (was 201), clean production build (main JS 330.39 kB, was 311.80 kB; mostly tutorial text, which could be lazy-loaded later if size matters).
 
-**Why PARTIAL, not COMPLETE:**
-1. Not checked in a live browser this session (no browser automation available): tapping through a full M3 and M6 load/unload, the feedback copy in context, the source link, and the narrow-viewport layout of the action palette.
-2. ~~M4 and M7 tutorials missing~~ — resolved 2026-09-26; all six catalog film bodies are now sourced.
-3. The M3 and M4 sources are OCR'd scans. Step order and warnings were read directly, but a few words in the OCR were garbled and were read in context.
+**Browser verification (2026-09-27), which moved this to COMPLETE:** a Playwright script drove the running app on WebKit (iPhone 13 at 390px, iPhone SE at 320px) and on desktop Chromium. It covered all 12 tutorials (6 bodies × load/unload), stepped through using the actual tutorial data. For each tutorial it checked: one wrong tap gives feedback without advancing; completion text; the counter ends at 1 after loading; the source link matches the cited URL; Back a step and Restart work; no clipped text at any step; no horizontal page scroll; nothing spills out of the panel; no console errors. 213/213 checks passed after two fixes, and the screenshots were inspected:
+- **Bug fixed, found by inspecting the screenshots:** step instructions (and the #9 result line) used `.gear-name`, which is single-line with an ellipsis, so on a phone most instructions were cut off after a few words. `styles.css` now lets `.gear-name` wrap inside `.loading-step` and `.stability-result`.
+- **App-wide bug fixed:** at 320px the page scrolled sideways by 15px, caused by the Camera/Lens picker buttons (Phase 1), not this panel. The `.gear-buttons` grid column grew to fit the lens-scale thumbnail's min-content width. It's now `grid-template-columns: minmax(0, 1fr)`, and the long lens name ellipsizes as intended.
+
+Known limitations: checked in WebKit emulation, not on a physical iPhone. The M3 and M4 sources are OCR'd scans; step order and warnings were read directly, but a few garbled OCR words were read in context.
 
 ## Next
 
-Phase 2 has now touched every feature; what's left is verification rather than new features:
-1. **Device/browser check** of #9 (real phone, checklist above) and #22 (live browser + narrow viewport, now including the M4 and M7), then mark each COMPLETE. For the phone: run `npm run dev:phone`, which serves the app over HTTPS on the LAN with a self-signed certificate (`@vitejs/plugin-basic-ssl`, dev-only, active only in `--mode phone`). Open the printed `Network:` URL on the phone and accept the certificate warning. iOS Safari only exposes `DeviceMotionEvent` in a secure context, so plain `npm run dev` over the LAN can only ever show the "unsupported" path.
-2. ~~Decide on #18/#32~~ — decided 2026-09-26: both stay **COMPLETE**. Their remaining gaps are documented, and the unverified mobile layout is app-wide (see Known limitations), not specific to them.
+Phase 2 is closed. Next is **Phase 3 — "WTF" / 3D Layer**, starting with **#2 — Virtual Leica, full 3D camera and lens**. Per the Master Plan's Phase 3 milestone, it must be a lazy-loaded route/component (glTF/GLB + PBR), with device quality tiers and a 2D fallback, and no 3D engine or assets loaded for users who never enter it. Adding a 3D engine is a large dependency and needs to be raised with the user before it's added (CLAUDE.md engineering rules).
 
-Do not start Phase 3 until Phase 2 is closed out or the user explicitly overrides.
+Do not start it until the user explicitly asks.
 
 ## Blockers
 
@@ -235,9 +235,9 @@ None currently recorded.
 ## Known limitations / verification required
 
 - Live Leica View may currently be an alpha/v1 implementation rather than the final complete Feature #1 specification (unchanged from Phase 1).
-- Mobile Safari / narrow-viewport verification remains outstanding across the whole app, not just Feature #3 — this environment cannot currently force a narrow browser viewport (`resize_window` no-ops; a CSS-zoom workaround was tried previously and doesn't affect `@media` breakpoints either). Needs a real device or a working device-emulation tool.
+- Mobile Safari / narrow-viewport verification: as of 2026-09-27 a working emulation path exists. Playwright's cached WebKit with iPhone device profiles (real `@media` breakpoints, touch, DPR), run from a scratch directory. The whole app has no horizontal overflow at 320/360/375/390px (the only offender, the gear-picker buttons, was fixed), and #9/#22 were checked in depth. Earlier panels (#3–#32) have not each had the same per-panel screenshot review, and nothing substitutes for a pass on a physical iPhone.
 - #9's thresholds use the 1/focal-length rule as a proxy for "a nominal hand" and measure the phone held like a phone, not a rangefinder (different mass/grip). The UI states this, but it remains approximate by design.
-- Phase 3 / Virtual Leica Full 3D has not started and must not be pulled into Phase 2 accidentally.
+- Phase 3 / Virtual Leica Full 3D has not started. Phase 2 is closed, so it can begin once the user asks.
 
 ## Phase 3 — explicitly not started
 

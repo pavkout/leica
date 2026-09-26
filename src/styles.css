@@ -591,6 +591,8 @@ input[type="text"]::placeholder {
 
 .gear-buttons {
   display: grid;
+  /* minmax(0, …) so the lens-scale thumbnail can't widen the column past a 320px screen. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin-bottom: 14px;
 }
@@ -1977,6 +1979,13 @@ input[type="range"] {
 
 .loading-step {
   min-height: 72px;
+}
+
+/* `.gear-name` is single-line with an ellipsis; instructions and results must wrap in full. */
+.loading-step .gear-name,
+.stability-result .gear-name {
+  white-space: normal;
+  overflow: visible;
 }
 
 .loading-actions {
