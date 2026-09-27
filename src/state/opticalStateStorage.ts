@@ -28,6 +28,7 @@ export interface StoredOpticalState {
   autoExposure: boolean;
   manualShutter: number;
   tripod: boolean;
+  eiStops: number;
 }
 
 export function encodeMaybeInfinite(n: number): MaybeInfinite {

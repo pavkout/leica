@@ -56,6 +56,7 @@ describe("loadLastUsed/saveLastUsed", () => {
       autoExposure: true,
       manualShutter: 1 / 60,
       tripod: false,
+      eiStops: 0,
     });
     expect(loadLastUsed()).toMatchObject({ bodyId: "m11", lensId: "m-50-1.4", focusMm: "inf" });
   });

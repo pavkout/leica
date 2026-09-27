@@ -51,6 +51,8 @@ export interface OpticalState {
   autoExposure: boolean;
   manualShutter: number;
   tripod: boolean;
+  /** Exposure index rating relative to the loaded film's box speed, in stops (film bodies only). */
+  eiStops: number;
 }
 
 export interface OpticalStateActions {
@@ -70,6 +72,7 @@ export interface OpticalStateActions {
   setAutoExposure: (auto: boolean) => void;
   setManualShutter: (t: number) => void;
   setTripod: (v: boolean) => void;
+  setEiStops: (stops: number) => void;
 }
 
 export function useOpticalState(): OpticalState & OpticalStateActions {
@@ -108,6 +111,7 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
   const [autoExposure, setAutoExposure] = useState(stored.autoExposure ?? true);
   const [manualShutter, setManualShutter] = useState(stored.manualShutter ?? 1 / 60);
   const [tripod, setTripod] = useState(stored.tripod ?? false);
+  const [eiStops, setEiStops] = useState(stored.eiStops ?? 0);
 
   useEffect(() => {
     // Debounced: focus/aperture change continuously while dragging, and
@@ -128,10 +132,11 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
         autoExposure,
         manualShutter,
         tripod,
+        eiStops,
       });
     }, 400);
     return () => window.clearTimeout(id);
-  }, [bodyId, lensId, fNumber, focusMm, backgroundOffsetMm, megapixels, cropFocalMm, standard, units, filmId, isoDigital, autoExposure, manualShutter, tripod]);
+  }, [bodyId, lensId, fNumber, focusMm, backgroundOffsetMm, megapixels, cropFocalMm, standard, units, filmId, isoDigital, autoExposure, manualShutter, tripod, eiStops]);
 
   const body = findBody(bodyId);
   const lens = findLens(lensId);
@@ -173,6 +178,7 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
     autoExposure,
     manualShutter,
     tripod,
+    eiStops,
     selectBody,
     selectLens,
     setFNumber,
@@ -187,5 +193,6 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
     setAutoExposure,
     setManualShutter,
     setTripod,
+    setEiStops,
   };
 }

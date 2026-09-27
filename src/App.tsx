@@ -42,6 +42,7 @@ import {
 } from "./services/db";
 import { GENERIC_BLADES, apertureShape, stopsDown } from "./preview/aperture";
 import { grainStrength, lookFor, type FilmLook } from "./preview/film";
+import { developedLook, developmentIntent, exposureIndex } from "./physics/pushPull";
 import type { DevelopParams } from "./preview/renderer";
 import {
   SAMPLE_SCENES,
@@ -162,6 +163,7 @@ export default function App() {
     autoExposure,
     manualShutter,
     tripod,
+    eiStops,
     selectLens,
     setFNumber,
     setFocusMm,
@@ -175,6 +177,7 @@ export default function App() {
     setAutoExposure,
     setManualShutter,
     setTripod,
+    setEiStops,
   } = optical;
   const { savedIds, toggle: toggleBag } = useBag();
   const [compare, setCompare] = useState(false);
@@ -273,7 +276,13 @@ export default function App() {
   // Exposure: the film's speed or the sensor's ISO, and aperture priority where the body has it.
   const isFilm = body.medium === "film";
   const look: FilmLook = lookFor(body, filmId, isoDigital);
-  const iso = look.iso;
+  // Push/pull (film only): metering uses the rated exposure index, so a pushed
+  // roll is genuinely underexposed at capture; development's compensation
+  // (contrast/shadow/grain/highlight-latitude) is a separate concern, applied
+  // to `renderedLook` rather than to the exposure math above.
+  const pushPullStops = isFilm ? eiStops : 0;
+  const iso = isFilm ? exposureIndex(look.iso, pushPullStops) : look.iso;
+  const renderedLook = isFilm ? developedLook(look, pushPullStops) : look;
   const auto = body.autoExposure && autoExposure;
   const speeds = shutterSpeeds(body);
   const clampShutter = (t: number) => Math.min(Math.max(t, body.shutter.fastest), body.shutter.slowest);
@@ -287,14 +296,21 @@ export default function App() {
     const t = auto ? clampShutter(correctShutter(sceneEv, n, iso)) : shutterSec;
     return {
       exposureStops: exposureError(sceneEv, n, t, iso),
-      look,
-      grain: grainStrength(look, body),
+      look: renderedLook,
+      grain: grainStrength(renderedLook, body),
       vignetteStops: vignetteStops(l, n, !isFilm),
       shake: tripod ? 0 : shakeBlurMm(t, l.focalMm) / frameWidthMm,
       shakeAngle: angle,
       seed,
     };
   }
+
+  // "Rate & develop" note for the film/sensor label wherever it's shown to the
+  // user: box-speed stock name normally, plus the EI and push/pull amount
+  // once the roll is rated away from box speed.
+  const filmOrSensorLabel = isFilm
+    ? `${look.name}${pushPullStops !== 0 ? ` @ EI ${iso} (${developmentIntent(pushPullStops) === "push" ? "Push" : "Pull"} ${Math.abs(pushPullStops)})` : ""}`
+    : `ISO ${iso}`;
 
   const frames = isFilm ? rollFrames : cardFrames;
   const rollFull = isFilm && rollFrames.length >= ROLL_LENGTH;
@@ -321,9 +337,9 @@ export default function App() {
       id: Math.floor(Math.random() * 100000),
       number,
       url,
-      caption: `${body.name} · ${lens.name} · ${formatFNumber(fNumber)} · ${formatShutter(shutterSec)} · ${isFilm ? look.name : `ISO ${iso}`}${captionSuffix ? ` · ${captionSuffix}` : ""}`,
+      caption: `${body.name} · ${lens.name} · ${formatFNumber(fNumber)} · ${formatShutter(shutterSec)} · ${filmOrSensorLabel}${captionSuffix ? ` · ${captionSuffix}` : ""}`,
       fileName: `rangefinder-${String(number).padStart(2, "0")}.jpg`,
-      meta: { body: body.name, lens: lens.name, fNumber, shutterSec, focusMm, iso, filmOrSensor: isFilm ? look.name : `ISO ${iso}` },
+      meta: { body: body.name, lens: lens.name, fNumber, shutterSec, focusMm, iso, filmOrSensor: filmOrSensorLabel },
     };
     (isFilm ? setRollFrames : setCardFrames)((list) => [...list, frame]);
     void saveStoredFrame(isFilm ? "film" : "digital", frame);
@@ -516,7 +532,7 @@ export default function App() {
             <div className="shutter-row">
               <div className="shutter-info">
                 <span className="gear-name">
-                  {formatFNumber(fNumber)} · {formatShutter(shutterSec)} · {isFilm ? look.name : `ISO ${iso}`}
+                  {formatFNumber(fNumber)} · {formatShutter(shutterSec)} · {filmOrSensorLabel}
                 </span>
                 <span className="gear-meta">
                   {frameStatusLabel}
@@ -706,12 +722,17 @@ export default function App() {
 
           <ExposurePanel
             body={body}
-            look={look}
+            look={renderedLook}
             onFilm={setFilmId}
             iso={iso}
             onIso={(i) => {
               playDialClick();
               setIsoDigital(i);
+            }}
+            eiStops={pushPullStops}
+            onEiStops={(s) => {
+              playDialClick();
+              setEiStops(s);
             }}
             auto={auto}
             onAuto={setAutoExposure}
@@ -908,7 +929,7 @@ export default function App() {
           stops={stops}
           shutters={speeds}
           iso={iso}
-          filmOrSensorLabel={isFilm ? look.name : `ISO ${iso}`}
+          filmOrSensorLabel={filmOrSensorLabel}
           frameStatusLabel={frameStatusLabel}
           captureDisabled={rollFull}
           units={units}

@@ -382,3 +382,62 @@ criteria the spec lists:
 
 Everything else in the milestone is done, tested, and — where the tooling
 allowed it — manually verified end to end.
+
+## Phase 2, slice 4 — Push/pull simulation
+
+Implemented feature #11 from the spec (the fourth item in the Phase 2 list:
+physical iris, focusing-ring trainer, gyro stability test, **push/pull**,
+cross-body finder comparison, portrait trainer, film-loading trainer,
+negative/scan feedback loop, mechanical audio/haptics).
+
+`src/physics/pushPull.ts` keeps the spec's own separation intact: rating a
+film away from box speed changes what light reaches the negative (handled by
+the *existing* exposure engine — `App.tsx` now feeds it the exposure index,
+`exposureIndex(boxIso, stops)`, instead of the box ISO, so a pushed roll is
+genuinely underexposed at capture, visible through the same M-body meter
+LEDs a manually-metered body already has); development's compensation
+(contrast, shadow separation, grain, highlight headroom) is a separate,
+approximate response (`developmentResponse`/`developedLook`) applied only to
+the rendered `FilmLook`, never to the exposure math. `pushPullSupport` scopes
+each stock to the stops range where push/pull is common, predictable
+practice (wide for black & white, narrow for colour negative, medium for
+slide) — per the spec's "do not hardcode universal stop behavior across all
+stocks" and "unsupported combinations fall back to generic educational
+mode": stops outside that range still render (same generic curve, so the
+preview never just freezes) but the UI flags them as not this stock's real
+characteristic curve.
+
+UI lives in the existing `ExposurePanel` ("Rate & develop", film bodies
+only): a six-step segmented control (Pull 2 … Box … Push 3) driving
+`OpticalState.eiStops` (persisted). Its caption states the exposure and
+development effects separately, e.g. "Metering at EI 1600 — 2 stops less
+light reaches the negative, compensated by push-processing in development
+(not by the camera)" — the spec's own acceptance criterion ("rating ISO 400
+at 1600 clearly shows -2 EV capture before push-development compensation")
+verified directly against this text. Frame captions/exports tag rated shots
+(`@ EI 1600 (Push 2)`) so a contact sheet's push/pull history isn't silently
+lost the way box-speed-only captions would lose it.
+
+13 new unit tests (`pushPull.test.ts`) cover the EI/stops math, the
+per-medium support ranges and the development response's direction (push
+tightens contrast/latitude and adds grain; pull is the mirror). 139 tests
+total, 0 lint errors, clean typecheck/build. Manually verified in a real
+browser (Chromium via Playwright, driven directly since no page-level
+browser tool was available in this session): loaded an M6 with HP5 Plus,
+confirmed "Push 2" shows EI 1600 with the correct latitude narrowing
+(3 → 2.3 stops) and no unsupported-combination warning (black & white
+supports push 3/pull 2); loaded Portra 400 (colour negative, push-only) and
+confirmed "Pull 1" shows EI 200, the correct latitude widening (3 → 3.2
+stops) and the "beyond typical pull range" warning, since colour negative
+has no supported pull range here. Screenshotted the rendered canvas at Box
+vs. Push 3 with the same manual shutter: Push 3 is visibly higher-contrast
+(brighter scarf/highlights, deeper shadows), confirming the development
+response actually reaches the WebGL render, not just the caption text. No
+console errors beyond the pre-existing, unrelated depth-model CDN cert
+warning in this sandboxed network.
+
+Not implemented: a real characteristic curve per stock/developer (the spec
+explicitly asks not to invent one); capturing push/pull history into the
+IndexedDB roll schema beyond the frame caption (no acceptance criterion
+asked for it, and the caption/export already carries the information a
+contact sheet needs).

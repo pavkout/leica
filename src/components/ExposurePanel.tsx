@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { formatShutter, shutterSpeeds, type Body } from "../data/gear";
+import { EI_STOP_RANGE, developmentIntent, exposureIndex, isCommonPractice } from "../physics/pushPull";
 import { FILM_STOCKS, type FilmLook } from "../preview/film";
 import FilmArt from "./gear/FilmArt";
 import GearPicker from "./gear/GearPicker";
@@ -13,6 +14,9 @@ interface Props {
   onFilm: (id: string) => void;
   iso: number;
   onIso: (iso: number) => void;
+  /** Exposure index rating relative to box speed, in stops (film only; 0 = box speed). */
+  eiStops: number;
+  onEiStops: (stops: number) => void;
   auto: boolean;
   onAuto: (auto: boolean) => void;
   shutterSec: number;
@@ -80,6 +84,34 @@ export default function ExposurePanel(p: Props) {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {film && (
+        <div className="field">
+          <span>Rate & develop</span>
+          <Segmented
+            label="Exposure index rating"
+            value={p.eiStops}
+            onChange={p.onEiStops}
+            options={EI_STOP_RANGE.map((s) => ({
+              value: s,
+              label: s === 0 ? "Box" : `${s > 0 ? "Push" : "Pull"} ${Math.abs(s)}`,
+            }))}
+          />
+          <p className="muted small">
+            {p.eiStops === 0
+              ? `Metering at box speed, ISO ${p.look.iso}.`
+              : `Metering at EI ${exposureIndex(p.look.iso, p.eiStops)} — ${Math.abs(p.eiStops)} stop${Math.abs(p.eiStops) === 1 ? "" : "s"} ${
+                  p.eiStops > 0 ? "less" : "more"
+                } light reaches the negative, compensated by ${developmentIntent(p.eiStops)}-processing in development (not by the camera).`}
+          </p>
+          {p.eiStops !== 0 && !isCommonPractice(p.look, p.eiStops) && (
+            <p className="small warn-text">
+              Beyond typical {developmentIntent(p.eiStops)} range for this stock — a generic educational response, not
+              this stock's real characteristic curve.
+            </p>
+          )}
         </div>
       )}
 
