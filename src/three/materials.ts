@@ -17,6 +17,8 @@ export interface Materials {
   frosted: THREE.MeshStandardMaterial;
   /** Band around the part being turned in 3D. */
   highlight: THREE.MeshBasicMaterial;
+  /** Lens shell in X-Ray mode: faded so the glass groups, iris and rays show through. */
+  xrayShell: THREE.MeshStandardMaterial;
 }
 
 export function createMaterials(): Materials {
@@ -40,6 +42,7 @@ export function createMaterials(): Materials {
     window: new THREE.MeshStandardMaterial({ color: "#1d2733", metalness: 0.2, roughness: 0.08 }),
     frosted: new THREE.MeshStandardMaterial({ color: "#8f8c84", metalness: 0, roughness: 0.9 }),
     highlight: new THREE.MeshBasicMaterial({ color: "#e53935", transparent: true, opacity: 0.35, depthWrite: false, side: THREE.DoubleSide }),
+    xrayShell: new THREE.MeshStandardMaterial({ color: "#5b6470", metalness: 0.2, roughness: 0.6, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide }),
   };
 }
 

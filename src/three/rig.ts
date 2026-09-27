@@ -6,6 +6,7 @@
 import type { Lens } from "../data/gear";
 import { apertureStops, isFullStop } from "../data/gear";
 import { stopsDown } from "../preview/aperture";
+import { distanceFromExtension, focusExtension } from "../physics/optics";
 import type { Provenance } from "../data/provenance";
 
 /**
@@ -36,6 +37,12 @@ export const BODY = { width: 0.138, height: 0.077, depth: 0.035, topPlate: 0.018
 /** Where the lens mount sits on the body's front face. */
 export const MOUNT_CENTER: [number, number, number] = [0, -0.007, BODY.depth / 2];
 
+/** The lens mounts along the mount anchor's +Y, which points out of the body's front (+Z). */
+export const LENS_MOUNT_ROTATION: [number, number, number] = [Math.PI / 2, 0, 0];
+
+/** Marks meshes generated live (e.g. the iris), which must never be exported into a model file. */
+export const PROCEDURAL = Object.freeze({ procedural: true });
+
 /** Ring travel per stop. Real Leica rings aren't evenly spaced; this is an illustrative uniform scale. */
 export const RING_RAD_PER_STOP = (15 * Math.PI) / 180;
 
@@ -58,11 +65,6 @@ export function apertureRingMarks(lens: Lens): { label: string; angle: number }[
 /** Focus-ring travel from infinity to the closest distance. Leica doesn't publish throws; illustrative. */
 export const FOCUS_THROW_RAD = (100 * Math.PI) / 180;
 
-/** Helicoid extension needed to focus at `focusMm` (thin-lens f²/(d−f)); 0 at infinity. */
-function extensionMm(focalMm: number, focusMm: number) {
-  return Number.isFinite(focusMm) ? (focalMm * focalMm) / Math.max(focusMm - focalMm, 1e-6) : 0;
-}
-
 /**
  * Focus ring rotation: 0 at infinity, FOCUS_THROW_RAD at the closest
  * distance. A helicoid turns in proportion to extension, so the scale is
@@ -70,7 +72,8 @@ function extensionMm(focalMm: number, focusMm: number) {
  */
 export function focusRingAngle(lens: Lens, focusMm: number): number {
   const d = Math.max(focusMm, lens.minFocusMm);
-  return (extensionMm(lens.focalMm, d) / extensionMm(lens.focalMm, lens.minFocusMm)) * FOCUS_THROW_RAD;
+  // Helicoid extension from the shared optics engine (thin-lens f²/(d−f)).
+  return (focusExtension(lens.focalMm, d) / focusExtension(lens.focalMm, lens.minFocusMm)) * FOCUS_THROW_RAD;
 }
 
 const DISTANCE_MARKS_M = [Infinity, 10, 5, 3, 2, 1.5, 1.2, 1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3];
@@ -242,10 +245,7 @@ export function stepShutter(speeds: number[], shutterSec: number, auto: boolean,
 export function focusFromRingAngle(lens: Lens, angle: number): number {
   const a = Math.min(Math.max(angle, 0), FOCUS_THROW_RAD);
   if (a <= 1e-9) return Infinity;
-  const f = lens.focalMm;
-  const extMin = (f * f) / (lens.minFocusMm - f);
-  const ext = (a / FOCUS_THROW_RAD) * extMin;
-  return f + (f * f) / ext;
+  return distanceFromExtension(lens.focalMm, (a / FOCUS_THROW_RAD) * focusExtension(lens.focalMm, lens.minFocusMm));
 }
 
 /** Whole detents in an accumulated drag, and the remainder to carry into the next move. */

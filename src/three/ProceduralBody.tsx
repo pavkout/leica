@@ -4,11 +4,12 @@
 // photographer's right hand is at -X. Only film bodies get the advance lever
 // and rewind knob.
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import * as THREE from "three";
 import { shutterSpeeds, type Body } from "../data/gear";
-import { AXIS_Y, BODY, MOUNT_CENTER, RIG_PARTS, dialDetents, dialStep } from "./rig";
+import { AXIS_Y, BODY, LENS_MOUNT_ROTATION, MOUNT_CENTER, RIG_PARTS, dialDetents, dialStep } from "./rig";
 import { finishMaterial, type Materials } from "./materials";
+import { ANCHORS } from "./models";
 
 function roundedSlab(width: number, depth: number, height: number) {
   const r = depth * 0.46;
@@ -69,7 +70,7 @@ function useDialTexture(body: Body, dark: boolean) {
   return texture;
 }
 
-export default function ProceduralBody({ body, materials, dialActive }: { body: Body; materials: Materials; dialActive: boolean }) {
+export default function ProceduralBody({ body, materials, dialActive, children }: { body: Body; materials: Materials; dialActive: boolean; children?: ReactNode }) {
   const { width, height, depth, topPlate, basePlate } = BODY;
   const coverHeight = height - topPlate - basePlate;
   const shell = useMemo(
@@ -104,6 +105,11 @@ export default function ProceduralBody({ body, materials, dialActive }: { body: 
       <mesh position={[0.046, plateMid, front]} material={materials.window}>
         <boxGeometry args={[0.024, 0.013, 0.001]} />
       </mesh>
+
+      {/* Lens mount anchor: the lens renders here, built along +Y */}
+      <group name={ANCHORS.lensMount} position={MOUNT_CENTER} rotation={LENS_MOUNT_ROTATION}>
+        {children}
+      </group>
 
       {/* Lens mount flange */}
       <mesh position={[MOUNT_CENTER[0], MOUNT_CENTER[1], MOUNT_CENTER[2] + 0.001]} rotation={[Math.PI / 2, 0, 0]} material={materials.chrome}>

@@ -25,5 +25,5 @@ export const FLAGS: FeatureFlags = {
   motionSensors: true,
   audioHaptics: false,
   threeD: true,
-  experimentalLensCharacter: false,
+  experimentalLensCharacter: true,
 };

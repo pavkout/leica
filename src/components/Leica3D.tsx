@@ -13,6 +13,10 @@ import {
   type TurnablePart,
 } from "../three/rig";
 import { qualityTier } from "../three/capabilities";
+import { fixturesEnabled, modelFor, type ModelAsset } from "../three/models";
+import { XRAY_PROVENANCE } from "../three/optics";
+import { immersiveSetting, saveImmersiveSetting } from "../three/swapTimeline";
+import { getString, setString } from "../services/persistence";
 import type { VirtualLeicaHandle } from "../three/VirtualLeica";
 
 // The only import of the 3D chunk: three.js loads when this view first opens.
@@ -68,8 +72,25 @@ export default function Leica3D(props: Props) {
   const reducedMotion = usePrefersReducedMotion();
   const [lost, setLost] = useState(false);
   const [active, setActive] = useState<TurnablePart | null>(null);
+  // Lens X-Ray (feature #5). The ray layer is a separate toggle, off by default on reduced-quality devices.
+  const [xray, setXray] = useState(false);
+  const [rays, setRays] = useState(() => tier === "full");
+  // Cinematic lens swap (feature #33): a per-viewer setting, always off under reduced motion.
+  const [animateSwaps, setAnimateSwaps] = useState(() => immersiveSetting(getString));
+  const [interrupt, setInterrupt] = useState(0);
   const view = useRef<VirtualLeicaHandle>(null);
   const onContextLost = useCallback(() => setLost(true), []);
+
+  // GLB models from the manifest where one exists (fixtures only with ?models=fixtures), else procedural stand-ins.
+  const [useFixtures] = useState(() => fixturesEnabled());
+  const bodyAsset = modelFor("body", body.id, useFixtures);
+  const lensAsset = modelFor("lens", lens.id, useFixtures);
+  const [modelFailures, setModelFailures] = useState<Record<string, string>>({});
+  const onModelFail = useCallback((kind: ModelAsset["kind"], reason: string) => {
+    if (import.meta.env.DEV) console.warn(`3D ${kind} model unusable, showing the stand-in:`, reason);
+    setModelFailures((f) => ({ ...f, [kind]: reason }));
+  }, []);
+  const shownModels = [bodyAsset, lensAsset].filter((a): a is ModelAsset => !!a && !modelFailures[a.kind]);
 
   // Several drag events can land between renders, so each step builds on the
   // value it just requested rather than on a prop that hasn't updated yet.
@@ -130,6 +151,8 @@ export default function Leica3D(props: Props) {
   };
   // Keys are handled only while focus is inside the viewer, so page keys are never hijacked.
   const onKeyDown = (e: KeyboardEvent) => {
+    // Any key in the viewer finishes a running lens swap.
+    setInterrupt((n) => n + 1);
     if (!active) return;
     if (e.key === "Escape") {
       e.preventDefault();
@@ -184,6 +207,13 @@ export default function Leica3D(props: Props) {
               onPickPart={pick}
               onTurnDrag={onTurnDrag}
               onExitPart={exit}
+              bodyAsset={bodyAsset}
+              lensAsset={lensAsset}
+              onModelFail={onModelFail}
+              xray={xray}
+              rays={rays}
+              immersive={animateSwaps && !reducedMotion}
+              interrupt={interrupt}
               onContextLost={onContextLost}
             />
           </Suspense>
@@ -214,15 +244,47 @@ export default function Leica3D(props: Props) {
               </button>
             ))}
           </div>
-          <button type="button" className="btn btn-small" onClick={() => view.current?.resetView()}>
-            Reset view
-          </button>
+          <div className="leica3d-view-controls">
+            <button type="button" className="btn btn-small" aria-pressed={xray} onClick={() => setXray((v) => !v)}>
+              X-Ray
+            </button>
+            {xray && (
+              <button type="button" className="btn btn-small" aria-pressed={rays} onClick={() => setRays((v) => !v)}>
+                Rays
+              </button>
+            )}
+            <button type="button" className="btn btn-small" onClick={() => view.current?.resetView()}>
+              Reset view
+            </button>
+          </div>
+        </div>
+      )}
+      <label className="leica3d-setting small">
+        <input
+          type="checkbox"
+          checked={animateSwaps && !reducedMotion}
+          disabled={reducedMotion}
+          onChange={(e) => {
+            setAnimateSwaps(e.target.checked);
+            saveImmersiveSetting(setString, e.target.checked);
+          }}
+        />{" "}
+        Animate lens changes{reducedMotion ? " (off: your device asks for reduced motion)" : ""}
+      </label>
+      {xray && (
+        <div className="leica3d-xray-note" role="note">
+          <span className="leica3d-badge">Schematic</span>
+          <p className="small">
+            {XRAY_PROVENANCE.groups.notes} {XRAY_PROVENANCE.focus.notes} {rays ? XRAY_PROVENANCE.rays.notes : ""}
+          </p>
         </div>
       )}
       <p className="hint">
         {active ? "Drag sideways, or use − and +, to turn it. Tap empty space, press Esc or Done to finish. " : "Tap a ring or the dial to turn it. "}
         {tier === "full" ? "" : "Reduced quality. "}
-        {MODEL_PROVENANCE.notes}
+        {shownModels.map((a) => `${a.kind === "body" ? "Camera" : "Lens"} model: ${a.provenance.notes} Licence: ${a.provenance.licence}. `).join("")}
+        {Object.keys(modelFailures).length > 0 && `A ${Object.keys(modelFailures).join(" and ")} model couldn't be used, so the stand-in is shown. `}
+        {shownModels.length < 2 && MODEL_PROVENANCE.notes}
       </p>
     </div>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rateLimit } from "./sounds";
+import { rateLimit, userHasInteracted } from "./sounds";
 
 describe("rateLimit", () => {
   it("allows the first call for a key", () => {
@@ -29,5 +29,16 @@ describe("rateLimit", () => {
     const state = new Map<string, number>();
     const allowedAt = [0, 5, 10, 15, 31, 35, 62].filter((now) => rateLimit(state, "a", 30, now));
     expect(allowedAt).toEqual([0, 31, 62]);
+  });
+});
+
+describe("userHasInteracted", () => {
+  it("follows the browser's user-activation flag", () => {
+    expect(userHasInteracted({ userActivation: { hasBeenActive: false } })).toBe(false);
+    expect(userHasInteracted({ userActivation: { hasBeenActive: true } })).toBe(true);
+  });
+
+  it("defers to the browser where the API is missing (it blocks audio before a gesture itself)", () => {
+    expect(userHasInteracted({})).toBe(true);
   });
 });

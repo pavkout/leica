@@ -6,8 +6,9 @@
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import type { Lens } from "../data/gear";
-import { apertureShape, irisOutline } from "../preview/aperture";
-import { AXIS_Y, RIG_PARTS, apertureRingMarks, focusRingMarks, irisOpening, lensProfile } from "./rig";
+import { AXIS_Y, RIG_PARTS, apertureRingMarks, focusRingMarks, lensProfile } from "./rig";
+import { ANCHORS } from "./models";
+import IrisAssembly from "./IrisAssembly";
 import { finishMaterial, type Materials } from "./materials";
 
 interface Props {
@@ -16,6 +17,8 @@ interface Props {
   materials: Materials;
   /** Ring being turned in 3D, drawn with a highlight band. */
   active: "aperture" | "focus" | null;
+  /** X-Ray: fade the shell so the optics show through. */
+  xray?: boolean;
 }
 
 const RADIAL = 64;
@@ -51,18 +54,6 @@ function useRingTexture(marks: { label: string; angle: number }[], dark: boolean
   return texture;
 }
 
-function useIrisGeometry(lens: Lens, fNumber: number, radius: number) {
-  const geometry = useMemo(() => {
-    const outer = new THREE.Shape().absarc(0, 0, radius, 0, Math.PI * 2, false);
-    const r = radius * 0.94 * irisOpening(lens, fNumber);
-    // Same outline as the 2D iris panel and the bokeh kernel.
-    const pts = irisOutline(apertureShape(lens, fNumber), 72).map(([x, y]) => new THREE.Vector2(x * r, y * r));
-    outer.holes.push(new THREE.Path(pts.reverse()));
-    return new THREE.ShapeGeometry(outer, 24);
-  }, [lens, fNumber, radius]);
-  useEffect(() => () => geometry.dispose(), [geometry]);
-  return geometry;
-}
 
 function Highlight({ from, to, radius, material }: { from: number; to: number; radius: number; material: THREE.Material }) {
   return (
@@ -72,15 +63,18 @@ function Highlight({ from, to, radius, material }: { from: number; to: number; r
   );
 }
 
-export default function ProceduralLens({ lens, fNumber, materials, active }: Props) {
+export default function ProceduralLens({ lens, fNumber, materials, active, xray = false }: Props) {
   const p = useMemo(() => lensProfile(lens), [lens]);
   const dark = lens.look.finish === "black";
-  const barrel = finishMaterial(materials, lens.look.finish);
+  const barrel = xray ? materials.xrayShell : finishMaterial(materials, lens.look.finish);
+  const chrome = xray ? materials.xrayShell : materials.chrome;
+  const paint = xray ? materials.xrayShell : materials.paint;
+  const fade = xray ? { transparent: true, opacity: 0.18, depthWrite: false } : { transparent: false, opacity: 1, depthWrite: true };
   const apertureMarks = useMemo(() => apertureRingMarks(lens), [lens]);
   const distanceMarks = useMemo(() => focusRingMarks(lens), [lens]);
   const ringTexture = useRingTexture(apertureMarks, dark);
   const focusTexture = useRingTexture(distanceMarks, dark);
-  const iris = useIrisGeometry(lens, fNumber, p.frontRadius);
+  const irisAnchor = useMemo(() => ({ radius: p.frontRadius }), [p]);
   const [f0, f1] = p.focusRing;
   const [a0, a1] = p.apertureRing;
   const barrelStart = f1;
@@ -89,7 +83,7 @@ export default function ProceduralLens({ lens, fNumber, materials, active }: Pro
   return (
     <group name="lens">
       {/* Bayonet mount */}
-      <mesh position={[0, 0.003, 0]} material={materials.chrome}>
+      <mesh position={[0, 0.003, 0]} material={chrome}>
         <cylinderGeometry args={[p.mountRadius, p.mountRadius, 0.006, RADIAL]} />
       </mesh>
 
@@ -101,7 +95,7 @@ export default function ProceduralLens({ lens, fNumber, materials, active }: Pro
         </mesh>
         <mesh position={[0, f0 + (f1 - f0) * 0.8, 0]}>
           <cylinderGeometry args={[p.radius, p.radius, (f1 - f0) * 0.4, RADIAL, 1, true]} />
-          <meshStandardMaterial map={focusTexture} metalness={dark ? 0.3 : 0.9} roughness={dark ? 0.5 : 0.3} side={THREE.DoubleSide} />
+          <meshStandardMaterial map={focusTexture} metalness={dark ? 0.3 : 0.9} roughness={dark ? 0.5 : 0.3} side={THREE.DoubleSide} {...fade} />
         </mesh>
         {lens.look.tab && (
           <mesh position={[0, f0 + 0.004, p.radius + 0.004]} material={barrel}>
@@ -127,7 +121,7 @@ export default function ProceduralLens({ lens, fNumber, materials, active }: Pro
       {/* Aperture ring with engraved stops */}
       <mesh name={RIG_PARTS.apertureRing} userData={AXIS_Y} position={[0, (a0 + a1) / 2, 0]}>
         <cylinderGeometry args={[p.radius, p.radius, a1 - a0, RADIAL, 1, true]} />
-        <meshStandardMaterial map={ringTexture} metalness={dark ? 0.3 : 0.9} roughness={dark ? 0.5 : 0.3} side={THREE.DoubleSide} />
+        <meshStandardMaterial map={ringTexture} metalness={dark ? 0.3 : 0.9} roughness={dark ? 0.5 : 0.3} side={THREE.DoubleSide} {...fade} />
       </mesh>
 
       {active === "aperture" && <Highlight from={a0} to={a1} radius={p.radius} material={materials.highlight} />}
@@ -137,18 +131,17 @@ export default function ProceduralLens({ lens, fNumber, materials, active }: Pro
       <mesh position={[0, p.length - 0.0015, 0]} material={barrel}>
         <cylinderGeometry args={[p.radius * 0.98, p.radius, 0.003, RADIAL, 1, true]} />
       </mesh>
-      <mesh position={[0, p.length, 0]} rotation={[-Math.PI / 2, 0, 0]} material={materials.paint}>
+      <mesh position={[0, p.length, 0]} rotation={[-Math.PI / 2, 0, 0]} material={paint}>
         <ringGeometry args={[p.frontRadius, p.radius * 0.98, RADIAL]} />
       </mesh>
 
-      {/* Iris behind the front element: blades with the opening cut out, dark interior behind */}
-      <mesh name={RIG_PARTS.iris} geometry={iris} position={[0, p.length - 0.006, 0]} rotation={[-Math.PI / 2, 0, 0]} material={materials.blades} />
-      <mesh position={[0, p.length - 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} material={materials.interior}>
-        <circleGeometry args={[p.frontRadius, RADIAL]} />
-      </mesh>
+      {/* Iris behind the front element, at the anchor a GLB lens would also provide */}
+      <group name={ANCHORS.iris} position={[0, p.length - 0.006, 0]} userData={irisAnchor}>
+        <IrisAssembly lens={lens} fNumber={fNumber} radius={p.frontRadius} materials={materials} />
+      </group>
 
       {/* Front element: a shallow glass cap */}
-      <mesh position={[0, p.length - 0.004 - CAP_CURVE * p.frontRadius * Math.cos(CAP_THETA), 0]} material={materials.glass}>
+      <mesh visible={!xray} position={[0, p.length - 0.004 - CAP_CURVE * p.frontRadius * Math.cos(CAP_THETA), 0]} material={materials.glass}>
         <sphereGeometry args={[CAP_CURVE * p.frontRadius, RADIAL, 8, 0, Math.PI * 2, 0, CAP_THETA]} />
       </mesh>
     </group>

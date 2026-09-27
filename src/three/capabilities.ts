@@ -32,3 +32,8 @@ export function qualityTier(): QualityTier {
   cached ??= chooseQualityTier(detectCaps());
   return cached;
 }
+
+/** Fetch the 3D chunk ahead of use (e.g. when the tour starts), so a later step never waits on the network. */
+export function preload3D() {
+  return import("./VirtualLeica");
+}

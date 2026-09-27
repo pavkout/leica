@@ -11,7 +11,8 @@
     "test": "vitest run",
     "typecheck": "tsc -b",
     "lint": "eslint .",
-    "gear-images": "node scripts/gear-images.mjs"
+    "gear-images": "node scripts/gear-images.mjs",
+    "models:build": "node scripts/build-models.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.3.0",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@gltf-transform/cli": "^4.5.0",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@types/three": "^0.170.0",

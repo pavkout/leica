@@ -197,12 +197,16 @@ select {
 .stage-finder-compare { order: 4; }
 .stage-exposure { order: 5; }
 .stage-trainer { order: 6; }
+.stage-motion { order: 6; }
 .stage-intent { order: 7; }
+.stage-recipes { order: 7; }
 .stage-portrait { order: 8; }
 .stage-stability { order: 8; }
 .stage-loading { order: 8; }
 .stage-barrel { order: 9; }
 .stage-iris { order: 10; }
+.stage-dna { order: 10; }
+.stage-flare { order: 10; }
 .readouts { order: 11; }
 .stage-roll { order: 12; }
 .stage-insights { order: 13; }
@@ -635,6 +639,46 @@ input[type="text"]::placeholder {
 
 .leica3d-turn .btn-small:last-child {
   margin-left: auto;
+}
+
+.leica3d-setting {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.leica3d-view-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.leica3d-xray-note {
+  display: flex;
+  /* Badge above the note: side by side squeezes the text into a narrow column on phones. */
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.leica3d-xray-note p {
+  margin: 0;
+}
+
+/* Text label, not colour alone, says the X-Ray is schematic. */
+.leica3d-badge {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid #ffd54f;
+  border-radius: 999px;
+  color: #ffd54f;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .leica3d-bar {
@@ -2178,6 +2222,8 @@ input[type="range"] {
   .stage-finder-compare,
   .stage-barrel,
   .stage-iris,
+  .stage-dna,
+  .stage-flare,
   .stage-roll,
   .stage-scene,
   .readouts {
@@ -2232,4 +2278,359 @@ input[type="range"] {
     transition: none !important;
     animation-duration: 0.001ms !important;
   }
+}
+
+/* Lens DNA (feature #4) */
+.dna-table {
+  display: grid;
+  gap: 2px;
+  margin-top: 10px;
+}
+
+.dna-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.dna-compare .dna-row {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.dna-head {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-top: 0;
+}
+
+.dna-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.dna-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+/* Provenance is spelled out in text, not colour alone. */
+.dna-badge {
+  padding: 1px 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dna-calculated { border-color: #6fbf73; color: #8fd493; }
+.dna-published { border-color: #64b5f6; color: #90caf9; }
+.dna-measured { border-color: #4dd0e1; color: #80deea; }
+.dna-community { border-color: #ba68c8; color: #ce93d8; }
+.dna-approximate { border-color: #ffb74d; color: #ffcc80; }
+
+.dna-about summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.dna-about p {
+  margin: 4px 0 0;
+}
+
+.dna-who {
+  display: none;
+}
+
+.dna-iris {
+  width: 28px;
+  height: 28px;
+  flex: none;
+}
+
+.dna-iris path {
+  fill: #f5f5f5;
+  opacity: 0.85;
+}
+
+/* Narrow screens: the label spans the row, values stack under it. */
+@media (max-width: 480px) {
+  .dna-row,
+  .dna-compare .dna-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .dna-compare .dna-row > [role="cell"]:nth-child(3) {
+    padding-top: 4px;
+    border-top: 1px dashed var(--line);
+  }
+
+  .dna-head {
+    display: none;
+  }
+
+  .dna-who {
+    display: block;
+  }
+}
+
+/* Flare Lab (feature #25) */
+.flare-note {
+  display: flex;
+  /* Badge above the note: side by side squeezes the text into a narrow column on phones. */
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.flare-note p {
+  margin: 0;
+}
+
+.flare-note .dna-badge {
+  flex: none;
+}
+
+/* 3:2 frame; touch-action none so dragging the light never scrolls the page. */
+.flare-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: 10px;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.flare-readout {
+  min-height: 2.6em;
+  margin: 8px 0;
+}
+
+.flare-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px 14px;
+}
+
+.flare-controls input[type="range"] {
+  width: 100%;
+}
+
+.flare-hood {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* 60-second tour (feature #35) */
+.panel-head-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.demo-tour {
+  position: fixed;
+  z-index: 40;
+  left: 50%;
+  bottom: 12px;
+  width: min(420px, calc(100vw - 24px));
+  transform: translateX(-50%);
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  /* Solid: page text showing through made the card hard to read. */
+  background: #181818;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.demo-tour-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.demo-tour-exit {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.demo-tour-title {
+  margin: 2px 0 4px;
+  font-size: 17px;
+  outline: none;
+}
+
+.demo-tour-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.demo-tour-card {
+  white-space: normal;
+}
+
+.demo-tour-times {
+  margin: 6px 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+
+/* Photo Recipes (feature #28) */
+.recipe-status {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.recipe-status p {
+  margin: 2px 0;
+}
+
+.recipe-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recipe {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.recipe-on {
+  border-color: var(--red);
+}
+
+.recipe-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.recipe-title {
+  white-space: normal;
+}
+
+.recipe p {
+  margin: 4px 0;
+}
+
+.recipe-star {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--red);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.recipe-why summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.recipe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.recipe-link input {
+  width: 100%;
+}
+
+/* The All/Saved switch overflowed the panel edge on phones; give it its own size and let the header wrap. */
+.stage-recipes .panel-head {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stage-recipes .panel-head .segmented {
+  flex: none;
+  width: 150px;
+}
+
+/* Motion Simulator (feature #8) */
+.motion-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  margin: 8px 0;
+  border-radius: 10px;
+}
+
+.motion-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 14px;
+}
+
+.motion-controls input[type="range"] {
+  width: 100%;
+}
+
+.motion-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 8px 0;
+}
+
+.motion-row {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0;
+}
+
+/* Log scale of blur ÷ circle of confusion: 0.1× … 1× (frozen) … 3× … 10× … 100×. */
+.motion-scale {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #4caf50 0%, #4caf50 33%, #ffb74d 49%, #ff7043 66%, #e53935 100%);
+}
+
+.motion-marker {
+  position: absolute;
+  top: -4px;
+  width: 3px;
+  height: 14px;
+  margin-left: -1.5px;
+  background: #fff;
+  border-radius: 2px;
+}
+
+.motion-readout p {
+  margin: 4px 0 0;
 }

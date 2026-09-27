@@ -23,7 +23,17 @@ import PortraitTrainer from "./components/PortraitTrainer";
 import StabilityTrainer from "./components/StabilityTrainer";
 import FilmLoadingTrainer from "./components/FilmLoadingTrainer";
 import Leica3D from "./components/Leica3D";
-import { threeDAvailable } from "./three/capabilities";
+import LensDNA from "./components/LensDNA";
+import FlareLab from "./components/FlareLab";
+import { preload3D, threeDAvailable } from "./three/capabilities";
+import DemoTour from "./components/DemoTour";
+import RecipesPanel from "./components/RecipesPanel";
+import MotionSimulator from "./components/MotionSimulator";
+import { findRecipe, type Recipe } from "./data/recipes";
+import { recipePlan } from "./physics/recipes";
+import { findFilm } from "./preview/film";
+import { getString, setString } from "./services/persistence";
+import type { DemoActions } from "./state/demoScript";
 import Insights from "./components/Insights";
 import FinderCompare from "./components/FinderCompare";
 import LiveView from "./components/LiveView";
@@ -45,6 +55,8 @@ import { ASSUMED_PHONE_FOV_DEG } from "./physics/liveView";
 import { eiStops, nearestDevelopLevel } from "./physics/pushPull";
 import { SHARPNESS_STANDARDS, computeShot, type Shot } from "./physics/model";
 import { useOpticalState } from "./state/opticalState";
+import { vignetteStops } from "./physics/lensCharacter";
+import { hyperfocal } from "./physics/optics";
 import { useBag } from "./state/bag";
 import {
   clearFrames as clearStoredFrames,
@@ -52,7 +64,7 @@ import {
   saveFrame as saveStoredFrame,
   updateFrameNote as saveStoredFrameNote,
 } from "./services/db";
-import { GENERIC_BLADES, apertureShape, stopsDown } from "./preview/aperture";
+import { GENERIC_BLADES, apertureShape } from "./preview/aperture";
 import { developedLook, grainStrength, lookFor, type FilmLook } from "./preview/film";
 import type { DevelopParams } from "./preview/renderer";
 import {
@@ -86,13 +98,6 @@ const STREET_EV = 5;
 const PHONE_FOV_DEG = ASSUMED_PHONE_FOV_DEG;
 const sampleCache = new Map<string, Promise<PhotoScene>>();
 const ROLL_LENGTH = 36;
-
-/** Corner falloff in stops: strong on fast lenses wide open, gone about 3 stops down. */
-function vignetteStops(lens: Lens, fNumber: number, digital: boolean) {
-  const wideOpen = lens.maxAperture <= 1 ? 2 : lens.maxAperture <= 1.4 ? 1.6 : lens.maxAperture <= 2 ? 1.2 : lens.maxAperture <= 2.8 ? 0.9 : 0.6;
-  // Digital Ms read the lens code and correct most of it.
-  return wideOpen * Math.max(0, 1 - stopsDown(lens, fNumber) / 3) * (digital ? 0.35 : 1);
-}
 
 function previewSide(lens: Lens, shot: Shot, develop?: DevelopParams, photo?: PhotoScene | null): PreviewSide {
   return {
@@ -200,6 +205,20 @@ export default function App() {
   const [picker, setPicker] = useState<"body" | "lens" | null>(null);
   const [challenge, setChallenge] = useState<{ subjectMm: number; shotTaken: boolean } | null>(null);
   const [liveViewOpen, setLiveViewOpen] = useState(false);
+  // 60-second tour (feature #35): `?demo` starts it on load (event/kiosk use).
+  const [demoActive, setDemoActive] = useState(() => typeof location !== "undefined" && new URLSearchParams(location.search).has("demo"));
+  // The tour's rangefinder step puts the subject at a fixed distance, so the patch can be split and aligned.
+  const [demoSubjectMm, setDemoSubjectMm] = useState<number | null>(null);
+  const [demoLiveOpened, setDemoLiveOpened] = useState(false);
+  // Photo Recipes (feature #28): the loaded recipe (for light warnings) and the viewer's saved ones.
+  const [activeRecipe, setActiveRecipe] = useState<{ id: string; notes: string[] } | null>(null);
+  const [savedRecipes, setSavedRecipes] = useState<Set<string>>(() => {
+    try {
+      return new Set(JSON.parse(getString("rangefinder-saved-recipes") ?? "[]") as string[]);
+    } catch {
+      return new Set();
+    }
+  });
   const [fullScreenFinder, setFullScreenFinder] = useState(false);
   // Capture.
   const [muted, setMutedState] = useState(isMuted);
@@ -240,7 +259,7 @@ export default function App() {
     lens,
     fNumber,
     focusMm,
-    subjectMm: photo ? photoSubjectMm : challenge?.subjectMm,
+    subjectMm: photo ? photoSubjectMm : (demoSubjectMm ?? challenge?.subjectMm),
     backgroundOffsetMm: photo ? Infinity : backgroundOffsetMm,
     megapixels,
     cropFocalMm,
@@ -477,6 +496,76 @@ export default function App() {
     onFocusChange: setFocusMm,
   };
 
+
+  function openLive() {
+    setLiveViewOpen(true);
+    if (demoActive) setDemoLiveOpened(true);
+  }
+
+  function startDemo() {
+    setDemoLiveOpened(false);
+    setDemoActive(true);
+  }
+  // Fetch what the tour needs as soon as it starts (the 3D chunk, the stand-in Live scene), so no later step waits on the network.
+  const demoLiveSceneUrl = `${import.meta.env.BASE_URL}scenes/sun.jpg`;
+  useEffect(() => {
+    if (!demoActive) return;
+    void preload3D();
+    new Image().src = demoLiveSceneUrl;
+  }, [demoActive, demoLiveSceneUrl]);
+  const demoHyperfocalMm = hyperfocal(lens.focalMm, fNumber, shot.cocMm);
+  /** Load a recipe through the same setters the controls use, so every control shows it. */
+  function loadRecipe(r: Recipe) {
+    const lockedFilm = isFilm && rollFrames.length > 0 ? { id: filmId, name: baseLook.name, iso: boxIso } : null;
+    const plan = recipePlan(r, { body, lens, lenses, lockedFilm, cocMm: shot.cocMm }, (id) => findFilm(id).iso);
+    if (plan.lensId !== lens.id) selectLens(plan.lensId);
+    if (isFilm) {
+      if (plan.filmId) {
+        selectFilm(plan.filmId);
+        if (r.ei) {
+          setFilmEI(r.ei);
+          setPushPullStops(nearestDevelopLevel(eiStops(findFilm(plan.filmId).iso, r.ei)).stops);
+        }
+      }
+    } else setIsoDigital(plan.iso);
+    changeAperture(plan.fNumber);
+    if (body.autoExposure) setAutoExposure(false);
+    setManualShutter(plan.shutterSec);
+    setFocusMm(plan.focusMm);
+    setActiveRecipe({ id: r.id, notes: plan.notes });
+  }
+  // A shared recipe link (?recipe=<id>) loads that recipe once on open.
+  const recipeFromLink = useRef(typeof location !== "undefined" ? new URLSearchParams(location.search).get("recipe") : null);
+  useEffect(() => {
+    const r = findRecipe(recipeFromLink.current);
+    recipeFromLink.current = null;
+    if (r) loadRecipe(r);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  function toggleSavedRecipe(id: string) {
+    setSavedRecipes((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      setString("rangefinder-saved-recipes", JSON.stringify([...next]));
+      return next;
+    });
+  }
+
+  const demoActions: DemoActions = {
+    selectBody,
+    selectLens,
+    open3D: () => setShow3D(true),
+    setFocusMm,
+    setAperture: changeAperture,
+    setDemoSubject: setDemoSubjectMm,
+    openLive,
+    reveal: (selector) => {
+      const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.querySelector(selector)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    },
+  };
+
   return (
     <div className="app">
       <header className="topbar">
@@ -527,7 +616,7 @@ export default function App() {
               <h2>Simulated photo</h2>
               <span className="row-actions">
                 {FLAGS.liveView && (
-                  <button type="button" className="btn btn-small btn-red" onClick={() => setLiveViewOpen(true)}>
+                  <button type="button" className="btn btn-small btn-red" onClick={openLive}>
                     Live
                   </button>
                 )}
@@ -735,6 +824,22 @@ export default function App() {
           </section>
 
           <Iris lens={lens} fNumber={fNumber} />
+          {FLAGS.experimentalLensCharacter && (
+            <LensDNA
+              lens={lens}
+              lenses={lenses}
+              fNumber={fNumber}
+              cocMm={shot.cocMm}
+              frameWidthMm={shot.frameWidthMm}
+              frameHeightMm={shot.frameHeightMm}
+              digital={!isFilm}
+              units={units}
+              onAperture={changeAperture}
+            />
+          )}
+          {FLAGS.experimentalLensCharacter && (
+            <FlareLab lens={lens} fNumber={fNumber} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} onAperture={changeAperture} />
+          )}
 
           <ContactSheet
             frames={frames}
@@ -804,6 +909,19 @@ export default function App() {
 
           <Sunny16Trainer apertures={stops} shutters={speeds} iso={iso} />
 
+          <MotionSimulator
+            focalMm={lens.focalMm}
+            cocMm={shot.cocMm}
+            shutters={speeds}
+            shutterSec={shutterSec}
+            onShutter={(t) => {
+              if (body.autoExposure) setAutoExposure(false);
+              changeShutter(t);
+            }}
+            tripod={tripod}
+            units={units}
+          />
+
           <IntentAssistant
             sceneEv100={sceneEv}
             iso={iso}
@@ -820,6 +938,21 @@ export default function App() {
             }}
           />
 
+          <RecipesPanel
+            body={body}
+            lens={lens}
+            lenses={lenses}
+            lockedFilm={isFilm && rollFrames.length > 0 ? { id: filmId, name: baseLook.name, iso: boxIso } : null}
+            cocMm={shot.cocMm}
+            sceneEv100={sceneEv}
+            sceneLabel={sceneLabel}
+            units={units}
+            active={activeRecipe}
+            saved={savedRecipes}
+            onToggleSaved={toggleSavedRecipe}
+            onLoad={loadRecipe}
+          />
+
           <PortraitTrainer lens={lens} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} units={units} />
 
           {FLAGS.motionSensors && <StabilityTrainer focalMm={lens.focalMm} cocMm={shot.cocMm} shutters={speeds} />}
@@ -829,11 +962,18 @@ export default function App() {
           <section className="panel stage-setup" aria-label="Camera and lens">
             <div className="panel-head">
               <h2>Camera &amp; lens</h2>
+              <span className="panel-head-actions">
+              {!demoActive && (
+                <button type="button" className="btn btn-small" onClick={startDemo} aria-label="Start the 60-second tour">
+                  Tour
+                </button>
+              )}
               {can3D && (
                 <button type="button" className="btn btn-small" aria-pressed={show3D} onClick={() => setShow3D((v) => !v)}>
                   3D
                 </button>
               )}
+              </span>
             </div>
 
             {can3D && show3D ? (
@@ -1018,7 +1158,36 @@ export default function App() {
           onFocusChange={setFocusMm}
           onCapture={captureLiveFrame}
           onClose={() => setLiveViewOpen(false)}
+          syntheticSceneUrl={demoActive ? demoLiveSceneUrl : undefined}
+          recipe={findRecipe(activeRecipe?.id)}
         />
+      )}
+
+      {demoActive && (
+        <div hidden={liveViewOpen}>
+          <DemoTour
+            state={{
+              bodyId: body.id,
+              lensId: lens.id,
+              lensFocalMm: lens.focalMm,
+              show3D: show3D && can3D,
+              fNumber,
+              subjectSharp: shot.subjectSharp,
+              liveOpened: demoLiveOpened,
+            }}
+            actions={demoActions}
+            setupSummary={`${body.name} · ${lens.name} · ${formatFNumber(fNumber)} · focused at ${formatDistance(focusMm, units)} · zone focus: set ${formatDistance(demoHyperfocalMm, units)} for ${formatDistance(demoHyperfocalMm / 2, units)} to ∞`}
+            saved={savedIds.body.has(body.id) && savedIds.lens.has(lens.id)}
+            onSaveToBag={() => {
+              if (!savedIds.body.has(body.id)) toggleBag("body", body.id);
+              if (!savedIds.lens.has(lens.id)) toggleBag("lens", lens.id);
+            }}
+            onExit={() => {
+              setDemoActive(false);
+              setDemoSubjectMm(null);
+            }}
+          />
+        </div>
       )}
     </div>
   );

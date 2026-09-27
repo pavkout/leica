@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { formatShutter, nearestStop, type Body, type Lens } from "../data/gear";
 import { correctShutter, exposureError } from "../physics/exposure";
 import { ASSUMED_PHONE_FOV_DEG, frameCropRatio } from "../physics/liveView";
-import { angleOfView, depthOfField, FULL_FRAME_DIAGONAL_MM } from "../physics/optics";
+import { angleOfView, depthOfField, FULL_FRAME_DIAGONAL_MM, hyperfocal } from "../physics/optics";
 import { LIGHT_CONDITIONS, type LightCondition } from "../physics/sunny16";
 import { formatDistance, formatFNumber, type Units } from "../utils/format";
 import { useCameraStream } from "../state/useCameraStream";
+import { recipeEvRange, type Recipe } from "../data/recipes";
+import { recipeLightMismatch } from "../physics/recipes";
 import LensBarrel from "./LensBarrel";
 
 interface Props {
@@ -25,6 +27,13 @@ interface Props {
   /** A captured frame as a JPEG data URL, sized to the real camera's resolution. */
   onCapture: (url: string) => void;
   onClose: () => void;
+  /**
+   * A still scene shown with the same overlays when the camera can't be used
+   * (denied, unsupported, error) — e.g. for the demo, which must work without a camera.
+   */
+  syntheticSceneUrl?: string;
+  /** The loaded photo recipe, if any: Live warns when the scene light set here is outside its range. */
+  recipe?: Recipe;
 }
 
 const DEFAULT_CONDITION: LightCondition = LIGHT_CONDITIONS.find((c) => c.id === "cloudy-bright8")!;
@@ -45,6 +54,8 @@ export default function LiveView({
   onFocusChange,
   onCapture,
   onClose,
+  syntheticSceneUrl,
+  recipe,
 }: Props) {
   const { status, message, start, stop, streamRef } = useCameraStream();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -89,6 +100,15 @@ export default function LiveView({
   const sensorAspect = body.sensorWidthMm / body.sensorHeightMm;
   const tooWide = cropRatio > 1;
   const frameWidthPct = Math.min(cropRatio, 1) * 100;
+  // Zone focus: set the hyperfocal distance and everything from half of it to infinity is sharp.
+  const hyperfocalMm = hyperfocal(lens.focalMm, fNumber, cocMm);
+  const recipeMismatch = recipe ? recipeLightMismatch(recipe, sceneEv100) : null;
+  const synthetic = !!syntheticSceneUrl && status !== "streaming" && status !== "idle" && status !== "requesting";
+  const framelines = !tooWide ? (
+    <div className="live-view-frameline" style={{ width: `${frameWidthPct}%`, aspectRatio: String(sensorAspect) }} aria-hidden="true" />
+  ) : (
+    <div className="live-view-frameline live-view-frameline-full" aria-hidden="true" />
+  );
 
   return (
     <div className="live-view" role="dialog" aria-label="Live View" aria-modal="true">
@@ -126,6 +146,12 @@ export default function LiveView({
               </button>
             </div>
           </>
+        ) : synthetic ? (
+          <>
+            <img className="live-view-video" src={syntheticSceneUrl} alt="Synthetic street scene standing in for the camera" />
+            {framelines}
+            <span className="live-view-badge">Synthetic scene — no camera available. Framelines, exposure and zone focus work the same.</span>
+          </>
         ) : (
           <div className="live-view-permission">
             {status === "idle" || status === "requesting" ? (
@@ -151,6 +177,14 @@ export default function LiveView({
             Sharp {formatDistance(dof.nearMm, units)} – {formatDistance(dof.farMm, units)}
             {Math.abs(errorStops) > 0.2 && ` · ${Math.abs(errorStops).toFixed(1)} stops ${errorStops > 0 ? "over" : "under"} for this light`}
             {shakeLikely && " · shake risk at this shutter speed"}
+          </span>
+          {recipe && recipeMismatch && (
+            <span className="warn-text small live-view-recipe">
+              This light is {recipeMismatch.stops.toFixed(0)} stops {recipeMismatch.direction} than the &ldquo;{recipe.title}&rdquo; recipe expects (EV {recipeEvRange(recipe).join("–")}).
+            </span>
+          )}
+          <span className="muted small live-view-zone">
+            Zone focus at {formatFNumber(fNumber)}: set {formatDistance(hyperfocalMm, units)} — sharp from {formatDistance(hyperfocalMm / 2, units)} to ∞
           </span>
         </div>
 

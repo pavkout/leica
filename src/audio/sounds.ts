@@ -48,8 +48,20 @@ function allowDetent(kind: string) {
  * flag as sound rather than a second setting the spec doesn't ask for; a
  * missing/denied Vibration API is a silent no-op, same as unsupported audio.
  */
+/**
+ * True once the user has actually interacted with the page. Sounds and haptics
+ * triggered by code (e.g. the tour starting from `?demo`) stay silent until
+ * then — "no sound before user interaction" holds on every path. Browsers
+ * without the User Activation API fall back to allowing it (they block audio
+ * before a gesture themselves).
+ */
+export function userHasInteracted(nav: { userActivation?: { hasBeenActive: boolean } } | undefined = typeof navigator === "undefined" ? undefined : navigator): boolean {
+  if (!nav) return false;
+  return nav.userActivation ? nav.userActivation.hasBeenActive : true;
+}
+
 function vibrate(ms: number) {
-  if (muted || typeof navigator === "undefined" || !("vibrate" in navigator)) return;
+  if (muted || typeof navigator === "undefined" || !("vibrate" in navigator) || !userHasInteracted()) return;
   try {
     navigator.vibrate(ms);
   } catch {
@@ -58,7 +70,7 @@ function vibrate(ms: number) {
 }
 
 function audio() {
-  if (muted || typeof window === "undefined") return null;
+  if (muted || typeof window === "undefined" || !userHasInteracted()) return null;
   const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Ctor) return null;
   ctx ??= new Ctor();

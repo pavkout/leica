@@ -2,7 +2,7 @@
 // included, reaches users who never open the 3D view. It's a *view* of the
 // optical state — it reads body, lens and f-number and never writes them.
 
-import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef } from "react";
+import { Suspense, forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -10,9 +10,15 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { shutterSpeeds, type Body, type Lens } from "../data/gear";
 import ProceduralBody from "./ProceduralBody";
 import ProceduralLens from "./ProceduralLens";
+import SchematicOptics, { OPTICS_BLOCK } from "./SchematicOptics";
+import LensSwap from "./LensSwap";
+import { SWAP_GROUP } from "./swapTimeline";
+import { xrayLayout } from "./optics";
+import { GlbBody, GlbLens, ModelBoundary } from "./glb";
+import { modelCacheInfo } from "./glbCache";
+import { ANCHORS, type ModelAsset } from "./models";
 import { createMaterials, disposeMaterials, type Materials } from "./materials";
 import {
-  MOUNT_CENTER,
   RIG_PARTS,
   TAP_SLOP_PX,
   advanceLeverAngle,
@@ -41,6 +47,18 @@ export interface VirtualLeicaProps {
   /** Horizontal drag while a part is active, in CSS pixels since the last call; `start` marks a gesture's first move. */
   onTurnDrag: (dxPx: number, start: boolean) => void;
   onExitPart: () => void;
+  /** GLB models for this body/lens, or null for the procedural stand-ins. */
+  bodyAsset: ModelAsset | null;
+  lensAsset: ModelAsset | null;
+  /** Animate lens changes (immersive transitions); off = instant. */
+  immersive: boolean;
+  /** Bumped by the page on user input in the viewer: a running lens swap finishes at once. */
+  interrupt: number;
+  /** Lens X-Ray: fade the lens shell and show schematic optics; `rays` adds the ray layer. */
+  xray: boolean;
+  rays: boolean;
+  /** A model couldn't be used (load error or broken parts contract); the stand-in is shown instead. */
+  onModelFail: (kind: ModelAsset["kind"], reason: string) => void;
   onContextLost: () => void;
 }
 
@@ -82,7 +100,7 @@ function Studio({ tier }: { tier: VirtualLeicaProps["tier"] }) {
 }
 
 /** Orbit with limits; demand rendering, so every camera change requests a frame. */
-const Controls = forwardRef<VirtualLeicaHandle, { damping: boolean; enabled: boolean }>(function Controls({ damping, enabled }, ref) {
+const Controls = forwardRef<VirtualLeicaHandle, { damping: boolean; enabled: boolean; onStart: () => void }>(function Controls({ damping, enabled, onStart }, ref) {
   const { camera, gl, invalidate } = useThree();
   const controls = useMemo(() => new OrbitControls(camera, gl.domElement), [camera, gl]);
   useEffect(() => {
@@ -95,11 +113,13 @@ const Controls = forwardRef<VirtualLeicaHandle, { damping: boolean; enabled: boo
     controls.update();
     const onChange = () => invalidate();
     controls.addEventListener("change", onChange);
+    controls.addEventListener("start", onStart);
     return () => {
       controls.removeEventListener("change", onChange);
+      controls.removeEventListener("start", onStart);
       controls.dispose();
     };
-  }, [controls, damping, invalidate]);
+  }, [controls, damping, invalidate, onStart]);
   // Suspended while a part owns the gesture; restored on every exit path, since
   // `enabled` follows activePart and the controls are disposed on unmount.
   useEffect(() => {
@@ -124,13 +144,18 @@ const Controls = forwardRef<VirtualLeicaHandle, { damping: boolean; enabled: boo
  * Drives named rig parts toward the pose the optical state implies. Works on
  * any model that follows RIG_PARTS, procedural or GLB.
  */
-function Rig({ targets, snap }: { targets: Record<string, number>; snap: boolean }) {
+function Rig({ targets, slides, snap }: { targets: Record<string, number>; slides: Record<string, number>; snap: boolean }) {
   const { scene, invalidate } = useThree();
   useEffect(() => {
     // Published for the dev probe, so browser checks can wait for "pose reached target" instead of sleeping.
     scene.userData.rigTargets = targets;
+    scene.userData.rigSlides = slides;
     invalidate();
-  }, [scene, targets, invalidate]);
+  }, [scene, targets, slides, invalidate]);
+  const seenSlides = useRef(new WeakSet<THREE.Object3D>());
+  // A part seen for the first time (a new lens, a model swapped for its detail
+  // version) takes its pose at once instead of spinning up from zero.
+  const seen = useRef(new WeakSet<THREE.Object3D>());
   useFrame((_, delta) => {
     let moving = false;
     for (const [name, target] of Object.entries(targets)) {
@@ -138,9 +163,23 @@ function Rig({ targets, snap }: { targets: Record<string, number>; snap: boolean
       if (!part) continue;
       const axis = (part.userData.axis ?? "y") as "x" | "y" | "z";
       const current = part.rotation[axis];
-      const next = snap ? target : THREE.MathUtils.damp(current, target, 14, Math.min(delta, 0.05));
+      const fresh = !seen.current.has(part);
+      seen.current.add(part);
+      const next = snap || fresh ? target : THREE.MathUtils.damp(current, target, 14, Math.min(delta, 0.05));
       part.rotation[axis] = Math.abs(next - target) < 1e-4 ? target : next;
       if (part.rotation[axis] !== target) moving = true;
+    }
+    // Slides move a part along its local +Y from its rest position (the optics' focus travel).
+    for (const [name, offset] of Object.entries(slides)) {
+      const part = scene.getObjectByName(name);
+      if (!part) continue;
+      if (typeof part.userData.restY !== "number") part.userData.restY = part.position.y;
+      const target = part.userData.restY + offset;
+      const fresh = !seenSlides.current.has(part);
+      seenSlides.current.add(part);
+      const next = snap || fresh ? target : THREE.MathUtils.damp(part.position.y, target, 14, Math.min(delta, 0.05));
+      part.position.y = Math.abs(next - target) < 1e-6 ? target : next;
+      if (part.position.y !== target) moving = true;
     }
     if (moving) invalidate();
   });
@@ -304,6 +343,52 @@ function DevProbe() {
       /** Frames the 3D view has actually rendered (demand mode: should stay flat while nothing moves). */
       frames: () => gl.info.render.frame,
       apertureRing: () => scene.getObjectByName(RIG_PARTS.apertureRing)?.rotation.y ?? null,
+      /** Lens-swap state: the outgoing lens group (if a swap is running) and the incoming group's pose. */
+      swap: () => {
+        const inc = scene.getObjectByName(SWAP_GROUP.incoming);
+        const out = scene.getObjectByName(SWAP_GROUP.outgoing);
+        return {
+          running: !!out,
+          incoming: inc ? { y: inc.position.y, rot: inc.rotation.y, visible: inc.visible } : null,
+          outgoing: out ? { y: out.position.y, rot: out.rotation.y, visible: out.visible } : null,
+        };
+      },
+      /** Which model source each slot is showing: a GLB url, or "procedural". */
+      sources: () => {
+        const glb: string[] = [];
+        scene.traverse((o) => typeof o.userData.source === "string" && glb.push(o.userData.source));
+        return glb.length ? glb : ["procedural"];
+      },
+      modelCache: () => modelCacheInfo(),
+      /** Whether the live iris is mounted inside a loaded GLB lens (at its iris anchor). */
+      irisInGlb: () => {
+        let found = false;
+        scene.traverse((o) => {
+          if (typeof o.userData.source === "string" && /lens-/.test(o.userData.source) && o.getObjectByName("iris-anchor")?.getObjectByName(RIG_PARTS.iris)) found = true;
+        });
+        return found;
+      },
+      /** Export the current body or lens (rest pose, no live iris) as GLB, base64, for building test fixtures. */
+      exportGLB: async (kind: "body" | "lens") => {
+        const { GLTFExporter } = await import("three/examples/jsm/exporters/GLTFExporter.js");
+        const source = scene.getObjectByName(kind);
+        if (!source) return null;
+        const copy = source.clone(true);
+        copy.position.set(0, 0, 0);
+        copy.rotation.set(0, 0, 0);
+        const drop: THREE.Object3D[] = [];
+        copy.traverse((o) => {
+          if (o.userData.procedural) drop.push(o);
+          if (Object.values(RIG_PARTS).includes(o.name as never)) o.rotation.set(0, 0, 0);
+          // Keep the anchor on the body, but not the lens mounted on it.
+          if (kind === "body" && o.name === "lens-mount") o.children.slice().forEach((c) => drop.push(c));
+        });
+        drop.forEach((o) => o.removeFromParent());
+        const glb = (await new GLTFExporter().parseAsync(copy, { binary: true })) as ArrayBuffer;
+        let bin = "";
+        new Uint8Array(glb).forEach((b) => (bin += String.fromCharCode(b)));
+        return btoa(bin);
+      },
       pose: (name: string) => scene.getObjectByName(name)?.rotation.y ?? null,
       /** Screen position (CSS px, page coordinates) of a named part's centre, for pointer tests. */
       screenOf: (name: string, surface: "centre" | "top" = "centre") => {
@@ -330,6 +415,23 @@ function DevProbe() {
           return chain.join(" < ");
         });
       },
+      /** X-Ray ray bundle half-width at the ideal-lens plane (metres), or null when no rays are drawn. */
+      xrayRayHalfWidth: () => {
+        let w: number | null = null;
+        scene.getObjectByName("xray")?.traverse((o) => {
+          if (!(o instanceof THREE.LineSegments)) return;
+          const pos = o.geometry.getAttribute("position");
+          w = 0;
+          for (let i = 1; i < pos.count; i += 4) w = Math.max(w, Math.abs(pos.getX(i)));
+        });
+        return w;
+      },
+      /** How far a sliding part sits from its rest position, and where the Rig is taking it. */
+      slide: (name: string) => {
+        const o = scene.getObjectByName(name);
+        return o && typeof o.userData.restY === "number" ? o.position.y - o.userData.restY : null;
+      },
+      slideTarget: (name: string) => (scene.userData.rigSlides as Record<string, number> | undefined)?.[name] ?? null,
       target: (name: string) => (scene.userData.rigTargets as Record<string, number> | undefined)?.[name] ?? null,
       /** Fixed camera for visual fixtures. */
       lookFrom: (x: number, y: number, z: number, at: [number, number, number] = [TARGET.x, TARGET.y, TARGET.z]) => {
@@ -345,24 +447,101 @@ function DevProbe() {
   return null;
 }
 
-function Scene({ body, lens, fNumber, materials, active }: { body: Body; lens: Lens; fNumber: number; materials: Materials; active: TurnablePart | null }) {
+const LENS_PART: Partial<Record<TurnablePart, string>> = { aperture: RIG_PARTS.apertureRing, focus: RIG_PARTS.focusRing };
+
+function Scene({
+  body,
+  lens,
+  fNumber,
+  materials,
+  active,
+  bodyAsset,
+  lensAsset,
+  wantDetail,
+  onModelFail,
+  focusMm,
+  xray,
+  rays,
+  immersive,
+  interrupt,
+}: {
+  body: Body;
+  lens: Lens;
+  fNumber: number;
+  materials: Materials;
+  active: TurnablePart | null;
+  bodyAsset: ModelAsset | null;
+  lensAsset: ModelAsset | null;
+  wantDetail: boolean;
+  onModelFail: (kind: ModelAsset["kind"], reason: string) => void;
+  focusMm: number;
+  xray: boolean;
+  rays: boolean;
+  immersive: boolean;
+  interrupt: number;
+}) {
+  // One lens (procedural, or a model with the procedural stand-in while it loads and if it fails).
+  // Only the lens on the mount takes the turn highlight and X-Ray fade; an outgoing one keeps its plain look.
+  const renderLens = (l: Lens, asset: ModelAsset | null) => {
+    const mine = l.id === lens.id;
+    const procedural = <ProceduralLens lens={l} fNumber={fNumber} materials={materials} active={mine && active !== "shutter" ? active : null} xray={mine && xray} />;
+    return asset ? (
+      <ModelBoundary key={asset.id} fallback={procedural} onFail={(r) => onModelFail("lens", r)}>
+        <Suspense fallback={procedural}>
+          <GlbLens asset={asset} lens={l} fNumber={fNumber} materials={materials} wantDetail={wantDetail} highlight={mine && active ? (LENS_PART[active] ?? null) : null} xray={mine && xray} />
+        </Suspense>
+      </ModelBoundary>
+    ) : (
+      procedural
+    );
+  };
+  const mounted = (
+    <>
+      <LensSwap lens={lens} asset={lensAsset} enabled={immersive} interrupt={interrupt} render={renderLens} />
+      {xray && <SchematicOptics key={`xray:${lens.id}`} lens={lens} focusMm={focusMm} fNumber={fNumber} rays={rays} />}
+    </>
+  );
+  const proceduralBody = (
+    <ProceduralBody body={body} materials={materials} dialActive={active === "shutter"}>
+      {mounted}
+    </ProceduralBody>
+  );
   return (
     <group>
-      <ProceduralBody body={body} materials={materials} dialActive={active === "shutter"} />
-      {/* Lens built along +Y; turn it so its axis points out of the front (+Z). */}
-      <group position={MOUNT_CENTER} rotation={[Math.PI / 2, 0, 0]}>
-        {/* Key by lens so a swap unmounts the old lens and its resources in one go. */}
-        <ProceduralLens key={lens.id} lens={lens} fNumber={fNumber} materials={materials} active={active === "shutter" ? null : active} />
-      </group>
+      {bodyAsset ? (
+        <ModelBoundary key={`${body.id}:${bodyAsset.id}`} fallback={proceduralBody} onFail={(r) => onModelFail("body", r)}>
+          <Suspense fallback={proceduralBody}>
+            <GlbBody asset={bodyAsset} body={body} wantDetail={wantDetail} highlight={active === "shutter" ? RIG_PARTS.shutterDial : null}>
+              {mounted}
+            </GlbBody>
+          </Suspense>
+        </ModelBoundary>
+      ) : (
+        proceduralBody
+      )}
     </group>
   );
 }
 
 const VirtualLeica = forwardRef<VirtualLeicaHandle, VirtualLeicaProps>(function VirtualLeica(
-  { body, lens, fNumber, focusMm, shutterSec, auto, advanceCount, tier, reducedMotion, activePart, onPickPart, onTurnDrag, onExitPart, onContextLost },
+  { body, lens, fNumber, focusMm, shutterSec, auto, advanceCount, tier, reducedMotion, activePart, onPickPart, onTurnDrag, onExitPart, bodyAsset, lensAsset, onModelFail, xray, rays, immersive, interrupt, onContextLost },
   ref,
 ) {
   const materials = useMemo(createMaterials, []);
+  // High-detail models load only once the user starts interacting (orbiting or picking a part).
+  const [interacted, setInteracted] = useState(false);
+  const markInteracted = useCallback(() => setInteracted(true), []);
+  // Entering a turn mode from the HTML buttons counts too, so keyboard users also get the detail models.
+  useEffect(() => {
+    if (activePart) setInteracted(true);
+  }, [activePart]);
+  const pickPart = useCallback(
+    (part: TurnablePart) => {
+      setInteracted(true);
+      onPickPart(part);
+    },
+    [onPickPart],
+  );
   useEffect(() => () => disposeMaterials(materials), [materials]);
   const targets = useMemo(
     () => ({
@@ -372,6 +551,11 @@ const VirtualLeica = forwardRef<VirtualLeicaHandle, VirtualLeicaProps>(function 
     }),
     [lens, fNumber, focusMm, body, shutterSec, auto],
   );
+  // Unit focusing: the optical block and the diaphragm move out together by the calculated extension.
+  const slides = useMemo(() => {
+    const extension = xrayLayout(lens, focusMm, fNumber, 0).extension;
+    return { [OPTICS_BLOCK]: extension, [ANCHORS.iris]: extension };
+  }, [lens, focusMm, fNumber]);
   const lostRef = useRef(onContextLost);
   lostRef.current = onContextLost;
 
@@ -389,11 +573,26 @@ const VirtualLeica = forwardRef<VirtualLeicaHandle, VirtualLeicaProps>(function 
       }}
     >
       <Studio tier={tier} />
-      <Scene body={body} lens={lens} fNumber={fNumber} materials={materials} active={activePart} />
-      <Rig targets={targets} snap={reducedMotion} />
+      <Scene
+        body={body}
+        lens={lens}
+        fNumber={fNumber}
+        materials={materials}
+        active={activePart}
+        bodyAsset={bodyAsset}
+        lensAsset={lensAsset}
+        wantDetail={interacted}
+        onModelFail={onModelFail}
+        focusMm={focusMm}
+        xray={xray}
+        rays={rays}
+        immersive={immersive}
+        interrupt={interrupt}
+      />
+      <Rig targets={targets} slides={slides} snap={reducedMotion} />
       <LeverStroke count={advanceCount} enabled={!reducedMotion && body.medium === "film"} />
-      <Controls ref={ref} damping={!reducedMotion} enabled={activePart === null} />
-      <Turner active={activePart} onPick={onPickPart} onDrag={onTurnDrag} onExit={onExitPart} />
+      <Controls ref={ref} damping={!reducedMotion} enabled={activePart === null} onStart={markInteracted} />
+      <Turner active={activePart} onPick={pickPart} onDrag={onTurnDrag} onExit={onExitPart} />
       <DevProbe />
     </Canvas>
   );

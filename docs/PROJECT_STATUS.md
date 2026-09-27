@@ -20,23 +20,39 @@ Last updated: 2026-09-27
 
 ## Current task
 
+**None in progress.**
+- **Phase 3:** every feature is COMPLETE except **#2**, which is code complete and waits only for the real-phone check.
+- **Also done in the overnight run:** two unscheduled Priority 1 briefs, #28 Photo Recipes and #8 Motion Simulator.
+- **Next needs a decision from the user:** Phase 4's contents aren't defined in the Master Plan, and the last unscheduled Priority 1 brief (#13, real-world light meter) needs scoping, because browsers can't meter.
+
 **Feature #2 — Virtual Leica, full 3D camera and lens**
 
-Status: **PARTIAL**. Slices 1–3 are done:
-- A lazy-loaded React Three Fiber view with procedural models, quality tiers, a 2D fallback, and stable memory across lens swaps.
-- The aperture ring and iris, focus ring, shutter dial and advance lever all follow the app's state.
-- The rings and dial can be turned directly in 3D, with HTML and keyboard equivalents.
+Status: **PARTIAL — code complete, awaiting a real-phone check.** Slices 1–4 are done:
+- A lazy-loaded 3D view.
+- Every control is bound to the app's state.
+- Rings and dial can be turned in 3D.
+- The GLB model pipeline is proven with generated fixtures.
 
-Not yet built: the GLB pipeline, photoreal assets, and a real-phone check of the 2.5 s load target. See "Last completed" → #2.
+The only acceptance criterion left is "<2.5 s interactive on a modern phone", which needs the user's phone. Photoreal models are an asset task, not missing code: see `docs/MODEL_SPEC.md`.
+
+> **Overnight autonomous run (2026-09-27, from 04:32 Amsterdam):** the user asked Claude to keep going feature after feature without asking, and to verify manually in the morning. Each feature below records what was built and checked. Nothing was committed.
 
 ## Phase 3 checklist
 
-- [ ] **#2 — Virtual Leica, full 3D camera and lens** — PARTIAL (slices 1–3 done)
-- [ ] #5 — Lens X-Ray / optical path — NOT STARTED
-- [ ] #4 — Lens DNA — NOT STARTED
-- [ ] #25 — Flare Lab — NOT STARTED
-- [ ] #33 — Cinematic virtual lens swap — NOT STARTED
-- [ ] #35 — Signature 60-second "WOW" demo — NOT STARTED
+- [ ] **#2 — Virtual Leica, full 3D camera and lens** — PARTIAL (slices 1–4 done; code complete; real-phone check pending)
+- [x] **#5 — Lens X-Ray / optical path** — COMPLETE
+- [x] **#4 — Lens DNA** — COMPLETE
+- [x] **#25 — Flare Lab** — COMPLETE
+- [x] **#33 — Cinematic virtual lens swap** — COMPLETE
+- [x] **#35 — Signature 60-second "WOW" demo** — COMPLETE
+
+## Unscheduled Priority 1 items (no milestone in the Master Plan)
+
+Picked during the overnight run, after Phase 3's last feature. The Master Plan defines no Phase 4 contents; these Priority 1 briefs belong to no milestone.
+
+- [x] **#28 — Photo Recipes** — COMPLETE
+- [x] **#8 — Motion Simulator** — COMPLETE
+- [ ] #13 — Real-world light meter — NOT STARTED
 
 ## Phase 2 checklist
 
@@ -64,9 +80,364 @@ Not yet built: the GLB pipeline, photoreal assets, and a real-phone check of the
 
 **Why reordered from the original list** (original had #9 third): #9 needs `DeviceMotionEvent`, and this development environment has no accelerometer/gyroscope exposed to the browser at all — unlike Live View's camera (which streamed real video once permission was granted), there is no path to observing real motion data here, only the "unsupported" fallback. Verifying it meaningfully needs a real phone. Moved it — and #22 (Film Loading Trainer, which needs verified manufacturer-manual sourcing for real mechanical accuracy before writing instructions for someone's real camera) — toward the end, and promoted #11/#27/#31 (all fully implementable and verifiable with existing tooling and existing Phase 1 infrastructure) ahead of them. #18 sits in the middle: achievable, but a real design decision (either multiple simultaneous WebGL viewfinder instances or a new lighter comparison renderer), not a mechanical extension — give it a focused pass on its own. This order may change again if a later feature turns out to have its own dependency issue; Claude must explain and update this file if so.
 
+## Morning checklist (overnight run, 2026-09-27 04:32 → ~08:00 Amsterdam)
+
+Things to try by hand. Nothing is committed; everything below is in the working tree.
+
+1. **#2 3D view:** open **3D** in Camera & lens.
+   - Turn it; tap a ring or the dial to turn it (Aperture / Focus / Speed buttons do the same); try **X-Ray** and **Rays**.
+   - With **Animate lens changes** on, switch lenses and watch the bayonet swap.
+   - Add `?models=fixtures` to the URL to see the GLB pipeline (M6/M11 bodies, 50/1.4 and 35/2 lenses).
+   - **On your phone** (`npm run dev:phone`): the remaining #2 check is load time (<2.5 s), finger turning, haptics and pinch.
+2. **#4 Lens DNA** and **#25 Flare Lab** panels, in the main column after the Iris panel. Drag the light in Flare Lab, toggle the hood, and change aperture from either panel.
+3. **#35 Tour:** the **Tour** button in Camera & lens, or open with `?demo`. Try it with the camera denied to see the synthetic Live scene.
+4. **#28 Photo recipes:** Load a few, switch scenes to see the light warning, save with ☆, and open a **Share link**.
+5. **#8 Motion simulator** (next to the Sunny 16 trainer): pick a subject, drag the shutter slider, and toggle subject motion and camera shake independently.
+6. Review `docs/MODEL_SPEC.md` (the spec for a 3D artist or model purchase).
+7. **Two app-wide fixes to know about:**
+   - Sounds and haptics now wait for real user interaction on every path.
+   - A new dev-only dependency, `@gltf-transform/cli`, provides `npm run models:build`.
+
+---
+
 ## Last completed
 
-**Feature #2 — Virtual Leica, full 3D camera and lens** (Phase 3) — **PARTIAL**, slices 1–3 (2026-09-27)
+**Feature #8 — Motion Simulator** (unscheduled Priority 1) — **COMPLETE** (2026-09-27, overnight run)
+
+Implemented:
+- `physics/motion.ts` (pure):
+  - **Calculated:** image-plane subject blur = speed × shutter time × magnification (shared `magnification`), for motion across the frame; custom angular speed as f × ω × t.
+  - Camera shake straight from the shared `shakeBlurMm`. The two are computed **independently** (`motionResult`), so switching one off can never change the other.
+  - `blurBand` describes the freeze → streak **continuum** (frozen / slightly soft / visibly blurred / streaked) as multiples of the circle of confusion, not a sharp/blurred verdict.
+  - `trailSamples` budgets samples, using fewer while dragging.
+  - Archetype speeds (walking 1.4 m/s, cyclist 5.5, car 50 km/h, train 80 km/h) are labelled **approximate** typical values.
+- `components/MotionSimulator.tsx`:
+  - A 2D canvas that **accumulates the exposure**: each camera-shake offset redraws the scene, and within it each subject position. Posts in the background make shake visible; the subject shows motion.
+  - Redrawn only on change; fewer samples while the shutter slider is dragged.
+  - Subject picker (four archetypes plus custom angular speed), a shutter slider over the body's marked speeds, a distance or angular-speed slider, and independent **Subject moves** / **Camera shake** toggles (shake off and disabled on a tripod).
+  - A readout per blur (mm on the sensor, × circle of confusion, band) with a log-scale continuum bar, and an accessible canvas description.
+  - It shares the camera's shutter speed (switching to manual on auto bodies, like the Intent Assistant).
+- Honest scaling: at true scale across a full 36 mm frame, a clearly blurred walker (13× the CoC) is only ~4 px on a phone. The CoC is defined for a viewed print, not a thumbnail. So streaks are drawn **relative to the circle of confusion, enlarged** (one CoC ≈ 1/120 of the picture), and the panel says so; the millimetres shown are unscaled. Changed after the first browser run showed the difference wasn't visible.
+- 9 new unit tests: speed × time × magnification; **walker frozen at 1/1000, streaked at 1/15, ratio exactly 1000/15** (acceptance); speed and distance trends; angular blur; **shake off leaves subject blur identical and vice versa** (acceptance); shake from the shared model; bands; the sample budget; provenance.
+
+Validation:
+- Browser checks **36/36** on WebKit iPhone 13 and iPhone SE, and GPU Chromium:
+  - Walker at 1/1000 is 0.006 mm, 0.2× CoC, "frozen"; at 1/15 it's 0.394 mm, 13.1×, "streaked". **In pixels**, the subject's spread goes 33→73 px (iPhone 13).
+  - Camera shake off leaves the subject readout identical; subject off leaves only shake.
+  - It shares the camera's shutter. The custom angular-speed control works. No scroll, spill or errors.
+  - **Interactive while dragging:** in the full regression, committing each step to the camera re-rendered the whole app (including the WebGL photo preview), costing 82–102 ms per step. Fixed: while dragging, the panel previews a draft speed and commits it to the camera on release, blur or cancel; keyboard and taps commit immediately. Now ~33 ms from input to painted frame (two frames, the floor of this measurement), and a new check confirms release commits the speed. Browser checks now **39/39**.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 328/328 unit tests, production build (main bundle 125 KB gz).
+
+Known limitations:
+- A stylised scene, not the simulated photograph. Subject motion inside the WebGL photo preview (masking the subject in the real scene) would be a larger renderer change.
+- Motion is across the frame only (no toward/away component).
+- Archetype speeds are typical values.
+
+Regression-suite note (#2): the "memory stable over 28 lens swaps" check read textures 5→7 once animated swaps (#33) were on by default. The check measured while the last swap's outgoing lens was still on screen (two ring textures). Measured after the swap finishes it's 5→5 (geometries 34→34): no leak.
+
+Related fix found by the regression suite (#33): WebKit threw an uncaught `program.isReady` error during rapid GLB lens swaps. It came from three.js's `compileAsync`, whose background polling breaks if a faster second swap disposes the materials mid-compile. `LensSwap` now pre-compiles with the synchronous `gl.compile`: same benefit, no background polling.
+
+---
+
+**Feature #28 — Photo Recipes** (unscheduled Priority 1) — **COMPLETE** (2026-09-27, overnight run)
+
+Implemented:
+- `data/recipes.ts`: six recipes as **content + constraints** — sunny street (zone focus), overcast street, window-light portrait, golden hour/open shade, city at dusk with pushed film, night street.
+  - Each has a focal length, film (its box speed doubles as digital ISO), optional push EI, aperture, focus strategy (zone or subject distance), light conditions and "why this works".
+  - **No stored shutter speeds.** Light comes from the same published EV guide as the Sunny 16 trainer, and the EV range is derived from it.
+  - Also `findRecipe` and `recipeLink`.
+- `physics/recipes.ts` (pure), `recipePlan` for the user's actual camera:
+  - Lens: the current one if its focal length matches, else the fastest match, else the nearest focal length.
+  - Aperture clamped to the lens.
+  - Film: film bodies load the film and push EI, but **keep a roll already in the camera** (with a note); digital bodies set ISO within the body's range.
+  - Shutter **calculated** by the shared `correctShutter` at the range's middle EV, snapped to a marked speed.
+  - Zone focus via the shared `hyperfocal`.
+  - `recipeLightMismatch` (±1 EV tolerance) and `planExposureError` (engine).
+- `components/RecipesPanel.tsx`:
+  - Cards show the settings *as they'll apply to your camera*, "(calculated)" on the shutter, and a "Why this works" disclosure.
+  - One-tap **Load**; **☆ save** (remembered per viewer) with an All/Saved filter; **Share link** (clipboard, or a selectable link where the clipboard is blocked).
+  - A "Loaded" status with adaptation notes, and a **warning when the simulator's scene light is outside the recipe's range**. Framed as "Starting points, not guaranteed exposures".
+- `App.tsx`: `loadRecipe` goes through the same setters the controls use (lens, film + EI + push/pull, ISO, aperture, manual shutter, focus), so every control shows the recipe. `?recipe=<id>` links load on open.
+- `LiveView`: also warns when its scene-light setting is outside the loaded recipe's range. This is the spec's "live metered EV": browsers can't meter, so Live's light is set by hand.
+- Content fix after testing: the night recipe covers EV 3–5 (the guide's night street *and* dusk street), because the app's own "Night street" scene is EV 5 and loading the night recipe there warned "2 stops brighter".
+- Layout fix after the screenshot: the All/Saved switch overflowed the panel on phones. The suite now checks that nothing spills out of the panel, and a one-off sweep of every panel at 320 and 390 px found no other case.
+- 15 new unit tests: content uses only EV-guide light and catalogue films; a "why" everywhere and no stored shutter; engine-calculated shutter within ½ stop for its own light; zone = hyperfocal; lens choice; aperture clamping with a note; pushed EI; a locked roll kept; digital ISO; every body works; warning silent in range and firing out of range; agreement with the engine; share-link format.
+
+Validation:
+- Browser checks **36/36** on WebKit iPhone 13 and Chromium:
+  - Six cards with calculated shutters. Loading "Sunny street" sets the 35 mm, f/11, the card's calculated 1/1000 (manual) and the zone distance 3.75 m, and marks it loaded.
+  - It warns "9 stops darker" in the night scene; the night recipe in the night scene doesn't warn and takes the fastest 50 at f/1.4, ISO 3200. Live View warns too.
+  - Saving persists across reload; share link works; `?recipe=window-portrait` opens loaded (f/2, 1.20 m).
+  - On a film M6: the dusk recipe loads Tri-X at EI 1600 with Push 2. After a shot, the night recipe keeps the roll and says so.
+  - No horizontal scroll, clipping or spill; no errors.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 319/319 unit tests, production build (main bundle 122 KB gz).
+
+Known limitations:
+- Six recipes, written for this project. The "why" copy is explanatory, not sourced from a publication.
+- The warning compares against the simulator's scene EV and Live's hand-set light, since no browser metering exists; real metering is #13.
+
+---
+
+
+**Feature #35 — Signature 60-second "WOW" demo** (Phase 3) — **COMPLETE** (2026-09-27, overnight run)
+
+Implemented:
+- `state/demoScript.ts` (pure): the tour as data over the **production components**, not a video.
+  - Five steps, in the spec's order: mount the 50 on an M3 in 3D → align the rangefinder patch → stop down to f/8 → go LIVE → "Take this setup outside".
+  - Each step has `enter` (setup through the app's real setters), `done(state)` (reads the app's real state) and `skip` (reaches the same end state through the same setters).
+  - Period-correct gear from the catalogue: the M3 starts with the Summaron 35 f/3.5 and mounts the Summicron 50 f/2 (rigid).
+  - A deterministic subject at 3 m for the rangefinder step. `demoSummary` checks the 60 s budget.
+- `components/DemoTour.tsx`:
+  - A bottom card with step, elapsed time, title and instruction (`aria-live`); focus moves to the title on each step.
+  - Steps complete themselves from real state, pausing briefly so the lens locking on is seen. Every step has **Skip**, and **Exit** is always available.
+  - Instrumented: `performance.mark`/`measure` per step (`demo:mount` …).
+  - The finish card shows the setup (body, lens, f-number, focus, zone-focus setting), per-step times, "Under a minute: N s", **Save to My Leica Bag** (the existing bag) and Finish.
+- `App.tsx`:
+  - Start from a **Tour** button in the Camera & lens panel header, or `?demo` (event/kiosk). The topbar had no room at 320px: putting it there caused horizontal scroll, caught by the #25 suite.
+  - A `demoSubjectMm` override, used only during the tour, so the patch can be split.
+  - The tour prefetches the 3D chunk and the stand-in Live scene at start, so **no later step needs the network**.
+  - The tour card stays mounted but hidden while Live View's full-screen dialog is open.
+- `components/LiveView.tsx`:
+  - Optional `syntheticSceneUrl`: when the camera is denied or unavailable, a bundled street scene stands in, with the same framelines and exposure sheet and a "Synthetic scene — no camera available" label. Capture stays off.
+  - New everywhere: a **zone-focus recommendation** from the shared `hyperfocal` engine ("Zone focus at f/8: set 10.5 m — sharp from 5.23 m to ∞").
+- **App-wide fix, `audio/sounds.ts`:** sounds and haptics now wait for real user activation (`navigator.userActivation.hasBeenActive`). `?demo` auto-start was playing the mount click before any interaction, which broke #32's criterion "no sound plays before user interaction" and made Chrome log a blocked `navigator.vibrate`. This now holds on every code path.
+- Bugs found in testing and fixed:
+  - A step's completion check ran in the same commit as its setup, against the *previous* state. The rangefinder step "completed" at 1.46 m with the subject at 3 m. It now re-checks once the setup has applied.
+  - Turning a little past the aligned patch during the brief pause cancelled the advance. A step achieved now stays achieved.
+- 10 new unit tests: the gear exists and fits; spec order; mount setup and completion; the deterministic rangefinder setup; the f/8 threshold; every skip uses the real setters; the subject released at the end; the budget summary; `userHasInteracted` (×2).
+
+Validation:
+- Browser checks **46/46** on WebKit iPhone 13 and GPU Chromium, run against the real app:
+  - `?demo` starts on the M3 in 3D with the Summaron 35.
+  - **The network is switched off** after the initial load, then: mounting plays the lens swap and advances; turning focus aligns the patch (1.20 m → 3.21 m, subject 3 m); stopping down to f/8 advances.
+  - Live, with no camera, shows the synthetic scene with framelines and the zone-focus line; the card steps aside; closing Live reaches the finish.
+  - The finish card summarises the setup, and four steps are timed and measured. **Completed in ~5 s scripted, under the 60 s budget.**
+  - Save to My Leica Bag works. **No failed requests while offline.** Finish closes the tour; no horizontal scroll; no errors.
+  - Skipping all four steps reaches the same real end state: 50 mm, f/8, focused at 3 m.
+  - The panel button starts the tour and Exit ends it.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 304/304 unit tests, production build (main bundle 119 KB gz).
+
+Known limitations:
+- "Completed in under 60 s by a first-time user" is verified for the scripted path (~5–11 s), **not with real first-time users**.
+- "Beautiful M3" uses the procedural stand-in until real models exist (see #2 and `docs/MODEL_SPEC.md`).
+- Live View on a real phone camera is covered by #1/#9's real-device checks, not re-verified here.
+- The whole run happened while the machine was under heavy load; timings in the suites are not benchmarks.
+
+---
+
+
+**Feature #33 — Cinematic virtual lens swap** (Phase 3) — **COMPLETE** (2026-09-27, overnight run)
+
+Implemented:
+- `three/swapTimeline.ts` (pure, deterministic):
+  - `swapPose(t)` runs four phases over 1.0 s: unlock (old lens turns −40° on the bayonet), away (floats 70 mm forward), arrive (new lens comes in turned), lock (turns home). At or past the end it's always the valid final state.
+  - Bayonet travel and float distance are illustrative.
+  - The "Animate lens changes" setting is remembered per viewer.
+  - `SWAP_GROUP` names the two lens groups.
+  - Named `swapTimeline.ts`, not `lensSwap.ts`: on macOS's case-insensitive file system that collided with `LensSwap.tsx`, and it would break on a case-sensitive CI.
+- `three/LensSwap.tsx`:
+  - The app's lens changes **immediately** (state, simulator, sound); only the view animates. Nothing waits on the animation or audio.
+  - Both lenses stay mounted under their own keys while their roles change (no rebuild mid-swap). The incoming lens renders first, so the Rig and picker drive the new lens.
+  - **Before the timeline starts:** the incoming GLB model is preloaded (new `preloadModel` in `glbCache.ts`); then its shaders are pre-compiled (`compileAsync`, with the group briefly visible to the compiler only) and its textures pre-uploaded (`initTexture`). This fixed an intermittent WebKit case where first-use compilation stalled the start. The old lens stays locked on meanwhile.
+  - A generation token discards a stale preload or compile after a later change or an interrupt.
+  - **Interrupts:** a pointer or wheel on the canvas, or any key in the viewer (`Leica3D` bumps an interrupt counter), jumps to the final pose. Switching the setting off mid-swap also resolves it; that was a real bug caught in testing.
+  - Rapid changes resolve the running swap and start from the lens on the mount.
+- `Leica3D`: an "Animate lens changes" checkbox, remembered per viewer (`services/persistence`). Under reduced motion it's off and disabled, with the reason given.
+- Only the lens on the mount takes the turn highlight and X-Ray fade; an outgoing lens keeps its plain look.
+- Dev probe `swap()` (running, incoming and outgoing poses), stripped from production.
+- 6 new unit tests: the start state; each phase (unlock, float, arrive turned, lock); the final state holds; determinism and continuity; never zero lenses visible; the setting round-trips.
+
+Validation:
+- Browser checks **34/34** on WebKit iPhone 13, GPU Chromium, WebKit with reduced motion, and GPU Chromium with GLB fixtures:
+  - The app state changes at once. The old lens unlocks (−0.70 rad) and floats 70 mm; the new one arrives turned (−0.70 rad, 70 mm out) and locks.
+  - Never no lens on screen. It ends at rest after about 60 frames over ~1.0 s.
+  - A tap mid-swap and a key mid-swap each resolve to the final state; rapid changes end on the last lens; the Rig drives the new lens after a swap; memory is flat over repeated swaps.
+  - Switching the setting off mid-swap resolves it; off means instant; the setting survives reload. Reduced motion: disabled with the reason, and instant.
+  - **GLB:** the incoming lens is already its GLB model when it first appears (preloaded, no pop-in).
+  - Start delay after the click is ~0.25–0.57 s, including first-use shader compilation on the headless renderers.
+- Test-harness notes, not app issues:
+  - Synthetic pointers need the capture shim (as in #2 slice 3).
+  - Headless Chromium has no audio device, so the browser logs an AudioContext error when the mount click plays; filtered with a comment.
+  - The machine was under heavy load (load average ~12) during these runs, which slowed them.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 294/294 unit tests, production build (3D chunk 254 KB gz).
+
+Known limitations:
+- The bayonet motion is illustrative, not the M mount's exact geometry, and there's no distinct unlock sound: the existing mount click plays at selection.
+- A first-ever swap can wait a few hundred ms for shader compilation before moving; the old lens stays locked on meanwhile.
+- Body changes aren't animated (the spec is about lenses).
+
+---
+
+
+**Feature #25 — Flare Lab** (Phase 3) — **COMPLETE** (2026-09-27, overnight run)
+
+Implemented:
+- `physics/flare.ts` (pure, deterministic), an artistic flare kernel as the spec asks, with room for measured profiles:
+  - **Calculated:** the light's field angle from the lens's real angle of view; in/out of frame; ghosts take the *iris shape at the current aperture* and shrink as it closes; diffraction-star spike count (n for even blades, 2n for odd).
+  - **Physically motivated:** the hood only acts on light from *outside* the frame's angle of view (`hoodTransmission`); it can't block image-forming light.
+  - **Artistic, labelled:** ghost positions along the source–centre line, sizes, brightness, veiling glare, and the hood's falloff shape.
+  - `FlareProfile` / `FLARE_PROFILES` (empty: nothing measured) with `ARTISTIC_FLARE_PROFILE` as everyone's default. Its provenance is `illustrative`, and it's never called ray tracing.
+- `components/FlareLab.tsx`, behind the `experimentalLensCharacter` flag (the same flag the flags file reserves for Lens DNA and Flare Lab):
+  - A 3:2 canvas, redrawn only on change (no idle loop), with DPR capped at 2 and a fixed ghost count, so glow stays bounded on mobile.
+  - Drag the light with pointer capture (guarded), including past the frame edge, where an arrow points to it.
+  - HTML sliders (across, up/down, brightness) as the non-pointer equivalent, and a hood toggle.
+  - An `aria-live` readout of angle, in/out of frame and hood effect; the canvas `aria-label` describes the scene.
+  - An "Artistic approximation" badge with the provenance note.
+- `components/ApertureStops.tsx`: shared click-stop radio row, now used by Lens DNA and Flare Lab (no copy). Both write through the app's `changeAperture`.
+- Layout fix: provenance notes stack under their badge (Flare Lab and the 3D X-Ray note), because side by side they squeezed into a narrow column at 320px.
+- 12 new unit tests:
+  - Field angle: 0 on axis, the half angle of view at the edge, wider on a wide-angle.
+  - Physical rules: spike counts for 9/10/11 blades; the hood can't block in-frame light, cuts far-outside light, and changes only brightness (same ghosts, same places, same angle).
+  - Kernel behaviour: determinism; continuity; ghosts collinear with the source and centre; iris shape per aperture and shrinking stopped down; spikes only with straight blade edges in frame; every lens uses the artistic profile.
+
+Validation:
+- Browser checks **39/39** on WebKit iPhone 13 and iPhone SE, and Chromium:
+  - The badge is shown. The angle rises smoothly (0°→12°→23°→33°→41°→47° on the 21 mm) and the same position gives an identical image.
+  - Canvas drag moves the light. The hood can't block in-frame light; out of frame it lets ~40% through and frame brightness drops 91.6→58.6.
+  - **The exposure readouts are byte-identical with the hood on and off.**
+  - The lab's stops set the app's aperture, and the image changes with it. Accessible description; no scroll, clipping or errors.
+- Regression: every other suite re-run clean. Typecheck clean, lint 0 errors (5 pre-existing warnings), 288/288 unit tests, production build (main +2.4 KB gz).
+- Screenshots inspected: an 18-point star at f/11 on a 9-blade lens, ghosts on the axis through the frame centre.
+
+Known limitations:
+- Entirely an artistic approximation: no lens has a measured flare profile, and coatings, lens era and element count aren't modelled.
+- No catalogue lens is listed without a hood, so the disabled-hood path exists but can't be exercised with current data.
+- Ghosts don't vary by lens design.
+
+---
+
+
+**Feature #4 — Lens DNA** (Phase 3) — **COMPLETE** (2026-09-27, overnight run)
+
+Implemented:
+- `physics/lensCharacter.ts` (pure):
+  - `LensCharacterProfile` for sourced, lens-specific character data, separate from optical geometry as the spec requires. `LENS_CHARACTER_PROFILES` is **empty**: nothing was estimated or taken from marketing copy.
+  - `lensDNA(lens, ctx)` returns ten rows, each with a provenance kind and a note on its source:
+    - Closest focus and aperture range: published (catalogue).
+    - Highlight shape: blade count published where the catalogue has it, generic 9-blade approximation otherwise; roundness from the shared iris model.
+    - Corner falloff: **calculated**, the cos⁴ law at the frame corner.
+    - Corner darkening in the preview: approximate — the *same* heuristic the simulated photo uses.
+    - Diffraction softening from: **calculated** via the shared `diffractionLimitedFNumber` and the current sharpness standard.
+    - Sharpness, distortion, flare: **"No data"**, never guessed; a sourced profile fills them.
+    - Rendering notes: the catalogue's nicknames, shown as **community** notes, not objective claims.
+  - `reachableFNumber` for comparing lenses of different speeds.
+- **Engine hygiene (CLAUDE.md "no formulas in UI"):**
+  - `vignetteStops` moved out of `App.tsx` into the engine unchanged, so the preview and Lens DNA share one heuristic.
+  - Two duplicate copies of the focus-extension formula I'd written tonight (`rig.ts`, `three/optics.ts`) now use the shared `focusExtension` / `distanceFromExtension` in `physics/optics.ts`.
+- `components/LensDNA.tsx` (behind the existing `experimentalLensCharacter` flag, now on):
+  - Aperture stop buttons that write through the app's `changeAperture`.
+  - "Compare with" any lens that fits the body. Both columns use the app's shared aperture and focus state; a slower lens is clamped to its nearest stop with the light difference stated.
+  - A text provenance badge on every value (Calculated / Published / Measured / Community / Approximation / No data), plus an "About" disclosure with the source note.
+  - A small iris-shape preview.
+  - Table semantics (`role=table/row/cell`).
+  - On phones the comparison columns stack and each value names its lens.
+- 11 new unit tests:
+  - Calculation: cos⁴ exactness, and ≈0.5 stop at 50 mm vs ≈2.1 at 21 mm on full frame.
+  - Rendering: every lens renders from geometry alone; no value without provenance; "none" always means no value.
+  - Honesty: nothing is "measured" without a profile; published vs generic blades; diffraction from the shared engine.
+  - Data handling: a profile's data used with its source; a nickname stays community; comparison clamping; the moved preview heuristic.
+
+Validation:
+- Browser checks **57/57** on WebKit iPhone 13 and iPhone SE, and Chromium:
+  - 10 badges, no "measured"; sharpness, distortion and flare say No data; the 50 mm falloff is 0.5 stop (calculated).
+  - DNA stop buttons set the app's aperture, and the main ring updates DNA. Preview vignetting goes from 0.6 stop to "None" at f/4 (digital M, in-camera correction applied).
+  - The 35/2 at f/1.4 is "shown at f/2 (1.0 stops less light)"; both lenses follow f/4.
+  - "About" opens; no horizontal scroll or clipped text; stacked comparison labels on phones; no errors.
+- Regression: all other suites re-run clean (#2 35 + 17 + 63 + 28, #5 48, #22 213, #9 21). Typecheck clean, lint 0 errors (5 pre-existing warnings), 276/276 unit tests, production build (main bundle +6.9 KB gz).
+- Test-expectation errors fixed along the way (not app bugs): 35 mm falloff is 0.93 stop, not 1.0; Chromium's `innerText` applies CSS uppercase.
+
+Known limitations:
+- No measured or published character data has been sourced yet, so most "tendency" rows read No data. That's by design until real data (e.g. manufacturer MTF and distortion graphs, actually read) is added to `LENS_CHARACTER_PROFILES` with sources.
+- "Scene conditions" (spec goal) aren't modelled beyond aperture.
+- The iris preview is small at narrow apertures.
+
+---
+
+
+**Feature #5 — Lens X-Ray / optical path** (Phase 3) — **COMPLETE** (2026-09-27, overnight run)
+
+Implemented:
+- `three/optics.ts` (pure):
+  - `M_FLANGE_FOCAL_MM` = 27.80 (published M-mount flange distance).
+  - `unitFocusExtensionMm` = f²/(d−f) (calculated; assumes unit focusing).
+  - `xrayLayout(lens, focus, N)` gives two schematic groups either side of the stop, the image plane, the ideal-lens plane, the entrance-pupil radius f/2N, and a meridional ray fan that enters across the pupil and converges on-axis at the image plane.
+  - `XRAY_PROVENANCE` separates schematic groups (illustrative) from calculated focus travel and rays. No element radii or indices are inferred from marketing diagrams.
+- `three/SchematicOptics.tsx`:
+  - Lathe "biconvex" group shapes inside an `optics-block` node.
+  - Rays redrawn each frame against the block's *current* animated position, so the fan stays attached mid-animation.
+  - A 36×24 mm image-plane marker. Rays and marker draw over the body, where the image plane is.
+  - Rendered inside the body's `lens-mount` anchor, so it works with procedural *and* GLB lenses.
+- `Rig`: new slide targets (position along local +Y from rest). The optics block and the iris anchor move out together by the calculated extension, which is what unit focusing does.
+- Barrel fade: procedural lenses swap to a shared `xrayShell` material and hide the glass cap. GLB lenses get instance-owned transparent copies from a single `useMaterialOverrides` hook that also owns the turn highlight, so the two can't restore over each other. The live iris is never faded.
+- `Leica3D`:
+  - An **X-Ray** toggle (`aria-pressed`) and a separate **Rays** toggle. The ray layer is on by default at full quality and off on the reduced tier (the spec's "disable on weak devices").
+  - A text **"Schematic"** badge, not colour alone, plus notes on what's schematic and what's calculated.
+- 9 new unit tests: extension 0 at ∞ and growing; matches 1/f = 1/u + 1/v; image plane at the flange distance; ideal lens one focal length in front at ∞ and moving by the extension; pupil f/2N; every ray converges on-axis through the pupil on every catalogue lens; groups inside every barrel; provenance kinds.
+
+Validation:
+- Browser checks **48/48** (twice) on WebKit iPhone 13, WebKit iPhone SE, GPU Chromium, and GPU Chromium with GLB fixtures:
+  - X-Ray toggles without reload, with the badge.
+  - Optics move 1.28 → 2.53 mm focusing to 1.04 m, matching f²/(d−f) = 2.525 mm (readout rounding); the diaphragm moves with them.
+  - The ray bundle is exactly the entrance pupil: 35.71 mm at f/1.4, 17.86 mm at f/2.8.
+  - The ray layer toggles independently; memory is flat over 10 X-Ray toggles; off removes everything; no horizontal scroll; no errors.
+- All #2 suites re-run clean (35 + 17 + 63 + 28). Typecheck clean, lint 0 errors (5 pre-existing warnings), 265/265 unit tests, production build (3D chunk 253 KB gz).
+- Screenshot inspected: faded shell, blue schematic groups, yellow ray fan converging on the image plane inside the body. The shell colour was darkened after the first look.
+
+Bug found and fixed: a duplicate React key (lens and optics both keyed by lens id in one fragment) made React drop children, so X-Ray-off and Rays-off didn't always remove what they should.
+
+Known limitations:
+- Schematic only. No per-lens prescription data exists, so a prescription-accurate mode isn't offered; the badge always says Schematic.
+- Unit-focusing assumption: floating-element designs aren't modelled.
+- One meridional ray fan from an on-axis point; no off-axis rays or aberrations.
+- The front barrel doesn't physically extend with focus.
+- Real-phone check shared with #2.
+
+---
+
+
+**Feature #2 — Virtual Leica, full 3D camera and lens** (Phase 3) — **PARTIAL**, slices 1–4 (2026-09-27)
+
+**Slice 4: GLB model pipeline** (guided by the `threejs-assets` skill). Photoreal models aren't needed to build or prove the pipeline: it was built and tested against fixtures exported from the app's own procedural models.
+
+- `three/models.ts` (main-bundle-safe, no loaders):
+  - `MODEL_ASSETS`: licensed models, empty until supplied. `FIXTURE_ASSETS`: M6 and M11 bodies, 50/1.4 and 35/2 lenses. Fixtures are used only with `?models=fixtures`, and a real model beats a fixture.
+  - `ANCHORS`: `lens-mount` and `iris-anchor` (empty nodes). `requiredParts` and `validateModel` define the parts contract; `licenceProblems` requires licence, author and date.
+  - `assetUrl` resolves against Vite's `BASE_URL`, because the app is deployed with base `./`.
+- The procedural models now follow the same contract. The body has a `lens-mount` anchor that the lens renders into; the lens has an `iris-anchor`.
+- `IrisAssembly.tsx`: the live iris, extracted so it can sit inside a GLB lens. A GLB never models the blades, since their shape follows the f-number.
+- `three/glbCache.ts`:
+  - GLTFLoader with the Meshopt decoder, in the lazy chunk only.
+  - Reference-counted source cache. Instances are clones sharing geometry, materials and textures.
+  - Eviction is separate from unmount: up to 4 idle models stay warm, and older ones are disposed (geometry, materials, textures).
+  - A failed load stays cached, so its error reaches the boundary; it's retried only after 30 s on a later mount.
+- `three/glb.tsx`:
+  - `GlbBody` and `GlbLens`: the base model first, detail swapped in after the first interaction (orbit, tap-pick, *or* an HTML turn button).
+  - The lens renders into the body's `lens-mount` and the iris into `iris-anchor`, via R3F `createPortal`.
+  - The highlight tints instance-owned material copies and never touches shared ones.
+  - `ModelBoundary` falls back to the procedural stand-in and reports why. The UI notes "couldn't be used, stand-in shown", and the hint shows each GLB's provenance and licence.
+- `Rig`: parts seen for the first time (new lens, base→detail swap) take their pose at once instead of spinning up from zero.
+- `scripts/build-models.mjs` (`npm run models:build <group>`) turns `models-src/<group>/*.glb` into `public/models/<group>/<name>.glb` (Meshopt, WebP ≤1024 px) and `<name>.base.glb` (also simplified to ~50%, ≤512 px). It then runs the Khronos glTF validator and a parts-contract check on every output.
+  - Flatten, join, instance and palette are off, because they'd merge or rename animated parts.
+  - Pruning runs first with empty leaves kept, then compression.
+- Two real pipeline bugs, both caught by the contract check:
+  - The default prune deleted the empty anchors.
+  - A post-compression prune silently dropped Meshopt compression (71→152 KB).
+- Fixtures: raw exports of 408 KB (bodies) and 110 KB (lenses) come out at 71 KB and 22–27 KB. The fixture GLBs ship in `dist/` but are downloaded only with `?models=fixtures`.
+- Dev-only probe additions (stripped from production): `sources`, `modelCache`, `irisInGlb`, `exportGLB`.
+- `docs/MODEL_SPEC.md`: the one-page spec for a 3D artist or a purchase check. It covers named parts, pivots, axes, anchors, units, budgets, licence requirements (interactive web use, not editorial-only, no trademarks without permission) and the steps for adding a model.
+- **New dev dependency: `@gltf-transform/cli`** (build-time tool only; never in the app bundle). It includes `sharp` (native, for WebP) and the Khronos `gltf-validator`. Alternatives considered: running it through `npx` each time (not reproducible), and hand-written compression (reinventing a standard tool). The 3D chunk grew 230→252 KB gz for GLTFLoader and the Meshopt decoder; the main bundle grew ~1 KB.
+- 11 new unit tests: manifest lookup, fixtures only on request, real beats fixture, catalogue ids exist, licence fields, base-path resolution, required parts per kind (lever only on film bodies), missing-part and bad-radius and bad-axis reporting.
+- Browser checks: **28/28**, plus the slice 1–3 suites (35 + 17 + 63) re-run clean on the restructured scene, on WebKit iPhone 13 and GPU Chromium. The slice 4 checks cover:
+  - Default: procedural, no model requests. `?models=fixtures`: base models load; detail isn't requested until interaction, then swaps in with pose kept.
+  - The live iris sits inside the GLB lens; its aperture ring follows the f-stop and is tap-pickable.
+  - Memory is flat over 20 GLB lens swaps (geometries 44→44, textures 7→7), and each file is fetched once.
+  - An aborted download falls back to the procedural lens (body still GLB) with a UI note, one request, no loop.
+  - A contract-breaking file (body served as the lens) falls back too, and the view keeps working. No console errors.
+  - Production build via `vite preview` with relative base: fixtures return 200 and render, the probe is absent, no errors.
+- Bugs found in testing and fixed:
+  - Detail never loaded when a turn started from the HTML buttons (keyboard users).
+  - A failed download caused an endless suspend-and-retry request loop.
+
 
 **Slice 3: turning parts directly in 3D** (guided by the `threejs-interaction` and `threejs-accessibility` skills).
 - `rig.ts`:
@@ -179,8 +550,8 @@ Screenshots were inspected. Top-down fixtures confirm "2.8" and "8" sit exactly 
 **Not done in this slice (why #2 is PARTIAL):**
 1. ~~Interaction modes in 3D~~ — done in slice 3. Haptics come through the existing aperture and dial click paths, but real-device feel is unverified.
 2. ~~Focus ring, shutter dial, advance lever~~ — done in slice 2 (illustrative throws and detents, labelled as such).
-3. The GLB path: a loader adapter, loading the selected body/lens first and high-detail assets lazily, compression (Draco/meshopt, KTX2), and an asset licence manifest. It waits on real models from the user.
-4. Photorealism depends on those assets.
+3. ~~The GLB path~~ — done in slice 4 and proven with fixtures. KTX2/Basis textures aren't wired: they need the transcoder (~0.5 MB) hosted, which is worth it only once real PBR texture sets exist. WebP is used meanwhile. Draco isn't used; Meshopt needs no WASM hosting.
+4. Photorealism depends on real models (an asset task; see `docs/MODEL_SPEC.md`).
 5. The "<2.5 s interactive on a modern phone" criterion isn't measured on a phone. Dev-server times in emulation (0.3–0.9 s) aren't a benchmark, and headless rendering isn't a mobile GPU.
 6. Non-M bodies (Q, SL, CL, S) get no 3D; they keep the 2D art.
 
@@ -361,12 +732,9 @@ Known limitations: checked in WebKit emulation, not on a physical iPhone. The M3
 
 ## Next
 
-**#2** has three things left:
-1. **GLB pipeline (slice 4):** a model adapter behind `RIG_PARTS`, loading only the selected body and lens, lazy high-detail assets, Draco/meshopt and KTX2, and an asset licence manifest. Blocked on real models from the user; the model spec was given.
-2. **A real-phone check:** the <2.5 s interactive target, how turning feels by finger, haptics, and pinch zoom.
-3. **VoiceOver pass.**
-
-Without assets, #2 can't reach COMPLETE; the rest of Phase 3 (#5, #4, #25, #33, #35) is available to start instead, if the user prefers.
+- **#2:** the real-phone check (the only open Phase 3 item).
+- **Phase 4** has no defined contents in the Master Plan. Scoping it is the user's call.
+- Remaining unscheduled Priority 1 brief: **#13 Real-world light meter**. Browsers can't read a camera's real exposure; the brief itself allows manual EV or a clearly labelled estimate. Worth a scoping decision with the user first.
 
 ## Blockers
 
@@ -379,7 +747,7 @@ None currently recorded.
 - #9's thresholds use the 1/focal-length rule as a proxy for "a nominal hand" and measure the phone held like a phone, not a rangefinder (different mass/grip). The UI states this, but it remains approximate by design.
 - Phase 3 is in progress, starting with #2. The rest of Phase 3 (#5, #4, #25, #33, #35) has not started.
 
-## Phase 3 — explicitly not started
+## Phase 3 — scope (started 2026-09-27; all but #2's phone check done)
 
 Phase 3 contains the high-impact 3D / “WTF” work, including items such as:
 
@@ -390,7 +758,7 @@ Phase 3 contains the high-impact 3D / “WTF” work, including items such as:
 - Flare Lab
 - 60-second WOW demo orchestration
 
-Do not start these while Phase 2 is active unless explicitly requested by the user.
+These were started only after Phase 2 closed, at the user's request.
 
 ## Status update rules
 
