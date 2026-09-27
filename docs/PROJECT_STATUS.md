@@ -23,7 +23,7 @@ Last updated: 2026-09-27
 **None in progress.**
 - **Phase 3:** every feature is COMPLETE except **#2**, which is code complete and waits only for the real-phone check.
 - **Also done in the overnight run:** two unscheduled Priority 1 briefs, #28 Photo Recipes and #8 Motion Simulator.
-- **Next needs a decision from the user:** Phase 4's contents aren't defined in the Master Plan, and the last unscheduled Priority 1 brief (#13, real-world light meter) needs scoping, because browsers can't meter.
+- **Work queue (below):** #13, #19, #26, #7 and #24 are COMPLETE, #36 has its MVP and #21 an illustrative version (both PARTIAL); #23 and #34 are COMPLETE; next is **#20 Virtual Leica Store / kiosk mode**.
 
 **Feature #2 — Virtual Leica, full 3D camera and lens**
 
@@ -52,7 +52,24 @@ Picked during the overnight run, after Phase 3's last feature. The Master Plan d
 
 - [x] **#28 — Photo Recipes** — COMPLETE
 - [x] **#8 — Motion Simulator** — COMPLETE
-- [ ] #13 — Real-world light meter — NOT STARTED
+- [x] **#13 — Real-world light meter** — COMPLETE
+
+## Work queue (agreed 2026-09-27: keep going one feature at a time)
+
+The Master Plan's remaining briefs, in the plan's priority order. Recorded here, not in the Master Plan, because this is scheduling.
+
+1. [x] #13 — Real-world light meter (P1)
+2. [x] #19 — Try Before You Buy (P2)
+3. [x] #26 — Focus breathing / perspective lab (P3)
+4. [x] #7 — Rangefinder calibration simulator (P3)
+5. [x] #24 — Lens generations / collector mode (P3)
+6. [x] #36 — Long Exposure Lab (P3) — MVP done; PARTIAL (later enhancements open)
+7. [x] #21 — Exploded camera view (P4) — PARTIAL (illustrative 2D; authored 3D assets open)
+8. [x] #23 — Leica timeline / interactive museum (P4)
+9. [x] #34 — Darkroom mode (P4)
+10. [ ] #20 — Virtual Leica Store / kiosk mode (P4) ← **next**
+
+Items 7–10 are the "Explore / Kiosk / Museum" group this file already names as Phase 4. #2's real-phone check stays open alongside.
 
 ## Phase 2 checklist
 
@@ -101,6 +118,352 @@ Things to try by hand. Nothing is committed; everything below is in the working 
 ---
 
 ## Last completed
+
+**Feature #34 — Darkroom mode** (Priority 4, work queue) — **COMPLETE** (v1, conceptual) (2026-09-27)
+
+The plan asks v1 to focus on conceptual simulation. The timer/checklist utility is explicitly "a later, separate utility" and isn't part of this feature.
+
+Implemented:
+- `physics/darkroom.ts` (pure; `illustrative` provenance):
+  - Generic developer types (fine-grain/solvent, general, high-acutance), dilution (stock, 1+1, 1+3), agitation (continuous, intermittent, minimal/stand) and temperature. These are types, not named products, so no product data is implied.
+  - `conceptualResult`:
+    - Contrast, grain, edge sharpness and highlight density relative to normal, using the **shared push/pull curve** (`softnessForPush`, `grainMultiplier`) that the roll preview uses.
+    - `shadowLossStops` from the roll's EI rating, so pushing never "recovers" shadows.
+    - Temperature only sets the direction a sourced time would move (warmer is shorter); it changes nothing else.
+    - An uneven-development risk flag for stand agitation.
+  - `densityAt`: an illustrative logistic characteristic curve.
+  - `colourProcess`: C-41 / E-6 are standardised, so no developer choice applies.
+  - **`PROCESS_TIMES` is empty on purpose.** `lookupTime` returns a cited entry only for the exact film, developer, dilution, temperature and push combination, and never estimates.
+  - `DevelopmentRecord`, `describeRecord`, `parseRecord`.
+- `components/Darkroom.tsx` (after the contact sheet):
+  - A "Conceptual" badge. Film (B&W stocks; the roll's film is marked "in the camera"), developer, dilution, agitation, temperature, and development Pull 1 to Push 3.
+  - **Linked to the roll:** with the roll's film selected, development *is* the app's shared push/pull (it changes the roll preview and the exposure panel), and the roll's EI feeds the shadow-loss model.
+  - The **conceptual preview** (curve vs normal at box speed, in the dataviz style: single blue series with a dashed grey reference and a key; tendencies; notes) is **separate from the "Process time" box**. That box says "No verified time … use the maker's datasheet" and "Handle processing chemicals as their safety data sheets direct"; no shortcuts.
+  - A colour-film note for C-41 / E-6.
+  - **Record for this roll** saves the development (persisted), shown on the **contact sheet** as "Developed: …", and cleared on rewind.
+- 13 unit tests:
+  - **No shipped times; null for every unsupported pair; exact-match cited lookups only** (acceptance).
+  - The reference is neutral; push and pull directions; shadow loss not recovered; developer, dilution and agitation directions; temperature isolated to time direction.
+  - The curve is monotonic from fog; underexposure lowers shadows and push steepens.
+  - C-41 / E-6; no hands-on wording or minutes in notes; the record round-trips.
+
+Validation:
+- Browser checks **48/48** on WebKit iPhone 13, iPhone SE and Chromium:
+  - **No process time for unsupported pairs, and no "min" anywhere** (acceptance); **preview and process sections separate** (acceptance).
+  - Fine-grain gives lower grain; 1+3 with stand gives held-back highlights plus the risk; 24 °C only changes the time wording; Push 2 steepens the curve.
+  - On an M6 with the pushed-film recipe and one frame: Tri-X preselected; "Linked to the roll … 1 frame, rated EI 1600"; the 2-stop shadow-loss wording.
+  - **Darkroom Push 1 is the exposure panel's Push 1.**
+  - **The record appears on the contact sheet** (acceptance), survives a reload, and rewind clears it.
+  - No scroll, spill or errors.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 431/431 unit tests, production build (main bundle 151 KB gz). Full browser regression: see below.
+
+Known limitations:
+- No real times until sourced data is added.
+- Effect sizes are illustrative; only directions follow darkroom teaching.
+- Named developers aren't modelled.
+- The recorded development isn't included in the roll's CSV/JSON export yet.
+
+---
+
+**Feature #23 — Leica timeline / interactive museum** (Priority 4, work queue) — **COMPLETE** (2026-09-27)
+
+Implemented:
+- **`content/timeline.json`**: a versioned content dataset (v1), separate from code, with 11 concise original notes.
+  - Every note carries provenance: source, URL and the date checked. **Each was read against its source in this session** (Wikipedia: Leica M3, M4, M6, M7, M8, M9, M (Typ 240), M10, Noctilux).
+  - Notes linked to catalogue items never state years, so they can't drift from the catalogue. That matters because the catalogue gives the M4 1967, while the source says production began November 1966.
+  - The two milestones outside the catalogue (M8, Noctilux f/1.2 of 1966) carry their own year, title and filter facts.
+- `data/timeline.ts`:
+  - Items are joined from the catalogue: every body, lens milestones (lenses with a note or in a #24 family) and standalone milestones.
+  - Finder type by family: M is rangefinder, Q/SL/CL electronic, S optical reflex.
+  - Filters for era, medium, finder, mount, and lens milestones on or off.
+  - `canSimulate`: catalogue bodies and lenses only. `bodyForLens` keeps the current body, else the newest body that takes the lens natively.
+  - The **`timelineProblems` validator**: citation completeness, known ids, milestone fields, no years in linked notes, concise length, positive version.
+- `components/MuseumTimeline.tsx`:
+  - A horizontal, sideways-scrolling strip in chronological order, in two alternating rows with decade ticks. Lenses are dashed, milestones outlined.
+  - Filters: era, finder and mount selects, a Film/Digital segment, and a lens-milestones toggle.
+  - The detail card uses the licensed photo when present, else the BodyArt/LensArt drawing, else a year card, so it **renders with no 3D assets**. It shows catalogue key specs, notes with a source link, and **Simulate this** only for catalogue items (it switches body and/or lens and scrolls to the photo). Otherwise it says it can't be simulated.
+- 8 unit tests: the content is valid and fully cited (acceptance); the validator catches each problem type; bodies at catalogue years in order; milestones not simulable (acceptance); notes attached; every filter; the body chosen for a lens.
+
+Validation:
+- Browser checks **45/45** on WebKit iPhone 13, iPhone SE and Chromium:
+  - The strip scrolls inside the panel and **cards never overlap**.
+  - M3 detail with specs and the Wikipedia link; an image or drawing without 3D (acceptance).
+  - **M8 has no "Simulate this"** (acceptance).
+  - Era, film, finder (reflex → S3), mount and lens filters work.
+  - Simulate puts the rigid Summicron, then the M3, on the simulator.
+  - No page scroll, spill or errors.
+- Screenshots reviewed: the first, year-proportional layout grew dozens of lanes in the dense 2017–2024 years. Replaced with the compact chronological strip; filter labels shortened for the iPhone SE.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 418/418 unit tests, production build (main bundle 147 KB gz). Full browser regression: all 21 suites green (#2 ×4, #5, #4, #25, #33, #35, #28, #8, #13, #19, #26, #7, #24, #36, #21, #23, #22, #9).
+
+Known limitations:
+- No 3D object view from the timeline: the plan says "3D/2D", and the card fallback is used. The 3D Virtual Leica is procedural and generic, not per-model.
+- Historical coverage is deliberately small (11 cited notes). Bodies without a note say so rather than inventing one.
+- Links go to Wikipedia; primary sources such as Leica publications would be stronger citations.
+
+---
+
+**Feature #21 — Exploded camera view / mechanical education** (Priority 4, work queue) — **PARTIAL** (2026-09-27)
+
+All three acceptance criteria are met. It's PARTIAL because the plan's engineering requirement, "specially authored 3D assets with component hierarchy", can't be met without those assets. This version is procedural and illustrative, as the plan allows "where engineering drawings are unavailable". A GLB swap would reuse the same part ids.
+
+Implemented:
+- `mechanics/anatomy.ts` (pure, **decoupled from the optical simulation**):
+  - Seven parts, each a simplified 3D box in a generic 138 × 77 × 35 mm envelope with an explode vector: top plate, rangefinder, viewfinder, shutter, film gate, pressure plate, winding system.
+  - `boxAt`, `intersects`, `collisions`.
+  - A painter's `drawOrder` for the oblique view (first separating axis: depth, height, width).
+  - Function text for each part. History only where it is general and widely documented (the M3 in 1954: combined finder and rangefinder, M bayonet); nothing else is invented.
+  - `ANATOMY_PROVENANCE` illustrative.
+  - Shutter state machine `shutterAt(p, shutterS)`: ready, first curtain, open or slit, second curtain, closed, winding (not to time), using an **illustrative 18 ms curtain travel**. Also `exposureAt` (every point gets exactly the shutter time), `keyMoments` and `PHASE_TEXT`.
+- `components/CameraAnatomy.tsx` (after the Perspective lab, full width on desktop):
+  - An oblique-projected SVG exploded view (no WebGL, so it works everywhere).
+  - Explode / Reassemble with a 700 ms eased animation (instant with reduced motion), plus an explode-amount slider.
+  - Labels appear once exploded.
+  - Parts are selectable by tap, by keyboard (focusable `role=button` groups) or from HTML part chips. The info card shows function and history.
+  - "Fire the shutter, slowed down": a front view of the gate with both curtains; a speed choice (1 s to 1/1000); Fire / Pause / Resume / Fire again; a **timeline scrubber**; key-moment buttons; a live phase text; ms since release and the slow-down factor.
+- 12 unit tests:
+  - The seven labelled parts; all inside the envelope when assembled.
+  - **No intersection at 1,001 explode steps** (acceptance); the intersection test catches overlaps.
+  - The explode moves everything except the gate; back-to-front draw order.
+  - **Illustrative, with no repair or adjustment wording** (acceptance).
+  - The shutter covered throughout the wind; slow speeds open fully; 1/1000 is a slit of 1/18 of the gate; every point gets exactly the shutter time; closed before winding; ordered key moments.
+
+Validation:
+- Browser checks **48/48** on WebKit iPhone 13, iPhone SE (reduced motion) and Chromium:
+  - The illustrative label, and **no repair wording** (acceptance).
+  - Seven labels when exploded; selection by tap, keyboard (with the M3 history) and chips (synced); reassemble.
+  - At 1 s the whole frame is uncovered; at 1/1000 a slit 6/108 of the gate wide crosses the film; it ends with the wind.
+  - **Play, then Pause holds the position** (249 → 249; acceptance); **scrubbing moves the sequence** (acceptance).
+  - No scroll, spill or errors.
+- Screenshots reviewed; axial explode spacing widened (±34 → ±60 mm) after overlapping labels were spotted.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 410/410 unit tests, production build (main bundle 144 KB gz). Full browser regression: all 20 suites green (#2 ×4, #5, #4, #25, #33, #35, #28, #8, #13, #19, #26, #7, #24, #36, #21, #22, #9).
+
+Known limitations:
+- Box stand-ins, not authored models; mechanism internals (cams, springs, the rangefinder roller) aren't drawn.
+- The curtain travel time is illustrative; it's labelled as such.
+- Not linked into the 3D Virtual Leica.
+
+---
+
+**Feature #36 — Long Exposure Lab** (Priority 3, work queue) — **PARTIAL: MVP complete** (2026-09-27)
+
+The plan's MVP is built and every acceptance criterion is met in emulation. The plan's "later enhancements" (Pattern Designer, long-exposure text, multi-light, challenges, logging to the roll) and experimental ideas are not started, so the feature is PARTIAL rather than COMPLETE.
+
+Implemented:
+- `physics/longExposure.ts` (pure):
+  - Six patterns: circle, infinity (lemniscate of Gerono), horizontal and vertical ping-pong sweeps, spiral (turns), and Lissajous (a:b). The spiral and Lissajous take parameters, which covers the MVP's "custom geometric paths from parameters".
+  - `pathLength`.
+  - **`phaseAt` drives position from elapsed time only**; a one-shot run goes dark after one cycle.
+  - `cyclesRecorded` (partial / one / repeated).
+  - `trailStops`: trail density comes from brightness and dwell (size × cycle ÷ path length), **not shutter time**.
+  - `suggestSettings`: the reference is the plan's example (infinity, 4 s, ISO 100, f/8). ISO and dwell stops use the shared exposure engine's `settingEv` and are snapped to the lens's stops. It reports the residual the lens can't reach, flags B when the cycle is longer than the body's slowest marked speed, and is labelled `approximate`.
+  - `suggestedDistanceMm`: the pattern fills about ⅔ of the frame's short side, via `lensTrial.distanceForField`, clamped to the closest focus.
+  - Linear-light colour dimming.
+- `components/LongExposureLab.tsx` (after the Motion Simulator):
+  - A static pattern preview, which works without animation, so reduced motion is respected.
+  - Controls for pattern and its parameters, cycle 1–30 s, Loop or Once, point size, brightness, colour (generic, no trademarks) and a 3/5/10 s countdown.
+  - A **starting-point card** for the lens on the camera: ISO, f/, shutter or "B, held for N s", tripod, manual focus at the suggested screen distance, and an editable screen size (estimated from the device class; measure yours).
+  - "Approximate — take a test frame, then adjust"; what to expect at 1 s, one cycle and two cycles; the length-vs-brightness physics.
+  - Warnings when the browser can't go fullscreen or hold a wake lock.
+  - A "How the screen affects the photo" panel: OLED vs LCD bleed, PWM, refresh rate, motion smoothing and auto-brightness, sleep and browser bars.
+- `components/LongExposureStage.tsx` (**lazy chunk, 1.1 KB gz**):
+  - A portal-mounted black stage requesting fullscreen (with WebKit prefix) and a screen wake lock, with no cursor. The dim countdown disappears when the light starts, and **no UI shows while it runs**.
+  - Tap (on `click`, so the tap can't fall through to the page) or any key stops it, and so does leaving fullscreen.
+  - A dev-only `window.__lel` timing probe, stripped from production (verified).
+- Fix in #24's panel: its buttons used a nonexistent `ghost` class and now use `btn btn-small`.
+- 16 unit tests:
+  - Patterns stay in bounds and close each cycle; path lengths.
+  - **Cycle timing at 60 Hz and 120 Hz with dropped frames** (acceptance).
+  - Time-only position; one-shot done.
+  - 1 s / 4 s / 8 s expectations per the plan; one-shot capped at one pattern.
+  - Dwell stops; the **plan's example reproduced (ISO 100, f/8, 4 s)**; ISO 400 → f/16; dimmer → wider; residual and B reporting; distance fill and the minimum-focus clamp; linear dimming.
+
+Validation:
+- Browser checks **55/55** on WebKit iPhone 13, iPhone SE and Chromium:
+  - The plan's example; the approximate label; distance; expectations; ISO and brightness changes; all six patterns previewed; countdown.
+  - **Measured cycle ends 0–16 ms after the ideal, at a frame time of about 16.6 ms, so within one frame** (acceptance).
+  - The stage covers the viewport with cursor none and no text; the light is drawn; **Chromium goes fullscreen on the stage**; tap or key stops.
+  - Once goes fully black after its cycle; **no camera permission requested** (acceptance); no scroll, spill or errors.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 398/398 unit tests, production build (main bundle 140 KB gz). Full browser regression: all 19 suites green (#2 ×4, #5, #4, #25, #33, #35, #28, #8, #13, #19, #26, #7, #24, #36, #22, #9).
+
+Known limitations:
+- **iPhone Safari has no element fullscreen**, so the app warns that the bars may show. Wake Lock needs iOS 16.4+ and a secure context (use `npm run dev:phone`).
+- A 120 Hz display and real screen luminance weren't measurable here; 120 Hz is covered by the unit test only.
+- Screen size is a device-class guess until the user edits it.
+- The "Try this with your real camera" link from the Motion Simulator and Intent Assistant is not added yet.
+- Needs a real long-exposure photo to confirm the starting settings; the app says so.
+
+---
+
+**Feature #24 — Lens generations / collector mode** (Priority 3, work queue) — **COMPLETE** (2026-09-27)
+
+Implemented:
+- `data/lensFamilies.ts`: five families (35 Summicron, 35 Summilux, 50 Summicron, 50 Summilux, 50 Noctilux) with `lensFamilyId`, and revisions with `revisionId`, a label and aliases (e.g. "King of bokeh", "rigid", "Nocti").
+  - Each revision points at an existing **catalogue lens id** and holds no specs, dates or history of its own. Year, aperture, closest focus and blades all come from `gear.ts`.
+  - `familyDataProblems` validates the data: unknown lenses, **mixed focal lengths or mounts within a family** (inconsistent spec units), a lens in two families, duplicate ids or aliases, revisions out of launch order.
+  - `familyOf`, `findByAlias`.
+- `components/LensGenerations.tsx` (after Try Before You Buy):
+  - Choose a family, or find one by name or nickname.
+  - The family header shows its year range and revision count; each revision card shows aperture range, closest focus, blades with provenance, whether it fits the current body (native, adapter or no), the catalogue nickname and a **Try** button.
+  - Filter size shows "not in the catalogue"; rendering notes read the sourced `LENS_CHARACTER_PROFILES` (empty, so "none sourced yet").
+  - The **Classic · collector** badge comes from the catalogue's `classic` flag and is labelled informational only. No prices or value scores.
+  - **Compare two revisions** with a lock on photographer position or composition. Revisions share a focal length, so the composition lock honestly says that means the same spot. The comparison covers year, widest aperture, whether each focuses at the distance (else its closest focus), and background blur wide open via the shared `blurDiscMm`, noting that design-specific rendering isn't modelled.
+- 6 unit tests: the family data is valid; mixed focal lengths are caught; two-family, unknown-lens and single-revision cases are caught; revisions draw every spec from the catalogue; **revisions differ in geometric specs under one name** (acceptance); alias and name lookup.
+
+Validation:
+- Browser checks **42/42** on WebKit iPhone 13, iPhone SE and Chromium:
+  - Revisions oldest first; the year range 1956–2012.
+  - Rigid 1.00 m vs APO 0.70 m; blades "11 (published)" vs "not in the catalogue".
+  - The badge is on classics only, with no prices; no fabricated notes.
+  - A nickname search jumps to the family with that revision in the comparison.
+  - At 0.80 m the rigid shows "No — closest 1.00 m"; the composition lock explains the shared focal length; **Try** puts the revision on the camera.
+  - No scroll, spill or errors.
+- The iPhone SE screenshot was reviewed and the truncated lock label fixed.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 382/382 unit tests, production build (main bundle 137 KB gz). Full browser regression: all 18 suites green (#2 ×4, #5, #4, #25, #33, #35, #28, #8, #13, #19, #26, #7, #24, #22, #9).
+
+Known limitations: only lenses already in the catalogue can be revisions, so older generations that aren't catalogued (e.g. Summicron 50 Dual Range, 35 Summicron v2–v4) are absent rather than invented. Filter sizes and element counts aren't in the catalogue. Checked in WebKit emulation, not on a physical iPhone.
+
+---
+
+**Feature #7 — Rangefinder calibration simulator** (Priority 3, work queue) — **COMPLETE** (2026-09-27)
+
+Implemented:
+- `physics/rangefinderCalibration.ts` (pure; **isolated** from the normal focusing model, which never sees these parameters). The triangulation model:
+  - A visually aligned patch sets the lens to 1/d′ = (1 + ε)/d + δ/B, for horizontal offset δ (arcmin, object space), baseline or coupling error ε (%) and base length B.
+  - A vertical offset is visual only, with no focus error by itself.
+  - Blur comes from the shared `blurDiscMm`, as a multiple of the current circle of confusion.
+  - **Zero offsets return the subject distance itself**, so they match normal focus exactly, not merely within floating-point error.
+  - `infinityEffect`: reading close, a lens set to ∞ actually focuses at B/δ; reading far, nothing beyond B/δ can be aligned.
+  - `CALIBRATION_ASSUMPTIONS` (approximate): B ≈ 69 mm, which varies by model and isn't in the catalogue, so it's labelled.
+  - `FORBIDDEN_ADVICE` pattern, used to test that the UI never gives repair instructions.
+- `components/RangefinderCalibration.tsx` (rangefinder bodies only, after the finder comparison):
+  - A **service note** (diagnostic education, not a calibration procedure; see a qualified technician).
+  - Sliders for horizontal offset, vertical offset, baseline error and subject distance, plus a patch preview showing vertical misalignment.
+  - A result sentence with where the lens really focuses, the blur, and the effect at infinity.
+  - **Charts** (dataviz skill; one validated series colour, `#3987e5`, on the dark surface; recessive axes; a dashed "sharp limit" at 1×; hover tooltips; a table fallback): blur across distance for the lens on the camera, and blur by focal length (28–90 mm) at the current distance and aperture.
+  - Reset to aligned; **Save diagnostic image** (PNG with parameters, result, note and both charts, for discussing with a technician); a "Model and units" info panel.
+- 14 new unit tests: **zero offsets exact at every distance** (acceptance); vertical offset alone changes nothing; the 1/d′ formula; stopping short of infinity and past-infinity; the shared blur engine; **sensitivity recalculated with focal length** (longer lenses and wider apertures worse; acceptance); baseline error growing with distance; log chart spacing; assumptions labelled; the repair-advice pattern; the infinity effect in both directions, consistent with `indicatedFocus`.
+
+Validation:
+- Browser checks **25/25** on WebKit iPhone 13 and Chromium:
+  - A service note, and **no repair or open-the-camera wording** (acceptance).
+  - Zero offsets give "focus exactly on the subject", with a table of all 0×.
+  - +3′ at 3 m focuses at 2.89 m; the blur rises steadily 28 → 90 mm (0.24× to 2.52×).
+  - **Switching the camera's lens to a 90 recalculates at once** (acceptance). −8′ says nothing beyond 29.7 m can be lined up; vertical offset alone doesn't move focus.
+  - Hover tooltips on both charts. **The diagnostic PNG downloads** (72–88 KB, valid PNG). Reset works; no scroll, spill or errors.
+- The exported image was inspected, and label collision, hover state and font fixed after the first look.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 376/376 unit tests, production build (main bundle 134 KB gz).
+
+Known limitations:
+- A simplified triangulation model with an approximate base length. Real rangefinders' effective base (base × magnification) affects how *visible* an offset is, which isn't modelled.
+- Rangefinder bodies only.
+
+---
+
+
+**Feature #26 — Focus breathing / perspective lab** (Priority 3, work queue) — **COMPLETE** (2026-09-27)
+
+Implemented:
+- `physics/perspective.ts` (pure):
+  - **Real pinhole projection** (`project`: f·X/Z, f·(Y − eye)/Z) of a simple street: a person (the subject), a tree 8 m behind, a building 25 m behind, a post 1 m in front.
+  - `relativeSize` (the perspective measure) is independent of focal length by construction. `focalForSameSubject` gives the dolly zoom.
+  - Breathing: `BreathingProfile` (effective focal length vs focus distance, with provenance). `BREATHING_PROFILES` is **empty**: no lens has sourced breathing data. `effectiveFocal` / `breathingPercent` return **null** without data, and interpolate a sourced curve when one exists.
+- `components/PerspectiveLab.tsx`:
+  - **Perspective** mode: an SVG frame from the projection with a dashed ghost of the starting framing, a camera-distance slider, focal-length stops, and a "keep the person the same size" dolly zoom (labelled "virtual zoom, not a real lens").
+  - A readout of how big the building looks against the person, and how much of the frame the person fills.
+  - **Reset framing** to identical framing; plain-language explanation ("focal length only crops… where you stand decides…").
+  - **Focus breathing** mode: a focus slider, and a **"Not modelled"** badge explaining that no figure is shown rather than a guess.
+- 8 new unit tests: projection; uniform scaling with focal length; **relative size independent of focal length and changing with camera position** (acceptance); dolly zoom holds subject size while the background changes; **reset gives identical framing** (acceptance); **no breathing data means null, never a percentage** (acceptance); interpolation of a sourced curve.
+
+Validation:
+- Browser checks **27/27** on WebKit iPhone 13 and iPhone SE, and Chromium:
+  - 21 mm → 135 mm: ratio 0.7→0.7 (unchanged) while the person goes from 51% to 328% of the frame (cropping). Moving the camera: ratio 0.7→1.7. The ghost appears.
+  - Dolly zoom: the person stays at 51% at 2 m and 10 m while the building goes 0.5× → 2×. Reset restores everything, clears the ghost and disables itself.
+  - Breathing shows "Not modelled" and **no % anywhere in the panel**. No scroll, spill or errors.
+- Screenshot inspected: with dolly zoom the person matches its ghost while the tree and building outgrow theirs.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 362/362 unit tests, production build (main bundle 131 KB gz).
+
+Known limitations:
+- A schematic scene (rectangles, not a photograph).
+- No breathing data for any lens, by design until sourced.
+- The lab's focal lengths are independent of the simulator's lens (it teaches the principle; the lens on the camera sets the starting framing).
+
+---
+
+
+**Feature #19 — Try Before You Buy** (Priority 2, work queue) — **COMPLETE** (2026-09-27)
+
+Implemented:
+- `physics/lensTrial.ts` (pure):
+  - `fieldAtDistance` gives what a lens covers at the subject (thin lens: frame × (d − f) / f; checked against the shared `angleOfView` at long distances). `distanceForField` gives where to stand for the same framing with another lens.
+  - `trialLenses`: the 28/35/50/75/90 strip (plus the current focal length), keeping the lens on the camera where it matches.
+  - `trialWarnings`: **factual only** — closest focus, no frame lines in this body's finder for that focal length, and fit through an adapter. A test guards against sales wording.
+  - `trialQuery` / `parseTrial`: a share link serialising camera, lens, distance, scene and aperture.
+- `components/LensTrial.tsx`:
+  - **Same distance** (nested-frames diagram plus "Covers W × H" per lens) or **Same framing** ("Stand at …" per lens, relative to the lens on the camera).
+  - A subject-distance slider; **Try** puts that lens *and* distance into the simulator, so the preview, viewfinder and Live View all show it.
+  - **Share this setup** (clipboard, or a selectable link where the clipboard is blocked).
+- `App.tsx`: `?try=1&body=…&lens=…&d=…&scene=…&f=…` recreates the setup on open. Every id is checked against the catalogue first; the aperture only if the lens reaches it, the scene only if it exists. A bad link is ignored safely.
+- Fix after the screenshot: 75 and 90 mm frames are nearly the same size and their labels collided. Labels now alternate between inside top-left and just outside bottom-right.
+- 10 new unit tests: coverage formula; agreement with angle of view; same-framing distance round-trip; the strip (with and without an off-strip current lens); closest-focus and frame-line warnings; no sales wording; share-link round-trip; foreign and incomplete links rejected.
+
+Validation:
+- Browser checks **34/34** on WebKit iPhone 13 and GPU Chromium:
+  - The strip offers 28/35/50/75/90, and **all five are tried on the simulator in 0.6–0.7 s** (acceptance: "in seconds").
+  - Nested frames and coverage per lens; same framing puts longer lenses further back; Try sets lens and distance (2.50 m).
+  - On an M3 it warns there are no 28 mm, 35 mm (and 75 mm) frame lines, which is correct for its 50/90/135 finder, with no sales wording. Closest-focus warning.
+  - The share link carries the setup, and opening it recreates camera, lens, distance and aperture (M3 · Summaron 35 f/3.5 · 3.20 m · f/4). A sample-scene link restores the scene; an unknown-body link is ignored with no errors. No scroll, spill or errors.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 354/354 unit tests, production build (main bundle 129 KB gz).
+
+Known limitations:
+- Framing uses the thin-lens model; real lenses' focus breathing slightly changes close-range coverage (that's #26).
+- There's no "over live view" strip inside Live View itself: Try changes the lens, which Live View's framelines follow.
+
+---
+
+
+**Feature #13 — Real-world light meter** (unscheduled Priority 1) — **COMPLETE** (2026-09-27)
+
+Implemented:
+- `physics/meter.ts` (pure, so metering and calibration can evolve independently of the UI):
+  - sRGB → linear → Rec. 709 luminance; region averaging.
+  - `settingsEv100` = log2(N²/t) − log2(ISO/100); `meteredEv100` = settings EV + log2(mean ÷ 18 % grey) (reflective).
+  - Within-frame `stopsBetween`.
+  - `exposureEv` for **Average / Highlight / Shadow** priority. Placements (+2.5 / −2 stops) and a film **bias** are *preferences*, not rules.
+  - `stabilize`: an exponential average plus ⅓-EV display with a deadband, so a static scene doesn't oscillate.
+  - `equivalents` with aperture or shutter **lock**; exposure error comes from the shared engine, so rows beyond the shutter's range say so.
+  - `coverToFrame`: maps a tap on the cropped (`object-fit: cover`) picture back to the full frame being metered.
+- **Honest modes**, labelled in the UI:
+  - **Measured** when the browser exposes the camera's exposure time and ISO (Image Capture; e.g. Chrome on Android), assuming the phone lens is f/1.8, with calibration to absorb the difference.
+  - **Estimated** otherwise (iOS Safari always). Auto-exposure normalises brightness, so absolute EV can't be measured. The light the user sets is the base, and spot/priority readings are *real within-frame ratios* on top of it.
+- `components/LightMeter.tsx`, inside Live View:
+  - Samples a 64×48 copy of the camera frame four times a second (in the tour, the synthetic scene).
+  - **Tap-to-meter** a spot, with a marker; Average / Highlights / Shadows.
+  - Recommended setting at the current aperture; "Use this reading" feeds Live View's exposure.
+  - Equivalents table with Free / Lock f/ / Lock speed; film preference (none, +½, +1 for colour negative, −⅓ for slide).
+  - A **calibration offset** in ⅓-EV steps with Reset, stored locally (`services/persistence`) and never sent anywhere.
+- Fixes found by the browser suite:
+  - The meter made Live View's controls sheet tall enough to **squeeze the camera picture to zero height**. The picture now keeps ≥ 50 vh and the sheet scrolls.
+  - The frameline and label overlays swallowed taps, so tap-to-meter couldn't work over most of the picture. They're now `pointer-events: none`.
+  - The spot label showed the raw per-frame difference and flickered; it now uses the two stabilised values.
+- 16 new unit tests: linearisation (sRGB 118 ≈ mid grey); region averaging; ratios in stops; settings EV (f/8, 1/125, ISO 100 ≈ EV 13); metered EV; round-trip with the exposure engine; priority placements; bias; **stability through noise** and following a real change (acceptance); equivalents including a speed-limited row; aperture and shutter locks; tap mapping through the cover crop.
+
+Validation:
+- Browser checks **20/20**:
+  - **Chrome with a fake camera device (a real stream):** labelled Estimated at the user's EV 13, stable over 2.5 s; tap meters a spot (marker shown) and holds steady.
+  - Priority modes: highlights +2.5 stops of exposure, shadows −2 stops. **Aperture lock highlights its row in ~36 ms**; shutter lock pairs every aperture with that speed. Film +1 works.
+  - **Calibration** shifts the reading, persists across reload, and resets. "Use this reading" changes Live View's exposure (1/15 → 1/30).
+  - **Chrome with exposure metadata injected into the track:** labelled Measured, Scene EV 8.7 (1/100 s, ISO 100 at f/1.8 is EV 8.3, adjusted by frame brightness).
+  - **WebKit iPhone, no camera, tour's synthetic scene:** spot metering reads real image brightness (two spots differ). No horizontal scroll, no errors.
+  - Screenshots inspected on the iPhone viewport: the picture keeps its half, the marker sits on the tap, and the sheet scrolls to the table.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 344/344 unit tests, production build (main bundle 127 KB gz).
+
+Known limitations:
+- On iOS, absolute EV is **not measurable** in a browser; it's estimated from the user's light setting or calibration (stated in the UI).
+- The measured path assumes f/1.8 for the phone lens (calibrate).
+- Not tested against a real handheld meter or on a real phone; the Measured path was exercised with injected metadata.
+
+---
+
 
 **Feature #8 — Motion Simulator** (unscheduled Priority 1) — **COMPLETE** (2026-09-27, overnight run)
 
@@ -732,9 +1095,8 @@ Known limitations: checked in WebKit emulation, not on a physical iPhone. The M3
 
 ## Next
 
-- **#2:** the real-phone check (the only open Phase 3 item).
-- **Phase 4** has no defined contents in the Master Plan. Scoping it is the user's call.
-- Remaining unscheduled Priority 1 brief: **#13 Real-world light meter**. Browsers can't read a camera's real exposure; the brief itself allows manual EV or a clearly labelled estimate. Worth a scoping decision with the user first.
+- **#20 — Virtual Leica Store / kiosk mode** (next in the work queue).
+- **#2:** the real-phone check, whenever the user can.
 
 ## Blockers
 

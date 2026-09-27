@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "updated": "2026-09-27",
+  "about": "Historical notes for the timeline (feature #23). Concise original summaries; every note cites its source. Years and specs shown on the timeline come from the gear catalogue, not from here. Notes deliberately avoid stating years so they can't drift from the catalogue.",
+  "notes": [
+    {
+      "id": "m3-mount-finder",
+      "bodyId": "m3",
+      "text": "Introduced the M bayonet, a mount that has stayed unchanged since, and was the first Leica to combine rangefinder and viewfinder in one window.",
+      "provenance": {
+        "kind": "reference",
+        "source": "Wikipedia, \"Leica M3\"",
+        "url": "https://en.wikipedia.org/wiki/Leica_M3",
+        "checked": "2026-09-27"
+      }
+    },
+    {
+      "id": "m4-loading",
+      "bodyId": "m4",
+      "text": "Brought faster film loading without a removable spool, and an angled rewind crank in place of the telescopic knob.",
+      "provenance": {
+        "kind": "reference",
+        "source": "Wikipedia, \"Leica M4\"",
+        "url": "https://en.wikipedia.org/wiki/Leica_M4",
+        "checked": "2026-09-27"
+      }
+    },
+    {
+      "id": "m6-meter",
+      "bodyId": "m6",
+      "text": "Added a built-in light meter with no moving parts, read out by LEDs in the viewfinder when the release is half-pressed.",
+      "provenance": {
+        "kind": "reference",
+        "source": "Wikipedia, \"Leica M6\"",
+        "url": "https://en.wikipedia.org/wiki/Leica_M6",
+        "checked": "2026-09-27"
+      }
+    },
+    {
+      "id": "m7-auto",
+      "bodyId": "m7",
+      "text": "Introduced aperture-priority auto exposure to the M: you set the aperture, the camera picks the shutter speed. The shutter is electronically controlled, with 1/60 and 1/125 mechanically governed.",
+      "provenance": {
+        "kind": "reference",
+        "source": "Wikipedia, \"Leica M7\"",
+        "url": "https://en.wikipedia.org/wiki/Leica_M7",
+        "checked": "2026-09-27"
+      }
+    },
+    {
+      "id": "m8-digital",
+      "year": 2006,
+      "title": "M8",
+      "text": "The first digital camera in the M series: an APS-H CCD sensor with a 1.33× crop factor. Not in the simulator's catalogue.",
+      "provenance": {
+        "kind": "reference",
+        "source": "Wikipedia, \"Leica M8\"",
+        "url": "https://en.wikipedia.org/wiki/Leica_M8",
+        "checked": "2026-09-27"
+      },
+      "medium": "digital",
+      "mount": "M",
+      "finder": "rangefinder"
+    },
+    {
+      "id": "m9-full-frame",
+      "bodyId": "m9",
+      "text": "A full-frame digital M with an 18.5-megapixel Kodak sensor, compatible with almost all M-mount lenses.",
+      "provenance": {
+        "kind": "reference",
+        "source": "Wikipedia, \"Leica M9\"",
+        "url": "https://en.wikipedia.org/wiki/Leica_M9",
+        "checked": "2026-09-27"
+      }
+    },
+    {
+      "id": "m240-liveview",
+      "bodyId": "m240",
+      "text": "Moved the M to a CMOS sensor, and was the first M with live view and movie recording.",
+      "provenance": {
+        "kind": "reference",
+        "source": "Wikipedia, \"Leica M (Typ 240)\"",
+        "url": "https://en.wikipedia.org/wiki/Leica_M_(Typ_240)",
+        "checked": "2026-09-27"
+      }
+    },
+    {
+      "id": "m10-slim",
+      "bodyId": "m10",
+      "text": "A 24-megapixel CMOS M with a body about 4 mm thinner than the Typ 240.",
+      "provenance": {
+        "kind": "reference",
+        "source": "Wikipedia, \"Leica M10\"",
+        "url": "https://en.wikipedia.org/wiki/Leica_M10",
+        "checked": "2026-09-27"
+      }
+    },
+    {
+      "id": "noctilux-12-asph",
+      "year": 1966,
+      "title": "Noctilux 50 f/1.2",
+      "text": "The original Noctilux was the first serially produced lens in the world to use aspherical elements. The catalogue has its later reissue, the Noctilux-M 50 f/1.2 ASPH.",
+      "provenance": {
+        "kind": "reference",
+        "source": "Wikipedia, \"Leica Noctilux\"",
+        "url": "https://en.wikipedia.org/wiki/Leica_Noctilux",
+        "checked": "2026-09-27"
+      },
+      "mount": "M"
+    },
+    {
+      "id": "noctilux-10",
+      "lensId": "m-50-1.0",
+      "text": "Stayed in production for over thirty years.",
+      "provenance": {
+        "kind": "reference",
+        "source": "Wikipedia, \"Leica Noctilux\"",
+        "url": "https://en.wikipedia.org/wiki/Leica_Noctilux",
+        "checked": "2026-09-27"
+      }
+    },
+    {
+      "id": "noctilux-095",
+      "lensId": "m-50-0.95",
+      "text": "Designed by Peter Karbe at Leica's Wetzlar facility.",
+      "provenance": {
+        "kind": "reference",
+        "source": "Wikipedia, \"Leica Noctilux\"",
+        "url": "https://en.wikipedia.org/wiki/Leica_Noctilux",
+        "checked": "2026-09-27"
+      }
+    }
+  ]
+}

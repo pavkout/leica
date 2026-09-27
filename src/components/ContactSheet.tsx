@@ -13,6 +13,8 @@ interface Props {
   onRewind: () => void;
   onUpdateNote: (id: number, note: string) => void;
   onUpdateOutcome: (id: number, outcome: OutcomeTag | undefined) => void;
+  /** The roll's recorded development (Darkroom mode), if any. */
+  development?: string | null;
 }
 
 /** Triggers a browser download of in-memory text; no server round-trip. */
@@ -29,7 +31,7 @@ function toExportable(f: Frame): ExportableFrame {
   return { number: f.number, fileName: f.fileName, meta: f.meta, note: f.note };
 }
 
-export default function ContactSheet({ frames, capacity, filmName, base, onRewind, onUpdateNote, onUpdateOutcome }: Props) {
+export default function ContactSheet({ frames, capacity, filmName, base, onRewind, onUpdateNote, onUpdateOutcome, development }: Props) {
   const [openId, setOpenId] = useState<number | null>(null);
   const open = frames.find((f) => f.id === openId) ?? null;
   const dialog = useRef<HTMLDialogElement>(null);
@@ -70,6 +72,7 @@ export default function ContactSheet({ frames, capacity, filmName, base, onRewin
           )}
         </span>
       </div>
+      {film && development && <p className="small roll-developed">Developed: {development}</p>}
 
       {frames.length === 0 ? (
         <p className="muted small">

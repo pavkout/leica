@@ -9,6 +9,8 @@ import { useCameraStream } from "../state/useCameraStream";
 import { recipeEvRange, type Recipe } from "../data/recipes";
 import { recipeLightMismatch } from "../physics/recipes";
 import LensBarrel from "./LensBarrel";
+import LightMeter from "./LightMeter";
+import { coverToFrame, type Region } from "../physics/meter";
 
 interface Props {
   body: Body;
@@ -62,6 +64,23 @@ export default function LiveView({
   const [sceneEv100, setSceneEv100] = useState(DEFAULT_CONDITION.ev100);
   const [videoReady, setVideoReady] = useState(false);
   const [flash, setFlash] = useState(0);
+  // Light meter (feature #13): tapped spot, and the element being metered.
+  const [meterRegion, setMeterRegion] = useState<Region | null>(null);
+  const [spotMark, setSpotMark] = useState<{ x: number; y: number } | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const meterAt = (e: React.MouseEvent<HTMLElement>) => {
+    const el = e.currentTarget;
+    const r = el.getBoundingClientRect();
+    const px = e.clientX - r.left;
+    const py = e.clientY - r.top;
+    // The picture is cropped to fill (object-fit: cover); the meter samples the whole frame.
+    const srcW = el instanceof HTMLVideoElement ? el.videoWidth : el instanceof HTMLImageElement ? el.naturalWidth : 0;
+    const srcH = el instanceof HTMLVideoElement ? el.videoHeight : el instanceof HTMLImageElement ? el.naturalHeight : 0;
+    const { x, y } = coverToFrame(px, py, r.width, r.height, srcW, srcH);
+    setSpotMark({ x: px / r.width, y: py / r.height });
+    const size = 0.12;
+    setMeterRegion({ x: Math.min(Math.max(x - size / 2, 0), 1 - size), y: Math.min(Math.max(y - size / 2, 0), 1 - size), w: size, h: size });
+  };
 
   useEffect(() => {
     void start();
@@ -117,9 +136,12 @@ export default function LiveView({
       </button>
 
       <div className="live-view-stage">
+        {meterRegion && spotMark && (status === "streaming" || synthetic) && (
+          <span className="live-view-spot" aria-hidden="true" style={{ left: `${spotMark.x * 100}%`, top: `${spotMark.y * 100}%` }} />
+        )}
         {status === "streaming" ? (
           <>
-            <video ref={videoRef} className="live-view-video" autoPlay playsInline muted onLoadedMetadata={() => setVideoReady(true)} />
+            <video ref={videoRef} className="live-view-video" autoPlay playsInline muted onLoadedMetadata={() => setVideoReady(true)} onClick={meterAt} />
             {!tooWide ? (
               <div
                 className="live-view-frameline"
@@ -148,7 +170,7 @@ export default function LiveView({
           </>
         ) : synthetic ? (
           <>
-            <img className="live-view-video" src={syntheticSceneUrl} alt="Synthetic street scene standing in for the camera" />
+            <img ref={imgRef} className="live-view-video" src={syntheticSceneUrl} alt="Synthetic street scene standing in for the camera" onClick={meterAt} />
             {framelines}
             <span className="live-view-badge">Synthetic scene — no camera available. Framelines, exposure and zone focus work the same.</span>
           </>
@@ -186,6 +208,21 @@ export default function LiveView({
           <span className="muted small live-view-zone">
             Zone focus at {formatFNumber(fNumber)}: set {formatDistance(hyperfocalMm, units)} — sharp from {formatDistance(hyperfocalMm / 2, units)} to ∞
           </span>
+        </div>
+
+        <div className="live-view-meter">
+          <LightMeter
+            sourceRef={status === "streaming" ? videoRef : imgRef}
+            track={streamRef.current?.getVideoTracks()[0] ?? null}
+            active={status === "streaming" || synthetic}
+            region={meterRegion}
+            baseEv100={sceneEv100}
+            iso={iso}
+            apertures={stops}
+            speeds={shutters}
+            fNumber={fNumber}
+            onUseReading={(ev) => setSceneEv100(Math.round(ev * 3) / 3)}
+          />
         </div>
 
         <div className="live-view-ev">

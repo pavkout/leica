@@ -29,6 +29,17 @@ import { preload3D, threeDAvailable } from "./three/capabilities";
 import DemoTour from "./components/DemoTour";
 import RecipesPanel from "./components/RecipesPanel";
 import MotionSimulator from "./components/MotionSimulator";
+import LensTrial from "./components/LensTrial";
+import LensGenerations from "./components/LensGenerations";
+import LongExposureLab from "./components/LongExposureLab";
+import CameraAnatomy from "./components/CameraAnatomy";
+import MuseumTimeline from "./components/MuseumTimeline";
+import Darkroom from "./components/Darkroom";
+import { describeRecord, parseRecord, type DevelopmentRecord } from "./physics/darkroom";
+import { bodyForLens } from "./data/timeline";
+import PerspectiveLab from "./components/PerspectiveLab";
+import RangefinderCalibration from "./components/RangefinderCalibration";
+import { parseTrial } from "./physics/lensTrial";
 import { findRecipe, type Recipe } from "./data/recipes";
 import { recipePlan } from "./physics/recipes";
 import { findFilm } from "./preview/film";
@@ -44,6 +55,7 @@ import {
   findBody,
   findLens,
   isAdapted,
+  lensesForBody,
   formatShutter,
   nearestStop,
   shutterSpeeds,
@@ -98,6 +110,8 @@ const STREET_EV = 5;
 const PHONE_FOV_DEG = ASSUMED_PHONE_FOV_DEG;
 const sampleCache = new Map<string, Promise<PhotoScene>>();
 const ROLL_LENGTH = 36;
+/** The current roll's recorded development (Darkroom mode), cleared on rewind. */
+const DEV_RECORD_KEY = "rangefinder-roll-development";
 
 function previewSide(lens: Lens, shot: Shot, develop?: DevelopParams, photo?: PhotoScene | null): PreviewSide {
   return {
@@ -223,6 +237,11 @@ export default function App() {
   // Capture.
   const [muted, setMutedState] = useState(isMuted);
   const [rollFrames, setRollFrames] = useState<Frame[]>([]);
+  const [devRecord, setDevRecordState] = useState<DevelopmentRecord | null>(() => parseRecord(getString(DEV_RECORD_KEY)));
+  function setDevRecord(r: DevelopmentRecord | null) {
+    setDevRecordState(r);
+    setString(DEV_RECORD_KEY, r ? JSON.stringify(r) : "");
+  }
   const [cardFrames, setCardFrames] = useState<Frame[]>([]);
   useEffect(() => {
     loadStoredFrames("film").then(setRollFrames);
@@ -465,6 +484,7 @@ export default function App() {
     playRewind();
     setRollFrames([]);
     void clearStoredFrames("film");
+    setDevRecord(null);
   }
 
   function updateFrameNote(id: number, note: string) {
@@ -534,6 +554,23 @@ export default function App() {
     setFocusMm(plan.focusMm);
     setActiveRecipe({ id: r.id, notes: plan.notes });
   }
+  // A shared trial link (?try=1&body=…&lens=…&d=…&scene=…&f=…) recreates that setup once on open.
+  // Every id is checked against the catalogue first, so a bad link can't break the app.
+  const trialFromLink = useRef(typeof location !== "undefined" ? parseTrial(location.search) : null);
+  useEffect(() => {
+    const t = trialFromLink.current;
+    trialFromLink.current = null;
+    if (!t) return;
+    const trialBody = BODIES.find((b) => b.id === t.bodyId);
+    const trialLens = trialBody && lensesForBody(trialBody).find((l) => l.id === t.lensId);
+    if (!trialBody || !trialLens) return;
+    selectBody(trialBody.id);
+    selectLens(trialLens.id);
+    setFocusMm(Math.max(t.distanceMm, trialLens.minFocusMm));
+    if (t.fNumber && t.fNumber >= trialLens.maxAperture && t.fNumber <= trialLens.minAperture) changeAperture(t.fNumber);
+    if (t.sceneId === "street" || SAMPLE_SCENES.some((sc) => sc.id === t.sceneId)) void selectScene(t.sceneId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // A shared recipe link (?recipe=<id>) loads that recipe once on open.
   const recipeFromLink = useRef(typeof location !== "undefined" ? new URLSearchParams(location.search).get("recipe") : null);
   useEffect(() => {
@@ -778,6 +815,7 @@ export default function App() {
           )}
 
           <FinderCompare lens={lens} sceneImageUrl={sampleInfo?.image} />
+          {body.rangefinder && <RangefinderCalibration lens={lens} fNumber={fNumber} cocMm={shot.cocMm} units={units} />}
 
           <section className="panel stage-barrel" aria-label="Lens">
             <div className="panel-head">
@@ -840,6 +878,24 @@ export default function App() {
           {FLAGS.experimentalLensCharacter && (
             <FlareLab lens={lens} fNumber={fNumber} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} onAperture={changeAperture} />
           )}
+          <PerspectiveLab key={lens.id} lens={lens} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} focusMm={focusMm} units={units} />
+
+          <CameraAnatomy shutterSec={shutterSec} />
+
+          <MuseumTimeline
+            body={body}
+            units={units}
+            onSimulate={(item) => {
+              if (item.body) selectBody(item.body.id);
+              else if (item.lens) {
+                const target = bodyForLens(item.lens, body);
+                if (!target) return;
+                if (target.id !== body.id) selectBody(target.id);
+                selectLens(item.lens.id);
+              }
+              document.querySelector(".stage-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          />
 
           <ContactSheet
             frames={frames}
@@ -849,6 +905,23 @@ export default function App() {
             onRewind={rewind}
             onUpdateNote={updateFrameNote}
             onUpdateOutcome={updateFrameOutcome}
+            development={isFilm && devRecord ? describeRecord(devRecord) : null}
+          />
+
+          <Darkroom
+            rollFilm={isFilm ? baseLook : null}
+            rollFrames={rollFrames.length}
+            boxIso={boxIso}
+            rollEi={isFilm ? filmEI : null}
+            pushPullStops={pushPullStops}
+            onPushPull={(stops) => {
+              playDialClick();
+              setPushPullStops(stops);
+            }}
+            recorded={devRecord ? describeRecord(devRecord) : null}
+            onRecord={(filmId, choice) =>
+              setDevRecord({ filmId, filmName: baseLook.name, frames: rollFrames.length, choice, recordedAt: new Date().toISOString().slice(0, 10) })
+            }
           />
 
           <Insights frames={frames} />
@@ -922,6 +995,8 @@ export default function App() {
             units={units}
           />
 
+          <LongExposureLab body={body} lens={lens} frameShortMm={shot.frameHeightMm} units={units} />
+
           <IntentAssistant
             sceneEv100={sceneEv}
             iso={iso}
@@ -935,6 +1010,36 @@ export default function App() {
               changeShutter(result.shutterSec);
               if (body.autoExposure) setAutoExposure(false);
               if (result.focusMm !== undefined) setFocusMm(result.focusMm);
+            }}
+          />
+
+          <LensTrial
+            body={body}
+            lens={lens}
+            lenses={lenses}
+            frameWidthMm={shot.frameWidthMm}
+            frameHeightMm={shot.frameHeightMm}
+            focusMm={focusMm}
+            sceneId={sceneId}
+            fNumber={fNumber}
+            units={units}
+            onTry={(lensId, distanceMm) => {
+              if (lensId !== lens.id) selectLens(lensId);
+              const l = lenses.find((x) => x.id === lensId) ?? lens;
+              setFocusMm(Math.max(distanceMm, l.minFocusMm));
+            }}
+          />
+
+          <LensGenerations
+            body={body}
+            lens={lens}
+            cocMm={shot.cocMm}
+            focusMm={focusMm}
+            units={units}
+            onTry={(lensId) => {
+              selectLens(lensId);
+              const l = lenses.find((x) => x.id === lensId);
+              if (l && Number.isFinite(focusMm) && focusMm < l.minFocusMm) setFocusMm(l.minFocusMm);
             }}
           />
 
