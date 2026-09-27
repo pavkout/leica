@@ -49,8 +49,17 @@ export default function KioskShell({ config, onSelectBody, onSelectLens }: Props
   // Idle watch: any input counts as activity. Home is already clean, so it never resets from there.
   useEffect(() => {
     const touch = () => (lastActivity.current = performance.now());
-    const events = ["pointerdown", "pointermove", "keydown", "wheel", "touchstart", "scroll"] as const;
+    // Browsers send pointermove to a parked cursor when content moves under it; only real movement counts.
+    let last = { x: NaN, y: NaN };
+    const move = (e: PointerEvent) => {
+      if (Math.abs(e.clientX - last.x) < 2 && Math.abs(e.clientY - last.y) < 2) return;
+      const first = Number.isNaN(last.x);
+      last = { x: e.clientX, y: e.clientY };
+      if (!first) touch();
+    };
+    const events = ["pointerdown", "keydown", "wheel", "touchstart"] as const;
     events.forEach((e) => window.addEventListener(e, touch, { passive: true, capture: true }));
+    window.addEventListener("pointermove", move, { passive: true, capture: true });
     const id = window.setInterval(() => {
       const p = idlePhase(lastActivity.current, performance.now(), config.idleSec);
       setIdle((prev) => (prev.phase === p.phase && prev.secondsLeft === p.secondsLeft ? prev : p));
@@ -62,6 +71,7 @@ export default function KioskShell({ config, onSelectBody, onSelectLens }: Props
     }, 250);
     return () => {
       events.forEach((e) => window.removeEventListener(e, touch, { capture: true }));
+      window.removeEventListener("pointermove", move, { capture: true });
       window.clearInterval(id);
     };
   }, [config.idleSec, s.step]);

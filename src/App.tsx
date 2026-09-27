@@ -35,6 +35,8 @@ import LongExposureLab from "./components/LongExposureLab";
 import CameraAnatomy from "./components/CameraAnatomy";
 import MuseumTimeline from "./components/MuseumTimeline";
 import Darkroom from "./components/Darkroom";
+import KioskShell from "./components/KioskShell";
+import { parseKiosk } from "./state/kiosk";
 import { describeRecord, parseRecord, type DevelopmentRecord } from "./physics/darkroom";
 import { bodyForLens } from "./data/timeline";
 import PerspectiveLab from "./components/PerspectiveLab";
@@ -219,6 +221,8 @@ export default function App() {
   const [picker, setPicker] = useState<"body" | "lens" | null>(null);
   const [challenge, setChallenge] = useState<{ subjectMm: number; shotTaken: boolean } | null>(null);
   const [liveViewOpen, setLiveViewOpen] = useState(false);
+  // Kiosk mode (feature #20): `?kiosk[=idleSeconds]` puts a guided shell over the same app.
+  const [kiosk] = useState(() => (typeof location !== "undefined" ? parseKiosk(location.search) : parseKiosk("")));
   // 60-second tour (feature #35): `?demo` starts it on load (event/kiosk use).
   const [demoActive, setDemoActive] = useState(() => typeof location !== "undefined" && new URLSearchParams(location.search).has("demo"));
   // The tour's rangefinder step puts the subject at a fixed distance, so the patch can be split and aligned.
@@ -1267,6 +1271,8 @@ export default function App() {
           recipe={findRecipe(activeRecipe?.id)}
         />
       )}
+
+      {kiosk.enabled && <KioskShell config={kiosk} onSelectBody={selectBody} onSelectLens={selectLens} />}
 
       {demoActive && (
         <div hidden={liveViewOpen}>

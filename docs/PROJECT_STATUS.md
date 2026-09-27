@@ -23,7 +23,7 @@ Last updated: 2026-09-27
 **None in progress.**
 - **Phase 3:** every feature is COMPLETE except **#2**, which is code complete and waits only for the real-phone check.
 - **Also done in the overnight run:** two unscheduled Priority 1 briefs, #28 Photo Recipes and #8 Motion Simulator.
-- **Work queue (below):** #13, #19, #26, #7 and #24 are COMPLETE, #36 has its MVP and #21 an illustrative version (both PARTIAL); #23 and #34 are COMPLETE; next is **#20 Virtual Leica Store / kiosk mode**.
+- **Work queue (below):** #13, #19, #26, #7 and #24 are COMPLETE, #36 has its MVP and #21 an illustrative version (both PARTIAL); #23, #34 and #20 are COMPLETE. **The work queue is finished**; what comes next needs the user's decision (see Next).
 
 **Feature #2 — Virtual Leica, full 3D camera and lens**
 
@@ -67,7 +67,7 @@ The Master Plan's remaining briefs, in the plan's priority order. Recorded here,
 7. [x] #21 — Exploded camera view (P4) — PARTIAL (illustrative 2D; authored 3D assets open)
 8. [x] #23 — Leica timeline / interactive museum (P4)
 9. [x] #34 — Darkroom mode (P4)
-10. [ ] #20 — Virtual Leica Store / kiosk mode (P4) ← **next**
+10. [x] #20 — Virtual Leica Store / kiosk mode (P4)
 
 Items 7–10 are the "Explore / Kiosk / Museum" group this file already names as Phase 4. #2's real-phone check stays open alongside.
 
@@ -119,6 +119,48 @@ Things to try by hand. Nothing is committed; everything below is in the working 
 
 ## Last completed
 
+**Feature #20 — Virtual Leica Store / kiosk mode** (Priority 4, work queue) — **COMPLETE** (2026-09-27)
+
+Implemented:
+- `state/kiosk.ts` (pure):
+  - `parseKiosk`: `?kiosk` or `?kiosk=<idle seconds>`, clamped 5 s – 1 h, default 90.
+  - The guided-flow reducer: home → body → lens → try, with back and reset. TRY IT only with a body and lens, and a new body drops the lens.
+  - `idlePhase` / `warningSec`: a "Still there?" warning up to 10 s before reset.
+  - `keysToClear`: every `rangefinder*` key except venue settings (`rangefinder-muted`).
+  - `emitKioskEvent`: an analytics hook. It fires a `rangefinder-kiosk` DOM event and calls `window.rangefinderKioskAnalytics` if the venue page defines it. Nothing is collected or sent by the app.
+- `components/KioskShell.tsx`: **a presentation layer over the same app and state engine**. It calls the app's own `selectBody` / `selectLens`, and on TRY IT gets out of the way, leaving the real simulator with a floating "Start over" bar.
+  - Home: a large "Tap to start", "Full screen" where supported, and "no prices or availability are shown". No retail inventory is hardwired.
+  - Body grid of large cards (`BodyArt`).
+  - The lens step: **tap, or drag a lens onto the camera**. Pointer capture, an 8 px drag threshold and a ghost under the finger. The lens list is a sideways carousel so upward drags reach the camera.
+  - A **bayonet-lock animation** (none with reduced motion) and the existing mechanical `playMountClick`. Fixed-lens bodies skip to TRY IT.
+  - **Idle reset:** clears the visitor's stored keys and both frame stores (IndexedDB), then reloads the kiosk URL, so every visitor starts clean *and* with a fresh JS heap.
+  - Only real input counts as activity. Browsers send `pointermove` to a parked cursor when content moves under it; that's filtered out, after a Chromium run showed it kept the kiosk "active" forever.
+- `public/kiosk-sw.js`: an **offline cache**, registered only in kiosk mode and only in production builds. Page loads are network-first with a cache fallback; same-origin assets are cache-first, filled on first use.
+- 6 unit tests: config parsing and clamping; the flow and its guards; **reset always returns a clean home** (acceptance); warning then reset timing; reset scope.
+
+Validation:
+- Browser checks **32/32** on WebKit iPhone 13 and Chromium:
+  - The normal app has no shell; kiosk opens on a clean home; 72 px targets.
+  - TRY IT is disabled until a lens is attached; **drag** (Chromium, mouse, with ghost) and **tap** (iPhone) lock the lens on.
+  - **TRY IT shows the same simulator with that camera** (acceptance: shared code); analytics events in order.
+  - The idle warning appears and activity cancels it; **idle reset returns to a clean home** (acceptance); the stored state and the previous visitor's frames are gone; Start over works.
+  - **No memory growth over six sessions: 15.5 → 14.2 → 14.2 → 14.2 → 14.2 → 14.2 MB JS heap** (acceptance, Chromium CDP after GC).
+  - No scroll or errors.
+- **Offline check 5/5** against a production build (`vite preview`, Chromium):
+  - No service worker for the normal app; the kiosk worker controls the page.
+  - After one run-through, **offline reload still opens the kiosk and TRY IT still shows the simulator**.
+- The lens-step screenshot was reviewed; the `.btn` flex-grow that stretched kiosk buttons was fixed.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 437/437 unit tests, production build (main bundle 153 KB gz). Full browser regression: all 23 suites green (#2 ×4, #5, #4, #25, #33, #35, #28, #8, #13, #19, #26, #7, #24, #36, #21, #23, #34, #20, #22, #9). One #22 iPhone SE run first logged a transient "Internet connection appears offline" from the Google Fonts preconnect (machine network); #22 was rerun alone: 213/213.
+
+Known limitations:
+- "Hours without memory growth" was checked as six sessions with a reload-based reset, not a multi-hour soak on the venue's hardware.
+- Once registered, the worker serves (network-first) for the whole origin, not only `?kiosk` pages.
+- The offline cache holds only what a run-through has loaded.
+- The iPhone has no Fullscreen API for pages; use Guided Access or a home-screen web app.
+- The drag was tested with a mouse, and touch only by tap.
+
+---
+
 **Feature #34 — Darkroom mode** (Priority 4, work queue) — **COMPLETE** (v1, conceptual) (2026-09-27)
 
 The plan asks v1 to focus on conceptual simulation. The timer/checklist utility is explicitly "a later, separate utility" and isn't part of this feature.
@@ -155,7 +197,7 @@ Validation:
   - **Darkroom Push 1 is the exposure panel's Push 1.**
   - **The record appears on the contact sheet** (acceptance), survives a reload, and rewind clears it.
   - No scroll, spill or errors.
-- Typecheck clean, lint 0 errors (5 pre-existing warnings), 431/431 unit tests, production build (main bundle 151 KB gz). Full browser regression: see below.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 431/431 unit tests, production build (main bundle 151 KB gz). Full browser regression: all 22 suites green (#2 ×4, #5, #4, #25, #33, #35, #28, #8, #13, #19, #26, #7, #24, #36, #21, #23, #34, #22, #9).
 
 Known limitations:
 - No real times until sourced data is added.
@@ -1095,7 +1137,10 @@ Known limitations: checked in WebKit emulation, not on a physical iPhone. The M3
 
 ## Next
 
-- **#20 — Virtual Leica Store / kiosk mode** (next in the work queue).
+- **The agreed work queue is finished.** Candidates, for the user to choose from:
+  - Finish the PARTIAL items: #36's later enhancements (Pattern Designer, text, multi-light, challenges, roll logging), or #21 with authored 3D assets.
+  - Add sourced data: `PROCESS_TIMES` (#34), `LENS_CHARACTER_PROFILES` (#4/#24), `BREATHING_PROFILES` (#26).
+  - Define Phase 4 in the Master Plan.
 - **#2:** the real-phone check, whenever the user can.
 
 ## Blockers

@@ -3438,6 +3438,260 @@ input[type="range"] {
   }
 }
 
+/* Kiosk mode (feature #20) */
+.kiosk-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  background: var(--bg, #0e0f11);
+  color: var(--text);
+}
+
+.kiosk-shell .btn,
+.kiosk-bar .btn {
+  flex: none;
+}
+
+.kiosk-big {
+  min-height: 56px;
+  padding: 0 24px;
+  font-size: 18px;
+}
+
+.kiosk-home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 100%;
+  text-align: center;
+}
+
+.kiosk-title {
+  margin: 0;
+  font-size: clamp(40px, 9vw, 88px);
+  letter-spacing: -0.02em;
+}
+
+.kiosk-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 20px;
+}
+
+.kiosk-start {
+  min-width: 260px;
+  min-height: 72px;
+  font-size: 22px;
+}
+
+.kiosk-fine {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.kiosk-step {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.kiosk-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.kiosk-head h2 {
+  margin: 0;
+  font-size: clamp(18px, 3vw, 28px);
+}
+
+.kiosk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.kiosk-card,
+.kiosk-lens {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 120px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #17181b;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.kiosk-card svg,
+.kiosk-card img {
+  width: 100%;
+  height: auto;
+}
+
+.kiosk-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.kiosk-card-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.kiosk-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  border: 2px dashed var(--line);
+  border-radius: 18px;
+}
+
+.kiosk-drop > div {
+  width: min(420px, 100%);
+}
+
+.kiosk-drop svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.kiosk-drop-armed {
+  border-color: var(--red);
+}
+
+.kiosk-drop-text {
+  margin: 8px 0 0;
+  font-size: 18px;
+}
+
+.kiosk-lock {
+  animation: kiosk-bayonet 0.45s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+@keyframes kiosk-bayonet {
+  from { transform: rotate(-12deg) scale(0.97); }
+  70% { transform: rotate(1deg) scale(1); }
+  to { transform: rotate(0deg); }
+}
+
+/* A horizontal carousel: sideways swipes scroll it, upward drags carry a lens to the camera. */
+.kiosk-lenses {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-bottom: 6px;
+}
+
+.kiosk-lens {
+  flex: 0 0 150px;
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.kiosk-lens svg {
+  width: 100%;
+  height: 70px;
+  pointer-events: none;
+}
+
+.kiosk-lens-on {
+  border-color: var(--red);
+}
+
+.kiosk-try {
+  align-self: center;
+  min-width: 240px;
+  min-height: 72px;
+  font-size: 24px;
+  letter-spacing: 0.08em;
+}
+
+.kiosk-ghost {
+  position: fixed;
+  z-index: 9100;
+  width: 120px;
+  transform: translate(-50%, -50%);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.kiosk-ghost svg {
+  width: 100%;
+  height: auto;
+}
+
+.kiosk-bar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 8500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(18, 19, 22, 0.94);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.kiosk-bar-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.kiosk body {
+  padding-bottom: 96px;
+}
+
+.kiosk-warning {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.82);
+  color: var(--text);
+  font-size: 20px;
+  text-align: center;
+}
+
+.kiosk-warning-title {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kiosk-lock {
+    animation: none;
+  }
+}
+
 /* Perspective lab (feature #26) */
 .stage-perspective .panel-head {
   flex-wrap: wrap;
