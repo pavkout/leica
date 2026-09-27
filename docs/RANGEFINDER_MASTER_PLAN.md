@@ -133,7 +133,7 @@ Development phases are separate roadmap milestones: Phase 0, Phase 1, Phase 2, P
 
 A Priority 1 feature is not automatically part of Phase 1. A Priority 2 feature is not automatically part of Phase 2. Feature completion must be determined from `PROJECT_STATUS.md` and the explicit milestone sections of this Master Plan.
 
-## Feature implementation briefs (1–35)
+## Feature implementation briefs (1–36)
 
 ### 1. Live Leica View  — Priority 1
 **Goal:** Turn the phone into a live shooting companion that overlays the selected Leica body/lens behavior on the real camera feed. The goal is not to pretend the phone is optically identical to the Leica; it is to help the photographer make a better decision before exposing film or pressing the shutter.
@@ -774,6 +774,58 @@ A Priority 1 feature is not automatically part of Phase 1. A Priority 2 feature 
 - Every step is interactive and also skippable.
 - Offline/demo mode still works with a synthetic scene if camera permission is denied.
 
+### 36. Long Exposure Lab (working name)  — Priority 3
+**Goal:** Turn the app into a real-world long-exposure experiment. The screen shows a pure black field with one bright moving light; the user puts their real Leica on a tripod in front of the screen, sets a slow shutter speed and photographs it. The screen only ever shows the light at its current position — the camera builds the trail through exposure over time. It connects **animation time → shutter speed → physical photograph** and belongs to the LEARN and SHOOT modes: the app sends the user back to their actual camera.
+
+Working name is open: alternatives include Light Painter, Long Exposure Playground, Light Trail Lab, Shutter Lab. Avoid names that imply Leica endorsement (see Mission).
+
+**MVP**
+- Fullscreen black stage with one bright moving point; all UI hidden while an experiment runs (Fullscreen API, controls fully hideable, tap/key to exit).
+- Patterns: circle, infinity / figure-eight, horizontal sweep, vertical sweep, spiral, Lissajous; custom geometric paths from parameters.
+- Controls: movement speed, point size, brightness, colour, pattern, cycle duration, loop / one-shot, plus a countdown start so the user can press the shutter first.
+- Learning layer before each run: suggested starting settings (ISO, aperture, shutter, focal length, tripod, manual focus at the screen distance) and what to expect. Example — infinity, 4 s cycle: ISO 100, f/8, 4 s, tripod, manual focus; 1 s → partial pattern, 4 s → about one complete pattern, 8 s → repeated, brighter overlap.
+- Screen-to-camera distance and framing suggested from the user's lens (focal length/FOV) via the existing field-of-view math.
+
+**Later enhancements**
+- Pattern Designer: draw a path with mouse/touch, SVG path import, geometric generator, text-to-path.
+- Long-exposure text: the light draws words that appear only in the photograph (e.g. M3, SUMMILUX, 1954 — see the trademark note under experimental ideas).
+- Multi-light mode: several points with different colours, speeds, trajectories and synchronized motion.
+- Guided challenges, e.g. "capture the complete infinity in one exposure", "three separate circles without clipping highlights", "a word in a 10-second exposure", "ISO 100 vs ISO 800", "f/2 vs f/8" — optional, with no compulsive mechanics (same rule as the Sunny 16 Trainer).
+- "Log this frame" into the Film Roll Companion, and compare the result with expectations via Learn From Negatives.
+
+**Experimental ideas**
+- Leica-inspired experiments: aperture-blade patterns, rangefinder-patch graphics, generic M-camera silhouettes, focal-length visualization patterns. Keep them tasteful and educational, not a gimmick.
+- Leica red dot / logo geometry and the "LEICA" word mark are trademarks: per the Mission, do not ship them without explicit authorization. Prototype with generic geometry instead.
+- Explaining refresh-rate / PWM artifacts (segmented or dotted trails) as a teaching moment about how screens actually emit light.
+
+**Engineering requirements**
+- Lightweight and client-side: Canvas 2D or WebGL, `requestAnimationFrame`, Fullscreen API, Screen Wake Lock API where supported (prevent sleep/dimming mid-exposure). No 3D engine needed; lazy-load the route.
+- Timing must be predictable: drive position from elapsed time (`performance.now()`), never from frame count, so a pattern cycle lasts its stated duration regardless of refresh rate or dropped frames. Verify cycle-duration accuracy.
+- Suggested settings come from the shared exposure engine. Screen luminance is unknown and varies widely by device and brightness setting, so the exposure suggestion is `approximate` and paired with "take a test frame, then adjust" guidance.
+- Physics to teach honestly: with a black background, trail *length* is set by shutter time, but trail *brightness* is set by light brightness, point size and speed (dwell time per point), aperture and ISO — a longer exposure repeats the path rather than brightening a single pass. The background is only black if the screen is: LCD backlight bleed records as a glow in long exposures; OLED is truly black.
+- Document display factors: refresh rate, OLED vs LCD, PWM brightness modulation, motion interpolation, screen brightness, browser fullscreen UI, device sleep.
+- Respect reduced motion: the experiment only starts on an explicit user action, and the settings/learning screens work without animation.
+- Desktop, tablet and phone support; the phone doubles as a small light source in front of the camera.
+
+**Dependencies**
+- Existing exposure engine and FOV math (settings and distance suggestions).
+- My Leica Bag (#29), to personalize settings to the user's body and lens.
+- Motion Simulator (#8), for the "what happens at 1/30, 1/8, 1 s, 4 s, 10 s, Bulb" theory before the real-camera experiment.
+- Optional: Film Roll Companion (#30), Learn From Negatives (#31), Virtual Leica (#2) to demonstrate the shutter staying open.
+
+**Relationship to the beginner-learning experience**
+- Shutter-speed lessons (Motion Simulator, Intent Assistant "freeze motion") end with a "Try this with your real camera" link that opens Long Exposure Lab with a matching pattern and suggested settings.
+- It extends the LEARN mode beyond the screen: Sunny 16, zone focus and film loading teach knowledge; this makes the user practise the shutter-speed concept on their own Leica and get a physical result they can compare with the prediction.
+
+**Product value**
+Moves the project from "a website that simulates Leica cameras" toward "an interactive Leica photography learning environment": digital simulator → photography theory → physical Leica camera → real photograph. It gets users to pick up their actual camera and experiment, which supports beginner education, the museum/exploration and kiosk directions, and a compelling live demonstration (e.g. an educational or retail setting).
+
+**Acceptance criteria**
+- A pattern cycle's real duration matches the selected duration within one display frame, across 60/120 Hz displays and after dropped frames.
+- No UI, cursor or browser chrome is visible on the stage during a run (where the Fullscreen API allows); the screen doesn't sleep mid-exposure where Wake Lock is supported, and the user is warned where it isn't.
+- Suggested settings come from the shared exposure engine and are labelled as a starting point, not a guaranteed exposure.
+- Works with no camera or sensor permissions, since the user's own Leica is the only camera involved.
+
 ## First production milestone I want you to implement after Phase 0
 
 Implement a coherent **M3 Film Companion vertical slice** before 3D:
@@ -814,6 +866,17 @@ Performance constraints:
 - Use LODs, compressed textures/meshes where supported, and dispose GPU resources on lens/body changes.
 - Suspend render loop when offscreen/hidden.
 - Maintain a no-WebGL core experience.
+
+## Future milestone candidate — Photography Lab (not yet scheduled)
+
+A possible umbrella for real-world practice modules, where the app sends the user to their own camera and compares the result with the simulator's prediction: motion blur, panning, depth of field, the exposure triangle, focusing, low light, light painting and shutter-speed experiments.
+
+**Long Exposure Lab (#36)** is the natural first module: lightweight, client-side and independent of the 3D layer.
+
+Placement:
+- After Phase 3, alongside the long-term exploration work (timeline/museum, kiosk, exploded view, darkroom).
+- Not ahead of the Phase 2/3 simulator and learning foundations it depends on: the exposure engine, My Leica Bag and the Motion Simulator.
+- It should be scheduled explicitly in `PROJECT_STATUS.md` when chosen; it isn't part of any current milestone.
 
 ## UX details that matter
 
