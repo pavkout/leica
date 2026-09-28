@@ -39,13 +39,18 @@ export function useCurtainPhase(): CurtainPhase {
  */
 export function useRoute() {
   const [route, setRoute] = useState<Route>(() => parseRoute(typeof location === "undefined" ? "" : location.hash));
+  const current = useRef(route);
+  current.current = route;
   const timers = useRef<number[]>([]);
 
   const apply = useCallback((next: Route) => {
     timers.current.forEach(clearTimeout);
     timers.current = [];
-    const same = (r: Route) => r.mode === next.mode && r.tool === next.tool;
-    if (reducedMotion()) {
+    const same = (r: Route) => r.screen === next.screen && r.mode === next.mode && r.tool === next.tool;
+    // The camera's own screens (camera, MENU) switch instantly, as buttons on a camera do;
+    // the shutter curtain is for changing pages.
+    const pageToPage = current.current.screen === "tool" && next.screen === "tool";
+    if (reducedMotion() || !pageToPage) {
       setRoute((r) => (same(r) ? r : next));
       setPhase("idle");
       return;

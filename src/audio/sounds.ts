@@ -69,18 +69,38 @@ function vibrate(ms: number) {
   }
 }
 
-function audio() {
-  if (muted || typeof window === "undefined" || !userHasInteracted()) return null;
+/** Creates the (suspended) audio context and noise buffer: the slow part, ~0.1 s on some machines. */
+function build(): AudioContext | null {
   const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Ctor) return null;
   ctx ??= new Ctor();
-  if (ctx.state === "suspended") void ctx.resume();
   if (!noise) {
     noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
     const data = noise.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
   }
   return ctx;
+}
+
+/**
+ * Builds the audio engine ahead of time, silently (the context stays suspended until a sound is played
+ * after a user gesture), so the first click under a finger isn't delayed by setting it up.
+ */
+export function prepareAudio() {
+  if (muted || typeof window === "undefined" || ctx) return;
+  try {
+    build();
+  } catch {
+    // No audio here; sounds simply stay off.
+  }
+}
+
+function audio() {
+  if (muted || typeof window === "undefined" || !userHasInteracted()) return null;
+  const ac = build();
+  if (!ac) return null;
+  if (ac.state === "suspended") void ac.resume();
+  return ac;
 }
 
 /** A filtered noise burst with an exponential decay. */

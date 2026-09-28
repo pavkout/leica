@@ -133,7 +133,7 @@ Development phases are separate roadmap milestones: Phase 0, Phase 1, Phase 2, P
 
 A Priority 1 feature is not automatically part of Phase 1. A Priority 2 feature is not automatically part of Phase 2. Feature completion must be determined from `PROJECT_STATUS.md` and the explicit milestone sections of this Master Plan.
 
-## Feature implementation briefs (1–36)
+## Feature implementation briefs (1–37)
 
 ### 1. Live Leica View  — Priority 1
 **Goal:** Turn the phone into a live shooting companion that overlays the selected Leica body/lens behavior on the real camera feed. The goal is not to pretend the phone is optically identical to the Leica; it is to help the photographer make a better decision before exposing film or pressing the shutter.
@@ -825,6 +825,54 @@ Moves the project from "a website that simulates Leica cameras" toward "an inter
 - No UI, cursor or browser chrome is visible on the stage during a run (where the Fullscreen API allows); the screen doesn't sleep mid-exposure where Wake Lock is supported, and the user is warned where it isn't.
 - Suggested settings come from the shared exposure engine and are labelled as a starting point, not a guaranteed exposure.
 - Works with no camera or sensor permissions, since the user's own Leica is the only camera involved.
+
+### 37. The camera is the interface ("hold a Leica")  — Priority 1
+Added 2026-09-28 at the user's request. This supersedes the four-mode dial navigation as the app's home.
+
+**Goal:** Using the app should feel like holding a Leica. The full screen is the camera, the image is always centre stage, and every setting is changed with a camera control. Every change shows in the image straight away: static scene, photo, or live camera.
+
+**Decisions (user, 2026-09-28)**
+- The interface follows the chosen body:
+  - Digital Ms get a rear screen with an LCD info line, an ISO dial, and PLAY / FN / MENU.
+  - Film Ms show the rangefinder viewfinder, with the shutter dial, film-advance lever and frame counter. A held "preview" shows the simulated exposure, labelled as simulated.
+- Landscape first, held with two hands. Portrait works with a stacked layout.
+- Live simulation goes all the way: brightness, ISO grain and shutter motion blur in real time. Depth of field on the live camera comes from an on-device depth model, is labelled approximate, and can be switched off.
+
+**Controls (placed as on an M, sized for thumbs)**
+- Top plate:
+  - Shutter-speed dial with detents, including A where the body has it.
+  - ISO dial on digital bodies.
+  - Shutter release: half-press meters, full press shoots.
+  - Film-advance lever on film bodies.
+- Lens: aperture ring (click stops, engraved scale) and focus ring (tab, distance scale), with the depth-of-field scale between them.
+- Back:
+  - A thumb wheel for exposure compensation.
+  - PLAY: review the roll or card.
+  - FN: a configurable quick setting.
+  - MENU: a Leica-style menu (black, list-based, red selection) holding everything that isn't a direct camera control. That covers scenes, film and sensor, trainers, labs, darkroom, timeline, 3D, and settings.
+
+**Feedback**
+- Turning any control updates the image within one display frame at interactive quality. Full quality follows when the control is released.
+- Each control gives its mechanical sound (#32) and a short haptic tick where supported.
+- A live exposure meter (the LEDs on film Ms, a scale on digital) responds to aperture, shutter, ISO and compensation.
+
+**Live camera (#1 folded in)**
+- The phone camera becomes the image source inside the same camera UI, never a separate screen.
+- Brightness follows the exposure error from the meter. ISO adds grain and noise. The shutter builds up frames over time, so slow speeds smear movement.
+- Depth of field comes from a depth model run in a Web Worker on a low-resolution frame a few times a second, so the UI never waits for it. Tap to focus sets the focus plane. Labelled approximate.
+
+**Engineering requirements**
+- One shared optical state (unchanged). Controls write to it; the image, meter, LCD and menu pages read from it.
+- Change detection must not serialise image data. The render loop must be rAF-driven for live sources.
+- Depth inference runs off the main thread and degrades gracefully: no WebGPU means the WASM path; no model means no live DOF, with a message.
+- Every control is operable by keyboard and screen reader as a slider or button with its value, and works with reduced motion.
+
+**Acceptance criteria**
+- Changing aperture, focus, shutter, ISO or compensation updates the image in the next frame (≤ 1 display frame of input latency, measured) on the static scene and on photos. Live exposure changes land in the next frame.
+- All existing features stay reachable through MENU; no feature is lost.
+- Film and digital bodies present their own controls (lever and finder vs ISO dial, LCD and PLAY).
+- Landscape phone: the image fills the height and the controls sit under the thumbs. No control is covered, and there's no page scrolling in camera view.
+- Live DOF never blocks input. When depth is unavailable, the app says so and keeps everything else live.
 
 ## First production milestone I want you to implement after Phase 0
 

@@ -36,12 +36,16 @@ import CameraAnatomy from "./components/CameraAnatomy";
 import MuseumTimeline from "./components/MuseumTimeline";
 import Darkroom from "./components/Darkroom";
 import KioskShell from "./components/KioskShell";
-import ModeDial from "./components/app/ModeDial";
+import CameraView from "./camera/CameraView";
+import CameraMenu from "./camera/CameraMenu";
+import Playback from "./camera/Playback";
+import LiveScreen, { type LiveHandle } from "./camera/live/LiveScreen";
+import LightPresets from "./camera/live/LightPresets";
 import ShutterCurtain from "./components/app/ShutterCurtain";
 import ToolNav from "./components/app/ToolNav";
 import ToolBoundary from "./components/app/ToolBoundary";
 import { CLOSE_MS, OPEN_MS, useRoute } from "./components/app/useRoute";
-import { DEFAULT_TOOL, TOOLS, findTool, toolForStage, toolsFor, type ModeId, type Tool, type ToolId } from "./app/tools";
+import { TOOLS, findTool, toolForStage, toolsFor, type Tool, type ToolId } from "./app/tools";
 import { parseKiosk } from "./state/kiosk";
 import { describeRecord, parseRecord, type DevelopmentRecord } from "./physics/darkroom";
 import { bodyForLens } from "./data/timeline";
@@ -67,6 +71,7 @@ import {
   formatShutter,
   nearestStop,
   shutterSpeeds,
+  isoSettings,
   type Body,
   type Lens,
 } from "./data/gear";
@@ -203,6 +208,8 @@ export default function App() {
     tripod,
     filmEI,
     pushPullStops,
+    evComp,
+    setEvComp,
     selectLens: selectLensState,
     selectFilm,
     setFNumber,
@@ -278,7 +285,13 @@ export default function App() {
   );
   const photo = sceneId === "upload" ? uploadScene : sceneId === "street" ? null : samplePhoto;
   const sampleInfo = SAMPLE_SCENES.find((s) => s.id === sceneId);
-  const sceneEv = sceneId === "upload" ? upload?.ev100 ?? 12 : sampleInfo?.ev100 ?? STREET_EV;
+  // Live camera (#37): the meter reads the real scene; without the phone's exposure data, the light the user picked.
+  const [liveOn, setLiveOn] = useState(false);
+  const [liveEv, setLiveEv] = useState<number | null>(null);
+  const [liveFallbackEv, setLiveFallbackEv] = useState(12);
+  const liveRef = useRef<LiveHandle>(null);
+  const staticEv = sceneId === "upload" ? upload?.ev100 ?? 12 : sampleInfo?.ev100 ?? STREET_EV;
+  const sceneEv = liveOn && liveEv !== null ? liveEv : staticEv;
   const sceneLabel = `${sceneId === "street" ? "Night street" : sceneId === "upload" ? "Your photo" : sampleInfo?.name ?? ""} · EV ${sceneEv}`;
   // In a photo the subject is the calibration anchor; the background is whatever the photo holds.
   const photoSubjectMm = sampleInfo ? sampleInfo.anchor.distanceM * 1000 : upload && sceneId === "upload" ? upload.distanceM * 1000 : undefined;
@@ -351,14 +364,17 @@ export default function App() {
   const auto = body.autoExposure && autoExposure;
   const speeds = shutterSpeeds(body);
   const clampShutter = (t: number) => Math.min(Math.max(t, body.shutter.fastest), body.shutter.slowest);
+  // Exposure compensation (the thumb wheel) moves what auto exposure aims for: +1 meters as if the scene were a stop darker.
   const shutterSec = auto
-    ? clampShutter(correctShutter(sceneEv, fNumber, iso))
+    ? clampShutter(correctShutter(sceneEv - evComp, fNumber, iso))
     : speeds.reduce((best, t) => (Math.abs(Math.log(t / manualShutter)) < Math.abs(Math.log(best / manualShutter)) ? t : best));
   const errorStops = exposureError(sceneEv, fNumber, shutterSec, iso);
+  /** What the meter shows: the error from the compensated target. */
+  const meterStops = errorStops - evComp;
   const shakeLikely = shutterSec > 1 / lens.focalMm;
 
   function developFor(l: Lens, n: number, frameWidthMm: number, seed: number, angle: number): DevelopParams {
-    const t = auto ? clampShutter(correctShutter(sceneEv, n, iso)) : shutterSec;
+    const t = auto ? clampShutter(correctShutter(sceneEv - evComp, n, iso)) : shutterSec;
     return {
       exposureStops: exposureError(sceneEv, n, t, iso),
       look,
@@ -378,15 +394,13 @@ export default function App() {
       : `Frame ${rollFrames.length + 1} of ${ROLL_LENGTH}`
     : `${cardFrames.length} on the card`;
 
-  // App structure: four modes of tools, routed by the URL hash (see app/tools.ts).
+  // App structure: the camera is home (#37); MENU opens the four modes of tools, routed by the URL hash (app/tools.ts).
   const { route, navigate } = useRoute();
   const toolAvailable = (t: Tool) =>
     (t.id !== "stability" || FLAGS.motionSensors) && ((t.id !== "character" && t.id !== "flare") || FLAGS.experimentalLensCharacter);
   const modeTools = toolsFor(route.mode, toolAvailable);
   const activeTool: ToolId = modeTools.some((t) => t.id === route.tool) ? route.tool : modeTools[0].id;
-  // The last tool used in each mode, so turning the dial back returns to it.
-  const lastTool = useRef<Partial<Record<ModeId, ToolId>>>({});
-  lastTool.current[route.mode] = activeTool;
+  const onTools = route.screen === "tool";
   // Tools stay mounted once visited, so their settings survive switching; the 3D view is the exception
   // and is released when left, to give back the GPU.
   const [visited, setVisited] = useState<Set<ToolId>>(() => new Set([activeTool]));
@@ -395,19 +409,18 @@ export default function App() {
   }, [activeTool]);
   const goTool = (id: ToolId) => {
     const t = findTool(id);
-    if (t) navigate({ mode: t.mode, tool: t.id });
+    if (t) navigate({ screen: "tool", mode: t.mode, tool: t.id });
   };
-  const goMode = (m: ModeId) => {
-    playDialClick();
-    navigate({ mode: m, tool: lastTool.current[m] ?? DEFAULT_TOOL[m] });
-  };
+  const goCamera = () => navigate({ ...route, screen: "camera" });
+  const [playOpen, setPlayOpen] = useState(false);
+  const cameraPreviewRef = useRef<PreviewHandle>(null);
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     (window as unknown as { __leicaNav?: unknown }).__leicaNav = { go: goTool };
   });
 
   // 3D view (feature #2): the procedural model is an M body, so it's offered for M rangefinders only.
-  const show3D = activeTool === "camera3d";
+  const show3D = onTools && activeTool === "camera3d";
   // Counts film wind-ons so the 3D advance lever strokes in time with the advance sound.
   const [advanceCount, setAdvanceCount] = useState(0);
   const can3D = FLAGS.threeD && !!body.rangefinder && lens.mount === "M" && threeDAvailable();
@@ -434,7 +447,7 @@ export default function App() {
 
   /** Adds a captured image (however it was rendered) to the current roll/card, and persists it. */
   /** `settings` records another tool's settings (e.g. the Long Exposure Lab's) instead of the simulator's. */
-  function addFrame(url: string, captionSuffix?: string, settings?: { fNumber: number; shutterSec: number; iso: number; note?: string }) {
+  function addFrame(url: string, captionSuffix?: string, settings?: { fNumber: number; shutterSec: number; iso: number; note?: string }, manualWind = false) {
     const number = frames.length + 1;
     const n = settings?.fNumber ?? fNumber;
     const t = settings?.shutterSec ?? shutterSec;
@@ -450,21 +463,32 @@ export default function App() {
     };
     (isFilm ? setRollFrames : setCardFrames)((list) => [...list, frame]);
     void saveStoredFrame(isFilm ? "film" : "digital", frame);
-    if (isFilm && rollFrames.length + 1 < ROLL_LENGTH) setTimeout(() => {
+    // In the camera the lever winds on (and plays the advance); elsewhere the app winds for you.
+    if (isFilm && !manualWind && rollFrames.length + 1 < ROLL_LENGTH) setTimeout(() => {
         playAdvance();
         setAdvanceCount((n) => n + 1);
       }, Math.min(shutterSec, 2) * 1000 + 200);
   }
 
-  function fireShutter() {
+  /** `fromCamera`: fired from the camera view, whose own preview captures and whose lever winds on. */
+  function fireShutter(fromCamera = false) {
     if (rollFull) return;
+    if (fromCamera && liveOn) {
+      // Live: the frame on the screen, as the simulated camera renders it.
+      const live = liveRef.current?.capture();
+      if (!live) return;
+      playShutter(shutterSec, shutterVoiceFor(body));
+      setFlash((f) => f + 1);
+      addFrame(live, "Live", undefined, true);
+      return;
+    }
     const seed = Math.floor(Math.random() * 100000);
     const angle = Math.random() * Math.PI;
     playShutter(shutterSec, shutterVoiceFor(body));
     setFlash((f) => f + 1);
     const side = previewSide(lens, shot, developFor(lens, fNumber, shot.frameWidthMm, seed, angle), photo);
-    const url = previewRef.current?.capture(side.params);
-    if (url) addFrame(url);
+    const url = (fromCamera ? cameraPreviewRef : previewRef).current?.capture(side.params);
+    if (url) addFrame(url, undefined, undefined, fromCamera);
   }
 
   /** Same roll/card, but the image is a real captured Live View frame, not a simulated render. */
@@ -644,7 +668,7 @@ export default function App() {
     reveal: (selector) => {
       const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
       const t = toolForStage(selector.replace(/^\./, ""));
-      if (t && t.id !== activeTool) navigate({ mode: t.mode, tool: t.id });
+      if (t && (t.id !== activeTool || !onTools)) navigate({ screen: "tool", mode: t.mode, tool: t.id });
       // Scroll once the tool is on screen (after the curtain has opened).
       window.setTimeout(
         () => document.querySelector(selector)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }),
@@ -664,6 +688,31 @@ export default function App() {
     </section>
   );
 
+  /** The scene choice: shown in the Studio and from the camera's FN button. */
+  const scenePicker = () => (
+    <ScenePicker
+      sceneId={sceneId}
+      onSelect={selectScene}
+      onUpload={uploadPhoto}
+      status={sceneStatus}
+      hasUpload={upload !== null}
+      units={units}
+      upload={
+        upload
+          ? {
+              distanceM: upload.distanceM,
+              ev100: upload.ev100,
+              onDistance: (m) => {
+                setUpload({ ...upload, distanceM: m });
+                setFocusMm(Math.max(m * 1000, lens.minFocusMm));
+              },
+              onLight: (ev) => setUpload({ ...upload, ev100: ev }),
+            }
+          : undefined
+      }
+    />
+  );
+
   const previewSection = (
     <section className="panel stage-preview" aria-label="Simulated photo">
       <div className="panel-head">
@@ -681,27 +730,7 @@ export default function App() {
           )}
         </span>
       </div>
-      <ScenePicker
-        sceneId={sceneId}
-        onSelect={selectScene}
-        onUpload={uploadPhoto}
-        status={sceneStatus}
-        hasUpload={upload !== null}
-        units={units}
-        upload={
-          upload
-            ? {
-                distanceM: upload.distanceM,
-                ev100: upload.ev100,
-                onDistance: (m) => {
-                  setUpload({ ...upload, distanceM: m });
-                  setFocusMm(Math.max(m * 1000, lens.minFocusMm));
-                },
-                onLight: (ev) => setUpload({ ...upload, ev100: ev }),
-              }
-            : undefined
-        }
-      />
+      {scenePicker()}
       <BokehPreview
         veil={challengeHidden ? "The photo appears when you take the shot." : undefined}
         ref={previewRef}
@@ -1255,7 +1284,8 @@ export default function App() {
             if (target.id !== body.id) selectBody(target.id);
             selectLens(item.lens.id);
           }
-          goTool("studio");
+          // The camera is the simulator: go and shoot with it.
+          navigate({ ...route, screen: "camera" });
         }}
       />
     ),
@@ -1300,6 +1330,110 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* Home: the camera (#37). Kept mounted while you're in MENU pages, hidden (so it stops rendering). */}
+      {!testAll && (
+        <div className="camera-host" hidden={onTools}>
+          <CameraView
+            body={body}
+            lens={lens}
+            units={units}
+            isFilm={isFilm}
+            filmName={isFilm ? look.name : null}
+            stops={stops}
+            fNumber={fNumber}
+            onAperture={setFNumber}
+            focusMm={focusMm}
+            onFocus={(mm) => setFocusMm(Number.isFinite(mm) ? Math.max(mm, lens.minFocusMm) : mm)}
+            nearMm={shot.dof.nearMm}
+            farMm={shot.dof.farMm}
+            speeds={speeds}
+            shutterSec={shutterSec}
+            auto={auto}
+            onShutterDial={(next) => {
+              if (next.auto) setAutoExposure(true);
+              else {
+                if (body.autoExposure) setAutoExposure(false);
+                setManualShutter(next.sec);
+              }
+            }}
+            iso={iso}
+            isoChoices={isoSettings(body)}
+            onIso={setIsoDigital}
+            evComp={evComp}
+            onEvComp={setEvComp}
+            meterStops={meterStops}
+            frameStatus={frameStatusLabel}
+            frames={frames.length}
+            aspect={shot.frameWidthMm / shot.frameHeightMm}
+            canShoot={!rollFull}
+            onShoot={() => fireShutter(true)}
+            onWind={() => {
+              playAdvance();
+              setAdvanceCount((n) => n + 1);
+            }}
+            image={(quality) =>
+              liveOn ? (
+                <LiveScreen
+                  ref={liveRef}
+                  aspect={shot.frameWidthMm / shot.frameHeightMm}
+                  focalMm={lens.focalMm}
+                  fNumber={fNumber}
+                  focusMm={focusMm}
+                  minFocusMm={lens.minFocusMm}
+                  frameWidthMm={shot.frameWidthMm}
+                  lensHFovDeg={shot.horizontalAngle}
+                  shutterSec={shutterSec}
+                  exposureStops={errorStops}
+                  iso={iso}
+                  baseIso={body.isoRange?.[0] ?? boxIso}
+                  film={isFilm}
+                  mono={look.mono}
+                  fallbackEv={liveFallbackEv}
+                  onSceneEv={(ev) => setLiveEv((prev) => (prev === ev ? prev : ev))}
+                  onFocus={(mm) => setFocusMm(Number.isFinite(mm) ? Math.max(mm, lens.minFocusMm) : mm)}
+                  onExit={() => {
+                    setLiveOn(false);
+                    setLiveEv(null);
+                  }}
+                />
+              ) : (
+                <BokehPreview
+                  ref={cameraPreviewRef}
+                  a={previewSide(lens, shot, developFor(lens, fNumber, shot.frameWidthMm, 7, 0.35), photo)}
+                  b={null}
+                  aspect={shot.frameWidthMm / shot.frameHeightMm}
+                  onTap={photo ? tapToFocus : undefined}
+                  quality={quality}
+                />
+              )
+            }
+            finder={<Viewfinder {...viewfinderProps} />}
+            scenes={
+              liveOn ? (
+                <LightPresets
+                  value={liveFallbackEv}
+                  onChange={(ev) => {
+                    playDialClick();
+                    setLiveFallbackEv(ev);
+                  }}
+                />
+              ) : (
+                scenePicker()
+              )
+            }
+            liveAvailable={FLAGS.liveView}
+            liveOn={liveOn}
+            onLive={() => {
+              setLiveOn((on) => !on);
+              setLiveEv(null);
+            }}
+            onMenu={() => navigate({ ...route, screen: "menu" })}
+            onPlay={() => (isFilm ? goTool("roll") : setPlayOpen(true))}
+          />
+        </div>
+      )}
+
+      <div className="pages" hidden={!onTools && !testAll}>
       <header className="topbar">
         <a className="brand" href="#/simulate/studio" aria-label="Rangefinder, back to the studio">
           <span className="brand-mark" aria-hidden="true" />
@@ -1383,7 +1517,50 @@ export default function App() {
         </main>
       </div>
 
-      <ModeDial mode={route.mode} onChange={goMode} />
+        <div className="page-return" role="group" aria-label="Back to the camera">
+          <button type="button" className="cam-btn" onClick={() => navigate({ ...route, screen: "menu" })}>
+            MENU
+          </button>
+          <button type="button" className="cam-btn cam-btn-camera" onClick={goCamera}>
+            Camera
+          </button>
+        </div>
+      </div>
+
+      {route.screen === "menu" && (
+        <CameraMenu
+          tools={(m) => toolsFor(m, toolAvailable)}
+          initialSection={route.mode}
+          onOpenTool={goTool}
+          onClose={goCamera}
+          settings={[
+            { id: "units", label: "Distance units", value: units === "metric" ? "Metres" : "Feet", onActivate: () => setUnits(units === "metric" ? "imperial" : "metric") },
+            {
+              id: "sound",
+              label: "Sounds",
+              value: muted ? "Off" : "On",
+              onActivate: () => {
+                setMuted(!muted);
+                setMutedState(!muted);
+                if (muted) playApertureClick();
+              },
+            },
+            {
+              id: "camera",
+              label: "Camera and lens",
+              value: `${body.name} · ${lens.name}`,
+              // Back to the camera, with the camera chooser open: you'll want to hold the new one.
+              onActivate: () => {
+                goCamera();
+                setPicker("body");
+              },
+            },
+            { id: "tour", label: "60-second tour", value: "Start", onActivate: startDemo },
+          ]}
+        />
+      )}
+      {playOpen && <Playback frames={frames} onClose={() => setPlayOpen(false)} onSheet={() => (setPlayOpen(false), goTool("roll"))} />}
+
       <ShutterCurtain />
 
       <GearPicker

@@ -32,6 +32,8 @@ export interface StoredOpticalState {
   filmEI: number | null;
   /** Push/pull development compensation, in stops; 0 = normal. */
   pushPullStops: number;
+  /** Exposure compensation (thumb wheel), stops. */
+  evComp: number;
 }
 
 export function encodeMaybeInfinite(n: number): MaybeInfinite {

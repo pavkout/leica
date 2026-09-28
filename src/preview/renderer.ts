@@ -404,6 +404,8 @@ export class BokehRenderer {
   private layerTex: WebGLTexture | null = null;
   private layerFbo: WebGLFramebuffer | null = null;
   private layerSize = [0, 0];
+  private layerCache = new Map<string, { tex: WebGLTexture; support: WebGLTexture; fbo: WebGLFramebuffer }>();
+  private imageCache = new Map<string, { tex: WebGLTexture; fbo: WebGLFramebuffer }>();
   private supportTex: WebGLTexture | null = null;
   private photoKey: string | null = null;
   private photoTex: WebGLTexture | null = null;
@@ -458,8 +460,21 @@ export class BokehRenderer {
   private ensureLayerTarget(width: number, height: number) {
     if (this.layerSize[0] === width && this.layerSize[1] === height) return;
     const gl = this.gl;
-    for (const t of [this.layerTex, this.supportTex]) if (t) gl.deleteTexture(t);
-    if (this.layerFbo) gl.deleteFramebuffer(this.layerFbo);
+    // Two sizes stay allocated (full and interactive quality), so switching while a ring turns costs nothing.
+    const key = `${width}x${height}`;
+    const hit = this.layerCache.get(key);
+    if (hit) {
+      [this.layerTex, this.supportTex, this.layerFbo] = [hit.tex, hit.support, hit.fbo];
+      this.layerSize = [width, height];
+      return;
+    }
+    if (this.layerCache.size >= 2) {
+      const [oldKey, old] = this.layerCache.entries().next().value as [string, { tex: WebGLTexture; support: WebGLTexture; fbo: WebGLFramebuffer }];
+      gl.deleteTexture(old.tex);
+      gl.deleteTexture(old.support);
+      gl.deleteFramebuffer(old.fbo);
+      this.layerCache.delete(oldKey);
+    }
     const levels = Math.floor(Math.log2(Math.max(width, height))) + 1;
     const make = (format: number) => {
       const tex = gl.createTexture()!;
@@ -479,6 +494,7 @@ export class BokehRenderer {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.layerTex, 0);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, this.supportTex, 0);
     this.layerSize = [width, height];
+    this.layerCache.set(key, { tex: this.layerTex!, support: this.supportTex!, fbo: this.layerFbo! });
   }
 
   /** Clears the layer target: transparent colour, full support. */
@@ -638,8 +654,19 @@ export class BokehRenderer {
   private ensureImageTarget(width: number, height: number) {
     if (this.imageSize[0] === width && this.imageSize[1] === height) return;
     const gl = this.gl;
-    if (this.imageTex) gl.deleteTexture(this.imageTex);
-    if (this.imageFbo) gl.deleteFramebuffer(this.imageFbo);
+    const key = `${width}x${height}`;
+    const hit = this.imageCache.get(key);
+    if (hit) {
+      [this.imageTex, this.imageFbo] = [hit.tex, hit.fbo];
+      this.imageSize = [width, height];
+      return;
+    }
+    if (this.imageCache.size >= 2) {
+      const [oldKey, old] = this.imageCache.entries().next().value as [string, { tex: WebGLTexture; fbo: WebGLFramebuffer }];
+      gl.deleteTexture(old.tex);
+      gl.deleteFramebuffer(old.fbo);
+      this.imageCache.delete(oldKey);
+    }
     const levels = Math.floor(Math.log2(Math.max(width, height))) + 1;
     this.imageTex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, this.imageTex);
@@ -652,12 +679,33 @@ export class BokehRenderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.imageFbo);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.imageTex, 0);
     this.imageSize = [width, height];
+    this.imageCache.set(key, { tex: this.imageTex!, fbo: this.imageFbo! });
   }
 
-  render(params: RenderParams) {
+  /**
+   * Allocates the render targets for a canvas of this size without drawing, so the first frame at that
+   * size (e.g. interactive quality when a ring is grabbed) doesn't pay for allocation.
+   */
+  prepare(width: number, height: number) {
+    const [lw, lh] = this.layerSize;
+    const [iw, ih] = this.imageSize;
+    const margin = Math.round(width * MARGIN_FRACTION);
+    this.ensureLayerTarget(width + 2 * margin, height + 2 * margin);
+    this.ensureImageTarget(width, height);
+    if (lw && lh) this.ensureLayerTarget(lw, lh);
+    if (iw && ih) this.ensureImageTarget(iw, ih);
+  }
+
+  /**
+   * `scale` below 1 renders the optics at a lower internal resolution and upscales in the final pass, so a
+   * control being turned lands in the next frame without resizing the canvas (which is slow on big screens).
+   */
+  render(params: RenderParams, scale = 1) {
     const gl = this.gl;
-    const W = this.canvas.width;
-    const H = this.canvas.height;
+    const CW = this.canvas.width;
+    const CH = this.canvas.height;
+    const W = Math.max(2, Math.round(CW * scale));
+    const H = Math.max(2, Math.round(CH * scale));
     const margin = Math.round(W * MARGIN_FRACTION);
     const FW = W + 2 * margin;
     const FH = H + 2 * margin;
@@ -686,7 +734,7 @@ export class BokehRenderer {
 
     if (params.photo) {
       this.renderPhoto(params, params.photo, { W, H, FW, FH, margin, fpx, kernel, baselinePx, invFocusM });
-      this.develop(params.develop, W, H);
+      this.develop(params.develop, W, H, CW, CH);
       return;
     }
 
@@ -723,19 +771,20 @@ export class BokehRenderer {
       }
     }
 
-    this.develop(params.develop, W, H);
+    this.develop(params.develop, W, H, CW, CH);
   }
 
   /** Film or sensor: turns the optical image into the final photo on the canvas. */
-  private develop(dev: DevelopParams | undefined, W: number, H: number) {
+  /** Final pass onto the canvas (`CW`×`CH`) from the image (`W`×`H`, smaller at interactive quality). */
+  private develop(dev: DevelopParams | undefined, W: number, H: number, CW = W, CH = H) {
     const gl = this.gl;
     gl.bindTexture(gl.TEXTURE_2D, this.imageTex);
     gl.generateMipmap(gl.TEXTURE_2D);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, W, H);
+    gl.viewport(0, 0, CW, CH);
     gl.disable(gl.BLEND);
     gl.disable(gl.SCISSOR_TEST);
-    const p = this.use("develop", [0, 0, W, H], [W, H]);
+    const p = this.use("develop", [0, 0, CW, CH], [CW, CH]);
     gl.activeTexture(gl.TEXTURE0);
     gl.uniform1i(p.u("uImg"), 0);
 
@@ -753,13 +802,14 @@ export class BokehRenderer {
     gl.uniform1f(p.u("uBlackLift"), look?.blackLift ?? 0);
     gl.uniform1f(p.u("uGrain"), dev?.grain ?? 0);
     // Grain clumps grow with film speed; sensor noise is per pixel.
-    const grainSize = film ? Math.max(0.9, (W / 1100) * 1.5 * ((look?.iso ?? 400) / 400) ** 0.3) : Math.max(0.7, W / 1600);
+    // Grain and shake are in canvas pixels (the shader works in output pixels); halation samples the image's mips.
+    const grainSize = film ? Math.max(0.9, (CW / 1100) * 1.5 * ((look?.iso ?? 400) / 400) ** 0.3) : Math.max(0.7, CW / 1600);
     gl.uniform1f(p.u("uGrainSize"), grainSize);
     gl.uniform1f(p.u("uGrainColor"), film ? 0.35 : 0.5);
     gl.uniform1f(p.u("uHalation"), look?.halation ?? 0);
     gl.uniform1f(p.u("uHalLod"), Math.max(1, Math.log2(W / 110)));
     gl.uniform1f(p.u("uVignette"), dev?.vignetteStops ?? 0);
-    const shakePx = (dev?.shake ?? 0) * W;
+    const shakePx = (dev?.shake ?? 0) * CW;
     gl.uniform2f(p.u("uShake"), shakePx * Math.cos(dev?.shakeAngle ?? 0), shakePx * Math.sin(dev?.shakeAngle ?? 0));
     gl.uniform1f(p.u("uSeed"), ((dev?.seed ?? 0) % 1000) / 1000);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

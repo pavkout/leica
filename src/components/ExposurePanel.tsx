@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { formatShutter, shutterSpeeds, type Body } from "../data/gear";
+import { ISO_STEPS, formatShutter, shutterSpeeds, type Body } from "../data/gear";
 import { FILM_STOCKS, type FilmLook } from "../preview/film";
 import { DEVELOP_LEVELS, eiStops, nearestDevelopLevel } from "../physics/pushPull";
 import FilmArt from "./gear/FilmArt";
 import GearPicker from "./gear/GearPicker";
 import Segmented from "./Segmented";
 
-const ISO_STEPS = [50, 64, 100, 125, 160, 200, 400, 800, 1600, 3200, 6400, 12500, 25000, 50000, 100000, 200000];
 
 interface Props {
   body: Body;

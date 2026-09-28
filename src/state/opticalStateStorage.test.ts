@@ -58,6 +58,7 @@ describe("loadLastUsed/saveLastUsed", () => {
       tripod: false,
       filmEI: null,
       pushPullStops: 0,
+      evComp: 0,
     });
     expect(loadLastUsed()).toMatchObject({ bodyId: "m11", lensId: "m-50-1.4", focusMm: "inf" });
   });

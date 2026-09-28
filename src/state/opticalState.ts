@@ -55,6 +55,8 @@ export interface OpticalState {
   filmEI: number | null;
   /** Push/pull development compensation, in stops; 0 = normal. */
   pushPullStops: number;
+  /** Exposure compensation from the thumb wheel, stops: shifts what the meter and auto exposure aim for. */
+  evComp: number;
 }
 
 export interface OpticalStateActions {
@@ -77,6 +79,7 @@ export interface OpticalStateActions {
   setTripod: (v: boolean) => void;
   setFilmEI: (ei: number | null) => void;
   setPushPullStops: (stops: number) => void;
+  setEvComp: (stops: number) => void;
 }
 
 export function useOpticalState(): OpticalState & OpticalStateActions {
@@ -115,6 +118,7 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
   const [autoExposure, setAutoExposure] = useState(stored.autoExposure ?? true);
   const [manualShutter, setManualShutter] = useState(stored.manualShutter ?? 1 / 60);
   const [tripod, setTripod] = useState(stored.tripod ?? false);
+  const [evComp, setEvComp] = useState(typeof stored.evComp === "number" && Math.abs(stored.evComp) <= 3 ? stored.evComp : 0);
   const [filmEI, setFilmEI] = useState<number | null>(stored.filmEI ?? null);
   const [pushPullStops, setPushPullStops] = useState(stored.pushPullStops ?? 0);
 
@@ -139,6 +143,7 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
         tripod,
         filmEI,
         pushPullStops,
+        evComp,
       });
     }, 400);
     return () => window.clearTimeout(id);
@@ -159,6 +164,7 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
     tripod,
     filmEI,
     pushPullStops,
+    evComp,
   ]);
 
   const body = findBody(bodyId);
@@ -210,6 +216,7 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
     tripod,
     filmEI,
     pushPullStops,
+    evComp,
     selectBody,
     selectLens,
     selectFilm,
@@ -226,5 +233,6 @@ export function useOpticalState(): OpticalState & OpticalStateActions {
     setTripod,
     setFilmEI,
     setPushPullStops,
+    setEvComp,
   };
 }

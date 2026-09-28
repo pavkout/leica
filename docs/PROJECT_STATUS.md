@@ -1,6 +1,6 @@
 # Rangefinder — Project Status
 
-Last updated: 2026-09-27
+Last updated: 2026-09-28
 
 ## Current state
 
@@ -20,7 +20,13 @@ Last updated: 2026-09-27
 
 ## Current task
 
-**Redesign, plus A–D (user request, 2026-09-27)** — IN PROGRESS.
+**#37 — The camera is the interface ("hold a Leica")** (user request, 2026-09-28; Priority 1; spec added to the Master Plan at the user's request) — IN PROGRESS.
+- **Slice 1:** the camera body, controls, instant feedback, MENU and PLAY. COMPLETE.
+- **Slice 2:** live camera through the simulated camera, including live depth of field. COMPLETE.
+- **Remaining:** a real-phone review (feel, depth speed on the device), then polish from that review.
+- User decisions: the UI follows the chosen body (film vs digital), landscape first, live simulation "everything including depth".
+
+Previous task: **Redesign, plus A–D (user request, 2026-09-27)** — superseded as home by #37; its pages now live under MENU.
 
 After testing on their phone, the user asked for all of A–D, plus a redesign: organise the features, use the installed design skills, make it "super wow".
 - **Redesign.** Slices 1–2 are COMPLETE.
@@ -128,6 +134,82 @@ Things to try by hand. Nothing is committed; everything below is in the working 
 ---
 
 ## Last completed
+
+**Feature #37 — The camera is the interface, slices 1–2** (Priority 1, user request) — **IN PROGRESS** (code complete; real-phone review pending) (2026-09-28)
+
+User's brief: "I feel like I use a camera like a camera": a Leica in the hand, camera-style controls, and every change to aperture, focus, ISO or shutter visible straight away, on the static image and in live shooting. The spec was added to the Master Plan as #37 at the user's request. Decisions (asked): the UI follows the body, landscape first, full live simulation including depth.
+
+**Slice 1 — the camera body (`src/camera/`):**
+- **Home is the camera** (`#/camera`), full screen with no page scrolling. Tools became MENU pages (`#/menu`, `#/<mode>/<tool>`); nothing was removed.
+- **Controls, placed like an M and sized for thumbs:**
+  - **`RotaryDial`** covers the shutter-speed dial and the ISO dial. It's a knurled disc seen from above, with engravings and a fixed red index, and you turn it by rotating it by hand, with the mouse wheel, or with the keys.
+    - The engraving spacing adapts to the dial's size and the longest label; only about ±110° around the index is engraved.
+    - Each detent clicks with sound and haptics.
+  - **`LensRings`:** aperture and focus rings seen from above. The engraved scales slide under the index as you drag; the focus ring is linear in 1/distance with an ∞ hard stop, and the DOF band shows on the distance scale.
+  - **`ThumbWheel`** sets exposure compensation in ⅓ stops. It shifts auto exposure and the meter's target, via the new `evComp` in the shared state (persisted).
+  - **`ReleaseButton`** is two-stage: a half-press lights the meter and a full press fires. Slide off to cancel.
+  - **`AdvanceLever`** on film bodies: the release waits until you wind on.
+- **Body-specific presentation:**
+  - Digital bodies show the rear screen with an M11-style info line (mode, shutter, f-stop, ISO, meter scale, EV, frame count).
+  - Film bodies show the rangefinder finder (patch and LED meter), the film window, the lever and "Hold to preview" (the simulated exposure, labelled).
+- **Back buttons:**
+  - **MENU** opens a Leica-style menu: black, sections on the left, entries on the right, a red selection bar, arrow keys and Escape.
+  - **PLAY** is review with swipe or arrows, and links to the contact sheet.
+  - **FN** opens the scene choice.
+  - **LIVE** switches to the phone's camera.
+- **Instant feedback, measured:**
+  - While a control is held, the photo renders at interactive quality (`beginInteraction` / `useInteracting`). The renderer draws the optics at half internal resolution and upscales in its final pass, so the canvas is never resized. Two cached sets of render targets and an idle-time `prepare()` remove the allocation costs.
+  - The sound engine is built while idle (`prepareAudio`), so the first click doesn't stall: it was 146 ms of synchronous setup, now 5 ms.
+  - Change detection no longer serialises the photo's depth sample.
+  - **Aperture-ring step to rendered frame: 0–33 ms on the WebKit iPhones and desktop Chromium** (acceptance: within one frame).
+- Page switches keep the shutter curtain; camera ↔ MENU is instant, as buttons on a camera are.
+
+**Slice 2 — live camera inside the camera (`src/camera/live/`):**
+- **`LiveRenderer` (WebGL2)** takes each phone frame through the simulated camera:
+  - **Shutter:** frames accumulate by frame time ÷ shutter time, so slow speeds smear motion.
+  - **Lens:** a per-pixel depth-of-field blur from a depth map (a 20-tap golden-angle disc from the matching mip level, with highlights weighted into bokeh), using the same thin-lens blur disc as the still renderer.
+  - **Sensor/film:** exposure error from the shared exposure engine, a soft shoulder that still blows out to white, mono, and ISO noise.
+  - Cover-fit and lens-crop per axis, so the phone's frame is framed like the lens.
+- **`liveMath.ts`** (10 tests): the accumulation factor, live metering (measured from the phone's exposure when the browser reports it, otherwise the chosen light, labelled "Light estimated"), relative depth → inverse distance, the blur coefficients (proven equal to the still renderer's `blurDiscMm`), tap-to-focus, framing crop and noise.
+- **`depthWorker.ts`:** Depth Anything V2 (small, q8, the same model as photo uploads) in a module Web Worker. It's fed one frame at a time, so it never blocks input, and reports download progress.
+- **`LiveScreen`:**
+  - The render loop reads the latest control values from a ref, so a change lands in the next frame without React in the loop.
+  - A meter every 300 ms feeds the shared exposure engine, so A mode picks a real shutter from real light.
+  - A Depth-of-field toggle with status; tap to focus on the depth; the shutter captures the live frame to the roll.
+  - A "lens wider than your phone" note; film bodies show the simulated picture while live.
+- **FN while live** sets the scene light (standard EV guide presets) for when the phone doesn't report its exposure.
+- Build: Vite workers now use the ES format (the depth worker's dynamic import needs it).
+
+**Fixes found along the way:**
+- The renderer's `dispose()` called `loseContext()`, which killed the canvas when React remounted effects in development. It now frees resources only.
+- Menu Escape now works wherever focus is.
+- Choosing a camera from MENU → Setup returns you to the camera.
+
+**Validation:**
+- **Camera suite 72/72** on WebKit iPhone 13 landscape, iPhone SE portrait and Chromium desktop:
+  - It opens on the camera with no scroll. **Ring → frame latency is 0–33 ms**, and full quality returns after release. The focus ring reaches ∞.
+  - **+1 EV lengthens the auto shutter**; leaving A gives M; the ISO dial changes the LCD; rotating the dial by hand moves it detent by detent.
+  - The release shoots and PLAY shows the shot; FN opens the scenes; MENU has five sections; a menu entry opens its page and Camera returns; Escape closes; deep links work.
+  - **Film:** the finder, lever and film window appear; the release waits for the lever and the lever winds on; hold-preview shows the simulated exposure. No errors.
+- **Live suite 13/13** (Chromium, fake camera):
+  - LIVE shows the camera in the screen and the controls stay.
+  - **The shutter dial changes live brightness** (110 vs 48); **slow speeds accumulate** (α 0.01 against 1).
+  - **A dial change reaches the live picture in the next frame (31 ms)**; ISO adds noise (0.018 → 0.503); stopping down shrinks the blur.
+  - The meter says "Light estimated"; FN offers scene light; the release captures the live frame; depth switches on with status; LIVE returns to the scene. No errors.
+- **Real depth model check:** the model loaded in the worker and **a depth map arrived within 8 s** (download cached) and drove the blur. **Tap to focus refocused from 2.00 m to 13.9 m.** No errors.
+- **Pages suite 33/33**, rewritten for MENU. It covers all 24 tools reachable from MENU and titled with no scroll, back, keep-alive, 3D released, the rig from a page, the tour, the bar never covering content, and the curtain.
+- **Full regression green:** all 23 feature suites (#2 ×4, #5, #4, #25, #33, #35, #28, #8, #13, #19, #26, #7, #24, #36, #21, #23, #34, #20, #22, #9), plus #36b 28/28, Pages 33/33, Camera 72/72 and Live 13/13.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 467/467 unit tests (new: control mappings, routes, live maths), production build (main bundle 175 KB gz; the depth library loads only in the worker), dev probes absent from the build.
+
+**Known limitations:**
+- **Live depth of field is approximate by design.** The depth model gives relative depth only (the nearest point is assumed 0.6 m, and tap-to-focus anchors the plane); its speed on a phone is unmeasured (the WASM path); edges can halo.
+- iOS Safari doesn't report the camera's exposure time or ISO, so the live meter there uses the chosen scene light ("Light estimated").
+- Haptics work only where the browser allows vibration (Android); iPhones get sound and motion.
+- A live rangefinder finder isn't possible (it needs a second image); film bodies show the simulated picture while live.
+- The film "Hold to preview" is an app convenience that real Ms don't have; it's labelled "Simulated exposure".
+- Not yet on a physical iPhone.
+
+---
 
 **Redesign slice 2 + A (#36 later enhancements) + C (datasheet development times) + D (fixes)** — (user request) — 2026-09-27
 

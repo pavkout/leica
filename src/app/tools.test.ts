@@ -23,15 +23,18 @@ describe("tool registry", () => {
 });
 
 describe("routes", () => {
-  it("round-trips", () => {
-    for (const t of TOOLS) expect(parseRoute(routeHash({ mode: t.mode, tool: t.id }))).toEqual({ mode: t.mode, tool: t.id });
+  it("round-trips tool pages, the menu and the camera", () => {
+    for (const t of TOOLS) expect(parseRoute(routeHash({ screen: "tool", mode: t.mode, tool: t.id }))).toEqual({ screen: "tool", mode: t.mode, tool: t.id });
+    expect(parseRoute(routeHash({ ...HOME, screen: "menu" })).screen).toBe("menu");
+    expect(parseRoute(routeHash(HOME))).toEqual(HOME);
   });
 
-  it("falls back sensibly", () => {
+  it("opens on the camera, and falls back sensibly", () => {
     expect(parseRoute("")).toEqual(HOME);
+    expect(HOME.screen).toBe("camera");
     expect(parseRoute("#/nowhere/x")).toEqual(HOME);
-    expect(parseRoute("#/learn")).toEqual({ mode: "learn", tool: DEFAULT_TOOL.learn });
+    expect(parseRoute("#/learn")).toEqual({ screen: "tool", mode: "learn", tool: DEFAULT_TOOL.learn });
     // A tool from another mode doesn't leak across.
-    expect(parseRoute("#/learn/studio")).toEqual({ mode: "learn", tool: DEFAULT_TOOL.learn });
+    expect(parseRoute("#/learn/studio")).toEqual({ screen: "tool", mode: "learn", tool: DEFAULT_TOOL.learn });
   });
 });

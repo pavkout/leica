@@ -19,6 +19,8 @@ interface Props {
   veil?: string;
   /** Tap to focus: position in the frame, 0–1. */
   onTap?: (x: number, y: number) => void;
+  /** Resolution scale: below 1 while a control is being turned, so each change renders in the next frame. */
+  quality?: number;
 }
 
 /** Rendering cap: detail beyond this isn't visible and costs fill rate on phones. */
@@ -34,7 +36,7 @@ interface CanvasHandle {
   canvas: HTMLCanvasElement;
 }
 
-const BokehPreview = forwardRef<PreviewHandle, Props>(function BokehPreview({ a, b, aspect, veil, onTap }, ref) {
+const BokehPreview = forwardRef<PreviewHandle, Props>(function BokehPreview({ a, b, aspect, veil, onTap, quality = 1 }, ref) {
   const [reticle, setReticle] = useState<{ x: number; y: number; key: number } | null>(null);
   const handleA = useRef<CanvasHandle | null>(null);
   useImperativeHandle(ref, () => ({
@@ -83,7 +85,7 @@ const BokehPreview = forwardRef<PreviewHandle, Props>(function BokehPreview({ a,
       {reticle && !b && (
         <span key={reticle.key} className="reticle" style={{ left: `${reticle.x * 100}%`, top: `${reticle.y * 100}%` }} aria-hidden="true" />
       )}
-      <PreviewCanvas side={a} pixelWidth={pixelWidth} pixelHeight={pixelHeight} handleRef={handleA} />
+      <PreviewCanvas side={a} pixelWidth={pixelWidth} pixelHeight={pixelHeight} handleRef={handleA} quality={quality} />
       {/* Kept mounted so toggling compare never creates extra WebGL contexts. */}
       <div className="preview-b" hidden={!b} style={{ clipPath: `inset(0 0 0 ${split * 100}%)` }}>
         <PreviewCanvas side={b} pixelWidth={pixelWidth} pixelHeight={pixelHeight} />
@@ -126,13 +128,16 @@ function PreviewCanvas({
   pixelWidth,
   pixelHeight,
   handleRef,
+  quality = 1,
 }: {
   side: PreviewSide | null;
   pixelWidth: number;
   pixelHeight: number;
   handleRef?: MutableRefObject<CanvasHandle | null>;
+  quality?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const preparedFor = useRef(new Set<string>());
   const rendererRef = useRef<BokehRenderer | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -146,8 +151,9 @@ function PreviewCanvas({
     }
   }, []);
 
-  // Coalesce bursts of changes (dragging a ring) into one render per frame.
-  const paramsKey = side ? JSON.stringify(side.params) : "";
+  // Coalesce bursts of changes (dragging a ring) into one render per frame. The photo is keyed by
+  // its id, not serialised: its depth sample alone is thousands of numbers.
+  const paramsKey = side ? JSON.stringify({ ...side.params, photo: side.params.photo?.key }) : "";
   useEffect(() => {
     const canvas = canvasRef.current;
     const renderer = rendererRef.current;
@@ -157,11 +163,20 @@ function PreviewCanvas({
         canvas.width = pixelWidth;
         canvas.height = pixelHeight;
       }
-      renderer.render(side.params);
+      renderer.render(side.params, quality);
+      // After a full-quality frame, get the interactive size ready while idle.
+      if (quality === 1 && !preparedFor.current.has(`${pixelWidth}`)) {
+        preparedFor.current.add(`${pixelWidth}`);
+        const w = Math.round(pixelWidth * 0.5);
+        const h = Math.round(pixelHeight * 0.5);
+        (window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 200)))(() => renderer.prepare(w, h));
+      }
+      // Dev-only probe: when the last render finished, and at what size (latency tests).
+      if (import.meta.env.DEV) (window as unknown as { __leicaRender?: unknown }).__leicaRender = { at: performance.now(), w: canvas.width, q: quality };
     });
     return () => cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paramsKey, pixelWidth, pixelHeight]);
+  }, [paramsKey, pixelWidth, pixelHeight, quality]);
 
   if (error) {
     return <div className="preview-error">The photo preview needs WebGL 2, which this browser doesn't provide.</div>;

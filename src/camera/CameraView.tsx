@@ -1,0 +1,259 @@
+import { useEffect, useState, type ReactNode } from "react";
+import { prepareAudio } from "../audio/sounds";
+import type { Body, Lens } from "../data/gear";
+import { formatShutter } from "../data/gear";
+import { formatDistance, formatFNumber, type Units } from "../utils/format";
+import { AdvanceLever, ReleaseButton, ThumbWheel } from "./Controls";
+import { evLabel } from "./controlMath";
+import { useInteracting } from "./interaction";
+import LensRings from "./LensRings";
+import RotaryDial, { type DialStop } from "./RotaryDial";
+import "./camera.css";
+
+export interface CameraProps {
+  body: Body;
+  lens: Lens;
+  units: Units;
+  isFilm: boolean;
+  /** Film name, or null on a digital body. */
+  filmName: string | null;
+
+  stops: number[];
+  fNumber: number;
+  onAperture: (n: number) => void;
+  focusMm: number;
+  onFocus: (mm: number) => void;
+  nearMm: number;
+  farMm: number;
+
+  speeds: number[];
+  shutterSec: number;
+  /** Aperture priority is engaged (the dial is on A). */
+  auto: boolean;
+  onShutterDial: (next: { auto: boolean; sec: number }) => void;
+
+  iso: number;
+  isoChoices: number[];
+  onIso: (iso: number) => void;
+  evComp: number;
+  onEvComp: (ev: number) => void;
+  /** Meter reading: stops from the compensated target (+ over, − under). */
+  meterStops: number;
+
+  frameStatus: string;
+  frames: number;
+  canShoot: boolean;
+  onShoot: () => void;
+  /** Film bodies: the lever was wound (plays the advance). */
+  onWind: () => void;
+
+  /** Frame width ÷ height, so the screen can fit the picture. */
+  aspect: number;
+  /** Rendered image (the simulated photo), sized by the screen. */
+  image: (quality: number) => ReactNode;
+  /** The rangefinder view, for film bodies. */
+  finder: ReactNode;
+  /** Scene picker, shown from FN. */
+  scenes: ReactNode;
+
+  liveAvailable: boolean;
+  /** The phone's camera is the image source. */
+  liveOn: boolean;
+  onLive: () => void;
+  onMenu: () => void;
+  onPlay: () => void;
+}
+
+const shutterStops = (speeds: number[], hasAuto: boolean): DialStop[] => [
+  ...(hasAuto ? [{ key: "A", label: "A", spoken: "A, aperture priority", red: true }] : []),
+  // Fastest first, as engraved: the dial turns towards slower speeds.
+  ...[...speeds].reverse().map((t) => ({
+    key: String(t),
+    label: t >= 1 ? `${t}` : 1 / t >= 8000 ? `${Math.round(1 / t / 1000)}k` : String(Math.round(1 / t)),
+    spoken: formatShutter(t),
+    red: Math.abs(t - 1 / 60) < 1e-9 || Math.abs(t - 1 / 50) < 1e-9,
+  })),
+];
+
+/**
+ * The app as a camera: the picture fills the middle, the controls sit where
+ * an M has them. Digital bodies show the rear screen with an info line; film
+ * bodies look through the rangefinder, with a lever to wind on.
+ */
+export default function CameraView(p: CameraProps) {
+  const interacting = useInteracting();
+  const [half, setHalf] = useState(false);
+  const [fnOpen, setFnOpen] = useState(false);
+  const [wound, setWound] = useState(true);
+  const [previewHeld, setPreviewHeld] = useState(false);
+  // Dials scale with the screen: thumb-sized on a phone, generous on a desktop.
+  const [short, setShort] = useState(() => Math.min(innerWidth, innerHeight));
+  useEffect(() => {
+    const onResize = () => setShort(Math.min(innerWidth, innerHeight));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const dialSize = Math.round(Math.min(200, Math.max(112, short * 0.3)));
+  // Get the sound engine ready while idle, so the first detent clicks without a delay.
+  useEffect(() => {
+    const id = (window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 300)))(() => prepareAudio());
+    return () => (window.cancelIdleCallback ?? window.clearTimeout)(id);
+  }, []);
+
+  const dial = shutterStops(p.speeds, p.body.autoExposure);
+  const dialIndex = p.auto ? 0 : Math.max(0, dial.findIndex((s) => s.key !== "A" && Math.abs(Number(s.key) - p.shutterSec) < 1e-9));
+  const isoStops: DialStop[] = p.isoChoices.map((i) => ({ key: String(i), label: i >= 1000 ? `${i / 1000}k` : String(i), spoken: `ISO ${i}` }));
+  const isoIndex = Math.max(0, p.isoChoices.indexOf(p.iso));
+  const meterLit = half || interacting;
+  const clampedMeter = Math.max(-3, Math.min(3, p.meterStops));
+  const ready = p.canShoot && (!p.isFilm || wound);
+
+  function shoot() {
+    if (!ready) return;
+    p.onShoot();
+    if (p.isFilm) setWound(false);
+  }
+
+  // The simulated image is always rendered (the shutter captures it); on a film body the rangefinder sits over it
+  // until you hold the preview.
+  const screen = (
+    <>
+      <div className="cam-lcd">
+        {p.image(interacting ? 0.5 : 1)}
+        {p.isFilm && previewHeld && !p.liveOn && <span className="cam-sim-tag">Simulated exposure</span>}
+      </div>
+      {/* Live, a film body shows the simulated picture: a rangefinder's second image would need a second camera. */}
+      {p.isFilm && !previewHeld && !p.liveOn && <div className="cam-finder">{p.finder}</div>}
+    </>
+  );
+
+  return (
+    <div className={`camera ${p.isFilm ? "camera-film" : "camera-digital"}`} aria-label={`${p.body.name} with ${p.lens.name}`} role="region">
+      {/* Left of the screen: ISO dial (digital) and the back buttons. */}
+      <div className="cam-left">
+        {!p.isFilm && isoStops.length > 0 ? (
+          <RotaryDial label="ISO dial" stops={isoStops} index={isoIndex} onChange={(i) => p.onIso(p.isoChoices[i])} size={Math.round(dialSize * 0.86)} step={32} className="dial-iso" />
+        ) : (
+          <div className="cam-film-window" aria-label={`Film: ${p.filmName ?? ""}`}>
+            <span className="cam-film-name">{p.filmName}</span>
+            <span className="cam-film-count">{p.frameStatus}</span>
+          </div>
+        )}
+        <div className="cam-buttons">
+          <button type="button" className="cam-btn" onClick={p.onPlay} aria-label={p.isFilm ? "Roll: your frames" : "Play: review pictures"}>
+            {p.isFilm ? "ROLL" : "PLAY"}
+          </button>
+          <button type="button" className="cam-btn" aria-expanded={fnOpen} onClick={() => setFnOpen((v) => !v)} aria-label="FN: choose the scene">
+            FN
+          </button>
+          <button type="button" className="cam-btn" onClick={p.onMenu} aria-label="Menu">
+            MENU
+          </button>
+          {p.liveAvailable && (
+            <button
+              type="button"
+              className={`cam-btn cam-btn-live${p.liveOn ? " cam-btn-live-on" : ""}`}
+              onClick={p.onLive}
+              aria-pressed={p.liveOn}
+              aria-label={p.liveOn ? "Live on: back to the scene" : "Live: use your phone's camera"}
+            >
+              LIVE
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="cam-center">
+        <div className={`cam-screen${meterLit ? " cam-screen-lit" : ""}`} style={{ ["--aspect" as string]: String(p.aspect) }}>
+          {screen}
+          {!p.isFilm && (
+            <div className="cam-info" aria-live="off">
+              <span className="cam-info-mode">{p.auto ? "A" : "M"}</span>
+              <span>{formatShutter(p.shutterSec)}</span>
+              <span>{formatFNumber(p.fNumber)}</span>
+              <span>ISO {p.iso}</span>
+              <span className="cam-info-meter" aria-label={`Meter ${clampedMeter >= 0 ? "+" : "−"}${Math.abs(clampedMeter).toFixed(1)} stops`}>
+                <span className="cam-meter-scale" aria-hidden="true">
+                  {[-3, -2, -1, 0, 1, 2, 3].map((v) => (
+                    <i key={v} className={v === 0 ? "cam-meter-zero" : undefined} />
+                  ))}
+                  <b style={{ left: `${((clampedMeter + 3) / 6) * 100}%` }} />
+                </span>
+              </span>
+              <span>{evLabel(p.evComp)}</span>
+              <span className="cam-info-count">{p.frames}</span>
+            </div>
+          )}
+          {fnOpen && (
+            <div className="cam-fn" role="dialog" aria-label={p.liveOn ? "Scene light" : "Scene"}>
+              <div className="cam-fn-head">
+                <span>{p.liveOn ? "Scene light" : "Scene"}</span>
+                <button type="button" className="cam-btn cam-btn-small" onClick={() => setFnOpen(false)}>
+                  Done
+                </button>
+              </div>
+              {p.scenes}
+            </div>
+          )}
+        </div>
+        <LensRings
+          stops={p.stops}
+          fNumber={p.fNumber}
+          onAperture={p.onAperture}
+          focusMm={p.focusMm}
+          minFocusMm={p.lens.minFocusMm}
+          onFocus={p.onFocus}
+          nearMm={p.nearMm}
+          farMm={p.farMm}
+          units={p.units}
+        />
+        <p className="cam-caption" aria-live="polite">
+          {p.lens.name} · focused at {formatDistance(p.focusMm, p.units)} · sharp {formatDistance(p.nearMm, p.units)} to {formatDistance(p.farMm, p.units)}
+        </p>
+      </div>
+
+      {/* Right: the top-plate shutter dial, the release, then the back's thumb wheel or the film lever. */}
+      <div className="cam-right">
+        <RotaryDial
+          label="Shutter speed dial"
+          stops={dial}
+          index={dialIndex}
+          onChange={(i) => {
+            const s = dial[i];
+            p.onShutterDial(s.key === "A" ? { auto: true, sec: p.shutterSec } : { auto: false, sec: Number(s.key) });
+          }}
+          size={dialSize}
+          step={30}
+          className="dial-shutter"
+        />
+        <ReleaseButton onHalf={setHalf} onFire={shoot} disabled={!p.canShoot} label={!ready && p.isFilm ? "Release the shutter (wind on first)" : "Release the shutter"} />
+        {p.isFilm ? (
+          <>
+            <AdvanceLever
+              wound={wound}
+              onWind={() => {
+                if (wound) return;
+                setWound(true);
+                p.onWind();
+              }}
+            />
+            <button
+              type="button"
+              className="cam-btn cam-btn-preview"
+              aria-pressed={previewHeld}
+              onPointerDown={() => setPreviewHeld(true)}
+              onPointerUp={() => setPreviewHeld(false)}
+              onPointerLeave={() => setPreviewHeld(false)}
+              onKeyDown={(e) => (e.key === " " || e.key === "Enter") && setPreviewHeld(true)}
+              onKeyUp={() => setPreviewHeld(false)}
+            >
+              Hold to preview
+            </button>
+          </>
+        ) : (
+          <ThumbWheel ev={p.evComp} onChange={p.onEvComp} />
+        )}
+      </div>
+    </div>
+  );
+}

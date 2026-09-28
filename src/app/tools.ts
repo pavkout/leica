@@ -1,7 +1,7 @@
-// App structure: the Master Plan's four modes, each a small set of tools.
-// One tool shows at a time; the route lives in the URL hash (#/learn/sunny16)
-// so tools can be linked, and the existing query links (?recipe, ?try, ?demo,
-// ?kiosk) keep working alongside it.
+// App structure. Home is the camera itself (#/camera, feature #37); MENU
+// (#/menu) lists the Master Plan's four modes, each a small set of tools, and
+// a tool opens on its own page (#/learn/sunny16) so it can be linked. The
+// existing query links (?recipe, ?try, ?demo, ?kiosk) keep working alongside.
 
 export type ModeId = "simulate" | "learn" | "shoot" | "explore";
 
@@ -95,23 +95,30 @@ export function toolsFor(mode: ModeId, available: (t: Tool) => boolean = () => t
   return TOOLS.filter((t) => t.mode === mode && available(t));
 }
 
+export type Screen = "camera" | "menu" | "tool";
+
 export interface Route {
+  screen: Screen;
+  /** The tool page's mode and tool (kept while on the camera, so MENU reopens where you were). */
   mode: ModeId;
   tool: ToolId;
 }
 
-export const HOME: Route = { mode: "simulate", tool: "studio" };
+export const HOME: Route = { screen: "camera", mode: "simulate", tool: "studio" };
 
-/** `#/learn/sunny16` → route; a bare mode goes to its default tool; anything unknown goes home. */
+/** `#/learn/sunny16` → a tool page; `#/menu` → the menu; a bare mode goes to its default tool; anything else is the camera. */
 export function parseRoute(hash: string): Route {
   const [modePart, toolPart] = hash.replace(/^#\/?/, "").split("/");
+  if (modePart === "menu") return { ...HOME, screen: "menu" };
   const mode = MODES.find((m) => m.id === modePart)?.id;
   if (!mode) return HOME;
   const tool = findTool(toolPart);
-  return { mode, tool: tool && tool.mode === mode ? tool.id : DEFAULT_TOOL[mode] };
+  return { screen: "tool", mode, tool: tool && tool.mode === mode ? tool.id : DEFAULT_TOOL[mode] };
 }
 
 export function routeHash(r: Route): string {
+  if (r.screen === "camera") return "#/camera";
+  if (r.screen === "menu") return "#/menu";
   return `#/${r.mode}/${r.tool}`;
 }
 

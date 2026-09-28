@@ -329,6 +329,13 @@ export function nearestStop(stops: number[], n: number) {
 // Marked shutter speeds, in seconds.
 const SHUTTER_SPEEDS = [8, 4, 2, 1, 1 / 2, 1 / 4, 1 / 8, 1 / 15, 1 / 30, 1 / 60, 1 / 125, 1 / 250, 1 / 500, 1 / 1000, 1 / 2000, 1 / 4000, 1 / 8000, 1 / 16000];
 
+/** Marked ISO settings; a body offers those within its range. */
+export const ISO_STEPS = [50, 64, 100, 125, 160, 200, 400, 800, 1600, 3200, 6400, 12500, 25000, 50000, 100000, 200000];
+
+export function isoSettings(body: Body): number[] {
+  return body.isoRange ? ISO_STEPS.filter((i) => i >= body.isoRange![0] && i <= body.isoRange![1]) : [];
+}
+
 export function shutterSpeeds(body: Body) {
   return SHUTTER_SPEEDS.filter((t) => t <= body.shutter.slowest * 1.001 && t >= body.shutter.fastest * 0.999);
 }
