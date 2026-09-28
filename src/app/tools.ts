@@ -56,7 +56,7 @@ export interface Tool {
 }
 
 export const TOOLS: Tool[] = [
-  { id: "studio", mode: "simulate", label: "Studio", blurb: "Frame, focus and expose a shot, and see the result.", stages: ["stage-preview", "stage-scene", "stage-barrel", "readouts", "stage-exposure", "stage-setup", "stage-details"] },
+  { id: "studio", mode: "simulate", label: "Studio", blurb: "See what's sharp in the picture, and why.", stages: ["stage-preview", "stage-scene", "stage-barrel", "readouts", "stage-exposure", "stage-setup", "stage-details"] },
   { id: "motion", mode: "simulate", label: "Motion blur", blurb: "How shutter speed freezes or smears movement.", stages: ["stage-motion"] },
   { id: "character", mode: "simulate", label: "Lens character", blurb: "What sets this lens apart, with where each fact comes from.", stages: ["stage-dna"] },
   { id: "flare", mode: "simulate", label: "Flare", blurb: "Point the lens at the light and watch what happens.", stages: ["stage-flare"] },

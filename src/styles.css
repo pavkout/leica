@@ -4545,3 +4545,214 @@ a.brand {
     display: none;
   }
 }
+
+/* ════════════════════════════════════════════════════════════
+   Studio: understand the shot (#37 follow-up)
+   ════════════════════════════════════════════════════════════ */
+.bench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "main"
+    "side"
+    "more";
+  gap: 12px;
+}
+
+.bench-main {
+  grid-area: main;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.bench-side {
+  grid-area: side;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+
+.bench-more {
+  grid-area: more;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+/* The sharp zone over the photo: outside the depth of field goes dim. */
+.preview-mask {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* ── The reading ─────────────────────────────────────────── */
+.stage-reading {
+  display: grid;
+  gap: 10px;
+}
+
+.reading-zone {
+  font-family: var(--font-engraving);
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 500;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.reading-line {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  color: #d9d6cf;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.reading-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  transform: translateY(-1px);
+}
+
+.reading-dot-in,
+.reading-dot-sharp {
+  background: #f4f3f1;
+}
+
+.reading-dot-out {
+  background: var(--red);
+}
+
+.reading-dot-slightly-soft {
+  background: #b9b6af;
+  box-shadow: 0 0 3px 1px rgba(185, 182, 175, 0.6);
+}
+
+.reading-dot-soft {
+  background: #85827c;
+  box-shadow: 0 0 5px 2px rgba(133, 130, 124, 0.6);
+}
+
+.reading-dot-very-soft {
+  background: #5d5b57;
+  box-shadow: 0 0 7px 3px rgba(93, 91, 87, 0.7);
+}
+
+.reading-next {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-top: 2px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: inset 2px 0 0 var(--red);
+}
+
+.reading-next p {
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.reading-next .btn {
+  flex: none;
+}
+
+.reading-tiles {
+  margin-top: 4px;
+}
+
+.reading-tiles .tile-value {
+  font-size: 19px;
+}
+
+.sharp-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 2px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.sharp-legend-key {
+  width: 22px;
+  height: 10px;
+  flex: none;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #fff 50%, #4d4d4d 50%);
+}
+
+/* ── Settings, folded away ───────────────────────────────── */
+.bench-fold {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.bench-fold > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.bench-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.bench-fold > summary::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(45deg);
+  transition: transform 0.2s var(--ease);
+}
+
+.bench-fold[open] > summary::after {
+  transform: rotate(-135deg);
+}
+
+.bench-fold > .panel {
+  margin: 0 8px 8px;
+  border: 0;
+  box-shadow: none;
+}
+
+@media (min-width: 1080px) {
+  .bench {
+    grid-template-columns: minmax(0, 1.6fr) minmax(330px, 1fr);
+    grid-template-areas:
+      "main side"
+      "more more";
+    gap: 16px;
+    align-items: start;
+  }
+
+  .bench-side {
+    position: sticky;
+    top: calc(var(--topbar-h) + 16px);
+  }
+
+  .bench-more {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+}

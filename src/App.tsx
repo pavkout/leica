@@ -7,7 +7,8 @@ import type { OutcomeTag } from "./state/rollExport";
 import ExposurePanel from "./components/ExposurePanel";
 import ScenePicker from "./components/ScenePicker";
 import LensBarrel from "./components/LensBarrel";
-import Readouts, { Details } from "./components/Readouts";
+import { Details } from "./components/Readouts";
+import ShotReading from "./components/ShotReading";
 import SceneDiagram from "./components/SceneDiagram";
 import Viewfinder from "./components/Viewfinder";
 import BodyArt from "./components/gear/BodyArt";
@@ -228,6 +229,12 @@ export default function App() {
   } = optical;
   const { savedIds, toggle: toggleBag } = useBag();
   const [compare, setCompare] = useState(false);
+  // Studio: dim everything outside the depth of field over the photo.
+  const [showSharp, setShowSharp] = useState(true);
+  // Dev-only test hook: the feature suites predate the tool structure and drive several tools at once,
+  // so a test run can mount every tool at once. Stripped from production builds.
+  const testAll = import.meta.env.DEV && (window as unknown as { __LEICA_ALL__?: boolean }).__LEICA_ALL__ === true;
+
   const [lensBId, setLensBId] = useState("m-50-0.95");
   const [fNumberB, setFNumberB] = useState(1.4);
   // Focus challenge: the subject stands at a hidden distance instead of at the focus.
@@ -718,6 +725,15 @@ export default function App() {
       <div className="panel-head">
         <h2>Simulated photo</h2>
         <span className="row-actions">
+          <button
+            type="button"
+            className={`btn btn-small${showSharp ? " btn-red" : ""}`}
+            aria-pressed={showSharp}
+            onClick={() => setShowSharp((v) => !v)}
+            disabled={compare}
+          >
+            What&apos;s sharp
+          </button>
           {FLAGS.liveView && (
             <button type="button" className="btn btn-small btn-red" onClick={openLive}>
               Live
@@ -730,7 +746,6 @@ export default function App() {
           )}
         </span>
       </div>
-      {scenePicker()}
       <BokehPreview
         veil={challengeHidden ? "The photo appears when you take the shot." : undefined}
         ref={previewRef}
@@ -738,7 +753,13 @@ export default function App() {
         b={compare && lenses.length > 1 ? previewSide(lensB, shotB, developFor(lensB, shotB.fNumber, shotB.frameWidthMm, 7, 0.35), photo) : null}
         onTap={photo ? tapToFocus : undefined}
         aspect={shot.frameWidthMm / shot.frameHeightMm}
+        sharpZone={showSharp && !challengeHidden ? shot.cocMm : undefined}
       />
+      {showSharp && !compare && !challengeHidden && (
+        <p className="sharp-legend">
+          <span className="sharp-legend-key" aria-hidden="true" /> Bright: sharp. Dimmed: outside the depth of field.
+        </p>
+      )}
       <div className="shutter-row">
         <div className="shutter-info">
           <span className="gear-name">
@@ -759,6 +780,7 @@ export default function App() {
           <span key={flash} className={flash ? "shutter-blink" : undefined} />
         </button>
       </div>
+      {scenePicker()}
 
       {compare && lenses.length > 1 && (
         <div className="compare-row">
@@ -1137,18 +1159,31 @@ export default function App() {
   );
 
   const views: Partial<Record<ToolId, ReactNode>> = {
+    // Studio: understand the shot. The picture, what's sharp in it, and why, with the lens right there;
+    // camera settings folded away below (the camera itself is where you shoot).
     studio: (
-      <div className="studio">
-        <div className="studio-main">
+      <div className="bench">
+        <div className="bench-main">
           {previewSection}
           {sceneSection}
+        </div>
+        <div className="bench-side">
+          <ShotReading shot={shot} stops={stops} units={units} onAperture={changeAperture} onFocus={(mm) => setFocusMm(Math.max(mm, lens.minFocusMm))} />
           {barrelSection}
         </div>
-        <div className="studio-side">
-          {setupSection}
-          <Readouts shot={shot} units={units} />
-          {exposurePanel}
-          {detailsSection}
+        <div className="bench-more">
+          <details className="bench-fold" open={testAll || undefined}>
+            <summary>Exposure and film</summary>
+            {exposurePanel}
+          </details>
+          <details className="bench-fold" open={testAll || undefined}>
+            <summary>Camera and lens</summary>
+            {setupSection}
+          </details>
+          <details className="bench-fold" open={testAll || undefined}>
+            <summary>Sharpness standard and optics numbers</summary>
+            {detailsSection}
+          </details>
         </div>
       </div>
     ),
@@ -1323,9 +1358,6 @@ export default function App() {
     ),
   };
 
-  // Dev-only test hook: the feature suites predate the tool structure and drive several tools at once,
-  // so a test run can mount every tool at once. Stripped from production builds.
-  const testAll = import.meta.env.DEV && (window as unknown as { __LEICA_ALL__?: boolean }).__LEICA_ALL__ === true;
   const mounted = TOOLS.filter((t) => toolAvailable(t) && (t.id === activeTool || (t.id !== "camera3d" && (testAll || visited.has(t.id)))));
 
   return (

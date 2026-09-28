@@ -21,6 +21,8 @@ interface Props {
   onTap?: (x: number, y: number) => void;
   /** Resolution scale: below 1 while a control is being turned, so each change renders in the next frame. */
   quality?: number;
+  /** Circle of confusion (mm): when set, everything outside the depth of field is dimmed over the photo. */
+  sharpZone?: number;
 }
 
 /** Rendering cap: detail beyond this isn't visible and costs fill rate on phones. */
@@ -36,7 +38,7 @@ interface CanvasHandle {
   canvas: HTMLCanvasElement;
 }
 
-const BokehPreview = forwardRef<PreviewHandle, Props>(function BokehPreview({ a, b, aspect, veil, onTap, quality = 1 }, ref) {
+const BokehPreview = forwardRef<PreviewHandle, Props>(function BokehPreview({ a, b, aspect, veil, onTap, quality = 1, sharpZone }, ref) {
   const [reticle, setReticle] = useState<{ x: number; y: number; key: number } | null>(null);
   const handleA = useRef<CanvasHandle | null>(null);
   useImperativeHandle(ref, () => ({
@@ -86,6 +88,15 @@ const BokehPreview = forwardRef<PreviewHandle, Props>(function BokehPreview({ a,
         <span key={reticle.key} className="reticle" style={{ left: `${reticle.x * 100}%`, top: `${reticle.y * 100}%` }} aria-hidden="true" />
       )}
       <PreviewCanvas side={a} pixelWidth={pixelWidth} pixelHeight={pixelHeight} handleRef={handleA} quality={quality} />
+      {sharpZone !== undefined && !b && (
+        <PreviewCanvas
+          side={{ label: "Sharp zone", params: { ...a.params, maskCocMm: sharpZone } }}
+          pixelWidth={Math.round(pixelWidth / 2)}
+          pixelHeight={Math.round(pixelHeight / 2)}
+          className="preview-mask"
+          ariaLabel="Sharp zone: parts outside the depth of field are dimmed"
+        />
+      )}
       {/* Kept mounted so toggling compare never creates extra WebGL contexts. */}
       <div className="preview-b" hidden={!b} style={{ clipPath: `inset(0 0 0 ${split * 100}%)` }}>
         <PreviewCanvas side={b} pixelWidth={pixelWidth} pixelHeight={pixelHeight} />
@@ -129,12 +140,16 @@ function PreviewCanvas({
   pixelHeight,
   handleRef,
   quality = 1,
+  className = "preview-canvas",
+  ariaLabel,
 }: {
   side: PreviewSide | null;
   pixelWidth: number;
   pixelHeight: number;
   handleRef?: MutableRefObject<CanvasHandle | null>;
   quality?: number;
+  className?: string;
+  ariaLabel?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const preparedFor = useRef(new Set<string>());
@@ -181,5 +196,5 @@ function PreviewCanvas({
   if (error) {
     return <div className="preview-error">The photo preview needs WebGL 2, which this browser doesn't provide.</div>;
   }
-  return <canvas ref={canvasRef} className="preview-canvas" role="img" aria-label={side ? `Simulated photo: ${side.label}` : undefined} />;
+  return <canvas ref={canvasRef} className={className} role="img" aria-label={ariaLabel ?? (side ? `Simulated photo: ${side.label}` : undefined)} />;
 }

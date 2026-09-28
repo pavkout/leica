@@ -53,7 +53,15 @@ export interface RenderParams {
   develop?: DevelopParams;
   /** Render this photograph (with its depth map) instead of the illustrated street. */
   photo?: PhotoScene;
+  /**
+   * Sharp-zone mask instead of the picture: everything whose blur disc is within this circle of confusion
+   * (mm) is white, the rest dark grey. Exact per layer (street) or depth slice (photo).
+   */
+  maskCocMm?: number;
 }
+
+/** Grey for the parts of the mask that fall outside the depth of field. */
+export const MASK_SOFT = 0.3;
 
 /** Depth slices for photos, evenly spaced in inverse depth (which is evenly spaced in blur). */
 const PHOTO_SLICES = 20;
@@ -112,6 +120,11 @@ uniform float uInvFocus;
 uniform vec2 uLamps[8];
 uniform int uLampCount;
 uniform vec3 uFogColor;
+// Sharp-zone mask: the ground's own depth against the depth of field (metres; far < 0 = infinity).
+uniform float uMaskOn;
+uniform float uMaskNear;
+uniform float uMaskFar;
+uniform float uMaskSoft;
 out vec4 o;
 
 float gridLine(vec2 g) {
@@ -127,6 +140,11 @@ void main() {
   float dy = fc.y - uCenter.y;
   if (dy <= 0.0) discard;
   float Z = uFpx * uCamH / dy;
+  if (uMaskOn > 0.5) {
+    float m = (Z >= uMaskNear && (uMaskFar < 0.0 || Z <= uMaskFar)) ? 1.0 : uMaskSoft;
+    o = vec4(vec3(m), 1.0);
+    return;
+  }
   float X = (fc.x - uCenter.x - uBaselinePx * (1.0 / Z - uInvFocus)) * Z / uFpx;
   float ax = abs(X);
 
@@ -170,6 +188,8 @@ uniform float uCatEye;
 uniform sampler2D uSupport;
 uniform int uUseSupport;
 uniform float uShift;
+// Sharp-zone mask: ≥ 0 paints the layer's coverage in this grey instead of its colour.
+uniform float uMask;
 out vec4 o;
 void main() {
   vec2 fc = vec2(gl_FragCoord.x, uCanvas.y - gl_FragCoord.y);
@@ -190,6 +210,7 @@ void main() {
   // Hidden samples are unknown, not transparent: average over the visible ones.
   float norm = uUseSupport == 1 ? support : n;
   o = norm > 0.001 ? sum / norm : vec4(0.0);
+  if (uMask >= 0.0) o = vec4(vec3(uMask) * o.a, o.a);
 }`;
 
 const FS_PHOTO = `#version 300 es
@@ -512,7 +533,7 @@ export class BokehRenderer {
   private compositeLayer(
     bounds: Rect,
     r: number,
-    opts: { W: number; H: number; FW: number; FH: number; margin: number; kernel: Float32Array; catEye: number; shift?: number; useSupport?: boolean }
+    opts: { W: number; H: number; FW: number; FH: number; margin: number; kernel: Float32Array; catEye: number; shift?: number; useSupport?: boolean; mask?: number }
   ) {
     const gl = this.gl;
     const { W, H, FW, FH, margin } = opts;
@@ -545,6 +566,7 @@ export class BokehRenderer {
     gl.uniform2fv(blur.u("uKernel"), opts.kernel);
     gl.uniform1i(blur.u("uCount"), count);
     gl.uniform1f(blur.u("uCatEye"), opts.catEye);
+    gl.uniform1f(blur.u("uMask"), opts.mask ?? -1);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.disable(gl.SCISSOR_TEST);
   }
@@ -637,17 +659,20 @@ export class BokehRenderer {
 
     // A softly blurred plate behind everything fills in what nearer objects hid.
     const plateR = Math.max(...centers.filter((_, i) => present[i]).map(blurAtInv), 0);
+    // Sharp-zone mask: each depth slice unblurred, white when its blur disc fits the circle of confusion.
+    const maskFor = (r: number) => (params.maskCocMm === undefined ? undefined : r <= (params.maskCocMm / params.frameWidthMm) * W * 0.5 ? 1 : MASK_SOFT);
+    const masking = params.maskCocMm !== undefined;
     paint(true, 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.imageFbo);
     gl.viewport(0, 0, W, H);
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    this.compositeLayer(full, Math.min(plateR, W / 12), { ...common, shift: shiftAt(0) });
+    this.compositeLayer(full, masking ? 0 : Math.min(plateR, W / 12), { ...common, shift: shiftAt(0), mask: maskFor(blurAtInv(0)) });
 
     for (let i = 0; i < PHOTO_SLICES; i++) {
       if (!present[i]) continue;
       paint(false, i);
-      this.compositeLayer(full, blurAtInv(centers[i]), { ...common, shift: shiftAt(centers[i]), useSupport: true });
+      this.compositeLayer(full, masking ? 0 : blurAtInv(centers[i]), { ...common, shift: shiftAt(centers[i]), useSupport: true, mask: maskFor(blurAtInv(centers[i])) });
     }
   }
 
@@ -734,26 +759,49 @@ export class BokehRenderer {
 
     if (params.photo) {
       this.renderPhoto(params, params.photo, { W, H, FW, FH, margin, fpx, kernel, baselinePx, invFocusM });
-      this.develop(params.develop, W, H, CW, CH);
+      this.develop(params.maskCocMm !== undefined ? undefined : params.develop, W, H, CW, CH);
       return;
     }
 
     const layers = buildScene(params.subjectMm / 1000, params.backgroundMm / 1000);
+
+    // Sharp-zone mask: a layer is sharp when its blur disc fits within the circle of confusion.
+    const maskFor = (r: number) => (r <= ((params.maskCocMm ?? 0) / params.frameWidthMm) * W * 0.5 ? 1 : MASK_SOFT);
+    const masking = params.maskCocMm !== undefined;
+    // The ground spans many depths: it masks per pixel against the sharp range.
+    this.groundMask = masking ? sharpRangeM(params.focalMm, params.fNumber, params.focusMm, params.maskCocMm!) : null;
 
     // Sky, straight onto the image: a smooth gradient needs no blur.
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.imageFbo);
     gl.viewport(0, 0, W, H);
     gl.disable(gl.SCISSOR_TEST);
     gl.disable(gl.BLEND);
-    this.use("sky", [0, 0, W, H], [W, H]);
-    gl.uniform1f(this.programs.sky.u("uHorizon"), cy);
-    gl.uniform1f(this.programs.sky.u("uFpx"), fpx);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    if (masking) {
+      // The sky is at infinity.
+      const m = maskFor(blurRadius(Infinity));
+      gl.clearColor(m, m, m, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    } else {
+      this.use("sky", [0, 0, W, H], [W, H]);
+      gl.uniform1f(this.programs.sky.u("uHorizon"), cy);
+      gl.uniform1f(this.programs.sky.u("uFpx"), fpx);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
 
     for (const layer of layers) {
       const r = blurRadius(layer.z);
       const bounds = this.layerBounds(layer, project, fpx, cy, W, H, r);
       if (!bounds) continue;
+
+      if (masking) {
+        // Coverage only, unblurred, in the layer's mask grey.
+        this.clearLayer();
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.NONE]);
+        gl.viewport(0, 0, FW, FH);
+        this.paintLayer(layer, project, fpx, cx, cy, margin, FW, FH, H, 0, 0, baselinePx, invFocusM);
+        this.compositeLayer(bounds, 0, { W, H, FW, FH, margin, kernel, catEye: shape.catEye, mask: layer.kind === "ground" ? undefined : maskFor(r) });
+        continue;
+      }
 
       // 1. Paint the layer into the margin-padded texture (colour only).
       this.clearLayer();
@@ -771,11 +819,10 @@ export class BokehRenderer {
       }
     }
 
-    this.develop(params.develop, W, H, CW, CH);
+    this.develop(masking ? undefined : params.develop, W, H, CW, CH);
   }
 
-  /** Film or sensor: turns the optical image into the final photo on the canvas. */
-  /** Final pass onto the canvas (`CW`×`CH`) from the image (`W`×`H`, smaller at interactive quality). */
+  /** Film or sensor: turns the optical image into the final photo on the canvas. Final pass onto the canvas (`CW`×`CH`) from the image (`W`×`H`, smaller at interactive quality). */
   private develop(dev: DevelopParams | undefined, W: number, H: number, CW = W, CH = H) {
     const gl = this.gl;
     gl.bindTexture(gl.TEXTURE_2D, this.imageTex);
@@ -858,6 +905,9 @@ export class BokehRenderer {
     return rect[2] > rect[0] && rect[3] > rect[1] ? rect : null;
   }
 
+  /** Sharp range (metres) for the ground's per-pixel mask while rendering a sharp-zone mask. */
+  private groundMask: [number, number] | null = null;
+
   private paintLayer(
     layer: Layer,
     project: (x: number, y: number, z: number) => readonly [number, number],
@@ -891,6 +941,11 @@ export class BokehRenderer {
       const lamps = LAMP_POSTS.slice(0, 8).flatMap((p) => [p.x * 0.8, p.z]);
       gl.uniform2fv(g.u("uLamps"), new Float32Array(lamps));
       gl.uniform1i(g.u("uLampCount"), Math.min(8, LAMP_POSTS.length));
+      const m = this.groundMask;
+      gl.uniform1f(g.u("uMaskOn"), m ? 1 : 0);
+      gl.uniform1f(g.u("uMaskNear"), m ? m[0] : 0);
+      gl.uniform1f(g.u("uMaskFar"), m && Number.isFinite(m[1]) ? m[1] : -1);
+      gl.uniform1f(g.u("uMaskSoft"), MASK_SOFT);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       return;
     }
@@ -948,4 +1003,22 @@ export class BokehRenderer {
     gl.uniform2f(p.u("uTarget"), ...target);
     return p;
   }
+}
+
+/** Near and far distances (m) where the blur disc equals `cocMm`; far is Infinity when it never does. */
+export function sharpRangeM(focalMm: number, fNumber: number, focusMm: number, cocMm: number): [number, number] {
+  const blur = (zM: number) => blurDiscMm(focalMm, fNumber, focusMm, zM * 1000);
+  const focusM = Number.isFinite(focusMm) ? focusMm / 1000 : 1e6;
+  // Bisection in log distance: blur falls towards the focus distance on both sides.
+  const solve = (lo: number, hi: number, nearSide: boolean) => {
+    for (let i = 0; i < 48; i++) {
+      const mid = Math.sqrt(lo * hi);
+      if ((blur(mid) > cocMm) === nearSide) lo = mid;
+      else hi = mid;
+    }
+    return Math.sqrt(lo * hi);
+  };
+  const near = blur(0.05) <= cocMm ? 0.05 : solve(0.05, focusM, true);
+  const far = blur(Infinity) <= cocMm ? Infinity : solve(focusM, 1e6, false);
+  return [near, far];
 }

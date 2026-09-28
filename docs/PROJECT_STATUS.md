@@ -25,6 +25,7 @@ Last updated: 2026-09-28
 - **Slice 2:** live camera through the simulated camera, including live depth of field. COMPLETE.
 - **Remaining:** a real-phone review (feel, depth speed on the device), then polish from that review.
 - User decisions: the UI follows the chosen body (film vs digital), landscape first, live simulation "everything including depth".
+- **Studio "Understand the shot"** (user request, 2026-09-28: "the Studio isn't really helpful"; chosen direction: understand the shot). Code COMPLETE; waiting for the user's review.
 
 Previous task: **Redesign, plus A–D (user request, 2026-09-27)** — superseded as home by #37; its pages now live under MENU.
 
@@ -134,6 +135,35 @@ Things to try by hand. Nothing is committed; everything below is in the working 
 ---
 
 ## Last completed
+
+**Studio rework — "Understand the shot"** (user request; follow-up to #37) — **COMPLETE, user review pending** (2026-09-28)
+
+The Studio page (`#/simulate/studio`) now explains the picture instead of listing settings.
+- **"What's sharp" overlay** is on by default and toggles off; it's disabled while comparing lenses.
+  - A half-size second render (`RenderParams.maskCocMm`) dims everything whose blur disc is larger than the circle of confusion. It's multiplied over the photo.
+  - Uploaded photos are masked per depth slice and the illustrated street per layer; the ground is masked per pixel against the sharp range (`sharpRangeM`), so the in-focus stripe of pavement lights up.
+  - A one-line legend sits under the picture.
+- **Plain reading** (`ShotReading`, `explainShot`) states:
+  - where the sharp zone is;
+  - whether the subject is inside it (in front or behind if not);
+  - how soft the background is, in circles of confusion.
+- **One next step, applied with a tap**, and always one the lens has: "Try f/2.8" (makes the background readable), "Open up" (for separation), or "Focus at the subject". The Near, Far, Depth and Hyperfocal tiles stay.
+- **Layout:**
+  - Picture and scene chips on the left, reading and rings on the right (sticky on desktop).
+  - Exposure, camera and lens, and optics numbers are folded away.
+  - On phones the picture comes first; scene chips moved below it.
+  - Desktop page height: 2345 → 1529 px.
+- **Validation:**
+  - Typecheck is clean.
+  - Lint shows 0 errors and the 5 existing warnings.
+  - Vitest 475/475, including the new `explainShot` and `sharpRange` tests.
+  - Build passes.
+  - New Studio browser check: 39/39 (Chromium desktop, WebKit iPhone 13 and iPhone SE with reduced motion).
+  - Full regression all green: 23 feature suites, #36b 28/28, Shell 33/33, Camera 72/72, Live 13/13.
+- **Limitations:**
+  - The overlay is binary (sharp or not) at the chosen sharpness standard. It doesn't show blur gradations.
+  - Lamp bokeh isn't masked.
+  - The Studio "Tour" button now sits in the folded "Camera and lens" section. The tour is still in MENU → Setup.
 
 **Feature #37 — The camera is the interface, slices 1–2** (Priority 1, user request) — **IN PROGRESS** (code complete; real-phone review pending) (2026-09-28)
 
