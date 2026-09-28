@@ -25,6 +25,7 @@ Last updated: 2026-09-28
 - **Slice 2:** live camera through the simulated camera, including live depth of field. COMPLETE.
 - **Remaining:** a real-phone review (feel, depth speed on the device), then polish from that review.
 - User decisions: the UI follows the chosen body (film vs digital), landscape first, live simulation "everything including depth".
+- **Iris transition** (user request, 2026-09-28): the aperture iris closes and opens on every screen change and every shot. Code COMPLETE; waiting for the user's review.
 - **Studio "Understand the shot"** (user request, 2026-09-28: "the Studio isn't really helpful"; chosen direction: understand the shot). Code COMPLETE; waiting for the user's review.
 
 Previous task: **Redesign, plus A–D (user request, 2026-09-27)** — superseded as home by #37; its pages now live under MENU.
@@ -135,6 +136,36 @@ Things to try by hand. Nothing is committed; everything below is in the working 
 ---
 
 ## Last completed
+
+**Iris transition** (user request, follow-up to #37) — **COMPLETE, user review pending** (2026-09-28)
+
+The user's idea: when you change pages or shoot, the aperture closes and opens again on the new screen. Choices (asked):
+- every screen change, MENU included, and shots;
+- quick and crisp;
+- blades follow the lens.
+
+What was built:
+- **`IrisTransition`**: a full-screen 2D canvas iris with the chosen lens's blade count (generic 9 when not published).
+  - The opening turns as it closes, like a real diaphragm.
+  - Matte blades have a lit leading edge, and a solid backing means the page never shows through the seams when shut.
+  - Geometry lives in `irisGeometry.ts` (tested: the blades tile everything outside the opening exactly once, meet in the centre when shut, and uncover the whole screen when open).
+- **Timing** (`iris.ts`):
+  - Screen changes: close 200 ms, hold 40 ms, open 230 ms. The iris opens only after the new screen has painted twice, so its first heavy frame (WebGL shader compile, re-render) happens behind shut blades.
+  - Shots: a 70 + 130 ms blink.
+  - Navigating again mid-transition continues smoothly from where the blades are.
+  - A soft aperture click plays as the iris closes.
+- **Replaces the shutter-curtain wipe** (`ShutterCurtain` removed). Camera ↔ MENU used to switch instantly; now the iris runs there too.
+- **Reduced motion:** instant switches, no iris.
+- **Validation:**
+  - Typecheck is clean.
+  - Lint shows 0 errors and the 5 existing warnings.
+  - Vitest 479/479, build passes.
+  - New iris browser check: 24/24 (Chromium desktop, WebKit iPhone 13 landscape, and iPhone SE with reduced motion). It covers every kind of screen change and the shot, requires the iris to fully close (opaque centre), and requires no frame over 120 ms while the blades move (measured ≤ 26 ms).
+  - Shell check updated from curtain to iris.
+  - Full regression all green: 23 feature suites, #36b 28/28, Shell 33/33, Camera 72/72, Live 13/13, Studio 39/39, Iris 24/24.
+- **Limitations:**
+  - On a heavy first visit (e.g. the first time Studio compiles its shaders), the iris stays shut a little longer. That's deliberate: it hides the hitch.
+  - Not yet felt on a real phone.
 
 **Studio rework — "Understand the shot"** (user request; follow-up to #37) — **COMPLETE, user review pending** (2026-09-28)
 

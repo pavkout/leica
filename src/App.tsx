@@ -42,10 +42,11 @@ import CameraMenu from "./camera/CameraMenu";
 import Playback from "./camera/Playback";
 import LiveScreen, { type LiveHandle } from "./camera/live/LiveScreen";
 import LightPresets from "./camera/live/LightPresets";
-import ShutterCurtain from "./components/app/ShutterCurtain";
+import IrisTransition from "./components/app/IrisTransition";
+import { PAGE_TRANSITION_MS, irisBlink, setIrisBlades } from "./components/app/iris";
 import ToolNav from "./components/app/ToolNav";
 import ToolBoundary from "./components/app/ToolBoundary";
-import { CLOSE_MS, OPEN_MS, useRoute } from "./components/app/useRoute";
+import { useRoute } from "./components/app/useRoute";
 import { TOOLS, findTool, toolForStage, toolsFor, type Tool, type ToolId } from "./app/tools";
 import { parseKiosk } from "./state/kiosk";
 import { describeRecord, parseRecord, type DevelopmentRecord } from "./physics/darkroom";
@@ -426,6 +427,9 @@ export default function App() {
     (window as unknown as { __leicaNav?: unknown }).__leicaNav = { go: goTool };
   });
 
+  // The screen-transition iris has the chosen lens's blades.
+  useEffect(() => setIrisBlades(lens.apertureBlades ?? GENERIC_BLADES), [lens.apertureBlades]);
+
   // 3D view (feature #2): the procedural model is an M body, so it's offered for M rangefinders only.
   const show3D = onTools && activeTool === "camera3d";
   // Counts film wind-ons so the 3D advance lever strokes in time with the advance sound.
@@ -486,6 +490,7 @@ export default function App() {
       if (!live) return;
       playShutter(shutterSec, shutterVoiceFor(body));
       setFlash((f) => f + 1);
+      irisBlink();
       addFrame(live, "Live", undefined, true);
       return;
     }
@@ -493,6 +498,7 @@ export default function App() {
     const angle = Math.random() * Math.PI;
     playShutter(shutterSec, shutterVoiceFor(body));
     setFlash((f) => f + 1);
+    irisBlink();
     const side = previewSide(lens, shot, developFor(lens, fNumber, shot.frameWidthMm, seed, angle), photo);
     const url = (fromCamera ? cameraPreviewRef : previewRef).current?.capture(side.params);
     if (url) addFrame(url, undefined, undefined, fromCamera);
@@ -502,6 +508,7 @@ export default function App() {
   function captureLiveFrame(url: string) {
     if (rollFull) return;
     playShutter(shutterSec, shutterVoiceFor(body));
+    irisBlink();
     addFrame(url, "Live View");
   }
 
@@ -676,10 +683,10 @@ export default function App() {
       const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
       const t = toolForStage(selector.replace(/^\./, ""));
       if (t && (t.id !== activeTool || !onTools)) navigate({ screen: "tool", mode: t.mode, tool: t.id });
-      // Scroll once the tool is on screen (after the curtain has opened).
+      // Scroll once the tool is on screen (after the iris has opened).
       window.setTimeout(
         () => document.querySelector(selector)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }),
-        reduce ? 60 : CLOSE_MS + OPEN_MS + 60,
+        reduce ? 60 : PAGE_TRANSITION_MS + 60,
       );
     },
   };
@@ -1593,7 +1600,7 @@ export default function App() {
       )}
       {playOpen && <Playback frames={frames} onClose={() => setPlayOpen(false)} onSheet={() => (setPlayOpen(false), goTool("roll"))} />}
 
-      <ShutterCurtain />
+      <IrisTransition />
 
       <GearPicker
         open={picker === "body"}
