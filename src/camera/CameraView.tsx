@@ -62,6 +62,8 @@ export interface CameraProps {
   onLive: () => void;
   onMenu: () => void;
   onPlay: () => void;
+  /** From FN while LIVE: the handheld light meter (spot readings, equivalents) for a real camera. */
+  onOpenMeter?: () => void;
   /** The engraved body and lens names open their choosers. */
   onPickBody: () => void;
   onPickLens: () => void;
@@ -106,7 +108,7 @@ export default function CameraView(p: CameraProps) {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
-  const dialSize = Math.round(Math.min(200, Math.max(112, short * 0.3)));
+  const dialSize = Math.round(Math.min(150, Math.max(96, short * 0.22)));
   // Get the sound engine ready while idle, so the first detent clicks without a delay.
   useEffect(() => {
     const id = (window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 300)))(() => prepareAudio());
@@ -206,6 +208,21 @@ export default function CameraView(p: CameraProps) {
                 </button>
               </div>
               {p.scenes}
+              {p.liveOn && p.onOpenMeter && (
+                <div className="cam-fn-meter">
+                  <p>Metering for a real camera? The light meter has spot readings and the equivalent settings.</p>
+                  <button
+                    type="button"
+                    className="cam-btn"
+                    onClick={() => {
+                      setFnOpen(false);
+                      p.onOpenMeter?.();
+                    }}
+                  >
+                    Open the light meter
+                  </button>
+                </div>
+              )}
             </div>
           )}
           <button

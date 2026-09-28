@@ -744,7 +744,7 @@ export default function App() {
           </button>
           {FLAGS.liveView && (
             <button type="button" className="btn btn-small" onClick={openLive}>
-              Live
+              Light meter
             </button>
           )}
           {lenses.length > 1 && (
@@ -777,7 +777,7 @@ export default function App() {
         </div>
         <button
           type="button"
-          className="shutter-button"
+          className="release"
           onClick={() => {
             fireShutter();
             if (challenge && !challenge.shotTaken) setChallenge({ ...challenge, shotTaken: true });
@@ -785,6 +785,7 @@ export default function App() {
           disabled={rollFull}
           aria-label="Release the shutter"
         >
+          <span className="release-cap" aria-hidden="true" />
           <span key={flash} className={flash ? "shutter-blink" : undefined} />
         </button>
       </div>
@@ -1150,19 +1151,19 @@ export default function App() {
   );
 
   const liveSection = (
-    <section className="panel stage-live" aria-label="Live view">
+    <section className="panel stage-live" aria-label="Light meter">
       <p className="live-intro">
-        Your phone&apos;s camera, framed like the {body.name} with the {lens.name}: framelines, focus distance and a light meter. Frames you
-        take go to your roll.
+        A handheld meter for the camera in your hands. Point your phone at the scene: meter a spot, place a highlight or a shadow, and read
+        off the equivalent settings and the zone-focus distance. The picture shows the result through the {body.name} with the {lens.name}.
       </p>
       {FLAGS.liveView ? (
         <button type="button" className="btn btn-red live-open" onClick={openLive}>
-          Open live view
+          Open the light meter
         </button>
       ) : (
-        <p className="muted">Live view isn&apos;t available in this build.</p>
+        <p className="muted">The light meter isn&apos;t available in this build.</p>
       )}
-      <p className="muted small">The camera only runs while live view is open, and nothing leaves your device.</p>
+      <p className="muted small">The camera only runs while the meter is open, and nothing leaves your device.</p>
     </section>
   );
 
@@ -1486,6 +1487,11 @@ export default function App() {
             }}
             onMenu={() => navigate({ ...route, screen: "menu" })}
             onPlay={() => (isFilm ? goTool("roll") : setPlayOpen(true))}
+            onOpenMeter={() => {
+              setLiveOn(false);
+              setLiveEv(null);
+              openLive();
+            }}
             onPickBody={() => setPicker("body")}
             onPickLens={() => lenses.length > 1 && setPicker("lens")}
           />

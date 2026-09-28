@@ -167,9 +167,13 @@ export function AdvanceLever({ wound, onWind }: { wound: boolean; onWind: () => 
         if (!wound) onWind();
       }}
     >
-      <span className="lever-arm" style={{ transform: `rotate(${-angle}deg)` }} aria-hidden="true" />
+      {/* The top-plate hub the lever pivots on, the arm, and its plastic finger tip. */}
+      <span className="lever-hub" aria-hidden="true" />
+      <span className="lever-arm" style={{ transform: `rotate(${-angle}deg)` }} aria-hidden="true">
+        <span className="lever-tip" />
+      </span>
       <span className="lever-label" aria-hidden="true">
-        {wound ? "Ready" : "Wind"}
+        {wound ? "Wound" : "Wind on →"}
       </span>
     </button>
   );

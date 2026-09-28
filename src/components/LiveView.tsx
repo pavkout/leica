@@ -150,7 +150,7 @@ export default function LiveView({
   );
 
   return (
-    <div className="live-view" role="dialog" aria-label="Live view" aria-modal="true">
+    <div className="live-view" role="dialog" aria-label="Light meter" aria-modal="true">
       {/* The picture: always on screen, with the camera's readout and release on it, like a rear screen. */}
       <div className="lv-stage" style={{ ["--aspect" as string]: String(sensorAspect) }} onClick={meterAt}>
         <LiveScreen
@@ -172,7 +172,7 @@ export default function LiveView({
           onSceneEv={() => undefined}
           onFocus={onFocusChange}
           onExit={onClose}
-          exitLabel="Close live view"
+          exitLabel="Close the light meter"
           fallbackImageUrl={syntheticSceneUrl}
           onSource={(el, track) => {
             meterSource.current = el;
@@ -183,7 +183,7 @@ export default function LiveView({
           <span className="live-view-spot" aria-hidden="true" style={{ left: `${spotMark.x * 100}%`, top: `${spotMark.y * 100}%` }} />
         )}
 
-        <button type="button" className="lv-close" onClick={onClose} aria-label="Close live view">
+        <button type="button" className="lv-close" onClick={onClose} aria-label="Close the light meter">
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
             <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.6" />
           </svg>
@@ -224,7 +224,7 @@ export default function LiveView({
       </div>
 
       {/* The controls: their own scrolling panel beside (or under) the picture, split so nothing is a long scroll away. */}
-      <aside className="lv-panel" aria-label="Live view controls">
+      <aside className="lv-panel" aria-label="Light meter controls">
         <div className="lv-summary">
           <p className="lv-summary-main">
             Sharp {formatDistance(dof.nearMm, units)} to {formatDistance(dof.farMm, units)}

@@ -72,7 +72,7 @@ export const TOOLS: Tool[] = [
   { id: "anatomy", mode: "learn", label: "Inside the camera", blurb: "Take the camera apart and slow the shutter down.", stages: ["stage-anatomy"] },
   { id: "calibration", mode: "learn", label: "Calibration", blurb: "What a misaligned rangefinder does to focus.", stages: ["stage-calibration"] },
 
-  { id: "live", mode: "shoot", label: "Live view", blurb: "Your phone's camera with this lens's framing and a light meter.", stages: ["stage-live"] },
+  { id: "live", mode: "shoot", label: "Light meter", blurb: "Point your phone at the scene; get the settings for the camera in your hands.", stages: ["stage-live"] },
   { id: "intent", mode: "shoot", label: "Shooting intent", blurb: "Say what you want; get settings that do it.", stages: ["stage-intent"] },
   { id: "recipes", mode: "shoot", label: "Recipes", blurb: "Proven starting points for common situations.", stages: ["stage-recipes"] },
   { id: "roll", mode: "shoot", label: "Roll", blurb: "Your frames, notes and what they teach you.", stages: ["stage-roll", "stage-insights"] },

@@ -184,6 +184,16 @@ Known limitations / next design pass:
 - The picker's close key shows a focus ring when opened by pointer.
 - Needs a real-phone check of the feel.
 
+**Camera dials and lever** (user question, 2026-09-29):
+- The shutter and ISO dials are smaller: 96–150 px, 22% of the short side (was 112–200 px, 30%).
+- The film advance lever is redrawn as a lever: a knurled hub, a tapered chrome arm and a black finger tip. It reads "Wound", or "Wind on →" in red when it needs winding.
+- No A on the M3's dial is correct: A only appears on bodies with aperture priority.
+
+**Light meter rename + realistic release** (user request, 2026-09-29):
+- Shoot › "Live view" is renamed **Light meter** (a handheld meter for the camera in your hands), with a new intro and labels. The camera's LIVE stays as it is ("shoot with a simulated Leica").
+- The camera's FN panel, while LIVE is on, offers "Open the light meter". It turns the camera's LIVE off first, so only one camera stream runs.
+- **One shutter release everywhere** (camera, Studio, light meter): a knurled chrome collar, a polished inner lip, and a satin domed button with the threaded cable-release socket. Pressing sinks the button, not the collar; half-press adds a red ring. It's pure CSS and scales with its size. `.shutter-button` is removed.
+
 **Live view: settings now act on the picture** (user report, 2026-09-29): the Live view showed the raw phone feed, so changes in its panel had no visible effect.
 - The picture is now the simulated camera's live render (`LiveScreen`, the same renderer as the camera's LIVE). Exposure, ISO noise, film and mono, and shutter accumulation all act on it, and depth of field works with the on-picture "Depth of field" key.
 - `LiveScreen` gained `onSource`, which hands its video/track to the spot meter, so there's still only one camera stream. It also gained `fallbackImageUrl` (the tour's stand-in photo goes through the same pipeline), `exitLabel`, and `crop()` on its handle (taps meter the right spot through the lens crop). Capture now saves the simulated frame.

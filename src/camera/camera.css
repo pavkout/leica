@@ -362,10 +362,50 @@
   text-transform: uppercase;
 }
 
+.cam-fn-meter {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #262626;
+  color: var(--engrave-dim);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cam-fn-meter p {
+  margin: 0;
+}
+
+.cam-fn-meter .cam-btn {
+  letter-spacing: 0.08em;
+}
+
 /* ── Back buttons: rubber keys with engraved labels ──────── */
 .cam-buttons {
   display: grid;
   gap: 9px;
+}
+
+.cam-fn-meter {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #262626;
+  color: var(--engrave-dim);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cam-fn-meter p {
+  margin: 0;
+}
+
+.cam-fn-meter .cam-btn {
+  letter-spacing: 0.08em;
 }
 
 /* ── Back buttons: rubber keys, engraved, pressed flat ───── */
@@ -759,7 +799,10 @@
   color: rgba(233, 230, 223, 0.5);
 }
 
-/* ── Shutter release ─────────────────────────────────────── */
+/* ── Shutter release: an M's chrome release, one design everywhere ──
+   A knurled chrome collar; inside it a domed button in satin, turned chrome
+   with the threaded cable-release socket at its centre. Pressing sinks the
+   button, not the collar. Sized by the element; everything inside scales. */
 .release {
   position: relative;
   flex: none;
@@ -769,29 +812,69 @@
   border: 0;
   border-radius: 50%;
   background:
-    repeating-radial-gradient(circle, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px),
-    radial-gradient(circle at 35% 28%, #f5f5f3, #a3a39f 55%, #5c5c59);
-  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.7), inset 0 -2px 4px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+    /* Knurling round the collar: fine straight teeth catching the light. */
+    repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0.28) 0deg 1.6deg, rgba(0, 0, 0, 0.28) 1.6deg 3.2deg),
+    radial-gradient(circle at 34% 28%, #fdfdfb 0%, #d4d3ce 30%, #9a9994 62%, #5f5e5a 100%);
+  box-shadow:
+    0 6px 14px rgba(0, 0, 0, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.7),
+    inset 0 1px 1px rgba(255, 255, 255, 0.75),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.4);
   cursor: pointer;
-  transition: transform 0.06s var(--ease-fast);
+}
+
+/* The collar's inner lip: a polished chamfer between the knurling and the button. */
+.release::before {
+  content: "";
+  position: absolute;
+  inset: 13%;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #f7f7f5, #7c7b77 55%, #d9d8d3);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 
 .release-cap {
   position: absolute;
-  inset: 18px;
+  inset: 19%;
   border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #d9d9d6, #8e8e8a);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  background:
+    /* The threaded socket for a cable release. */
+    radial-gradient(circle at 50% 50%, #0d0d0d 0 9%, #3b3b39 10% 11%, #121212 12% 13.5%, #4a4a47 14.5% 15.5%, rgba(0, 0, 0, 0.35) 17%, transparent 19%),
+    /* Satin, turned finish. */
+    repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.09) 0 0.6px, rgba(0, 0, 0, 0.06) 0.6px 1.5px),
+    /* The dome: lit from the top left. */
+    radial-gradient(circle at 36% 28%, #ffffff 0%, #ebeae6 22%, #bebdb8 58%, #8c8b86 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.45);
+  transition: transform var(--t-press, 70ms) ease-out, filter var(--t-press, 70ms) ease-out;
+}
+
+/* Half-pressed (meter awake) and pressed: the button sinks into the collar. */
+.release-half .release-cap,
+.release:active:not(:disabled) .release-cap {
+  transform: translateY(1px) scale(0.955);
+  filter: brightness(0.93);
 }
 
 .release-half {
-  transform: translateY(1px) scale(0.97);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7), 0 0 0 3px rgba(207, 46, 37, 0.55);
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.7),
+    inset 0 1px 1px rgba(255, 255, 255, 0.75),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.4),
+    0 0 0 3px rgba(207, 46, 37, 0.5);
 }
 
 .release:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.release:focus-visible {
+  outline: 2px solid var(--chrome-hi, #f2f0eb);
+  outline-offset: 3px;
 }
 
 /* ── Thumb wheel (edge-on) ───────────────────────────────── */
@@ -827,34 +910,62 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Film advance lever ──────────────────────────────────── */
+/* ── Film advance lever: a chrome arm on a hub, a black finger tip ── */
 .lever {
   position: relative;
-  width: 96px;
-  height: 46px;
+  width: 112px;
+  height: 56px;
   border: 0;
   background: none;
   cursor: grab;
 }
 
+.lever:focus-visible {
+  outline: 2px solid var(--chrome-hi, #f2f0eb);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.lever-hub {
+  position: absolute;
+  left: 6px;
+  top: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(rgba(255, 255, 255, 0.25) 0deg 6deg, rgba(0, 0, 0, 0.25) 6deg 12deg),
+    radial-gradient(circle at 35% 30%, #f4f4f2, #9d9c97 60%, #5c5b57);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* The arm: a tapered chrome strip swinging from the hub's centre. */
 .lever-arm {
   position: absolute;
-  left: 12px;
-  top: 16px;
-  width: 78px;
-  height: 14px;
-  border-radius: 7px 3px 3px 7px;
-  background: linear-gradient(180deg, #d9d9d5, #7c7c78);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  transform-origin: 7px 7px;
+  left: 17px;
+  top: 17px;
+  width: 84px;
+  height: 8px;
+  clip-path: polygon(0 20%, 100% 0, 100% 100%, 0 80%);
+  background: linear-gradient(180deg, #f2f2ef, #a9a8a3 55%, #6d6c68);
+  transform-origin: 0 50%;
   transition: transform 0.25s var(--ease);
+}
+
+.lever-tip {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 20px;
+  height: 100%;
+  background: linear-gradient(180deg, #3a3a38, #111);
 }
 
 .lever-label {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -8px;
+  bottom: 0;
   color: var(--engrave-dim);
   font-family: var(--font-engraving);
   font-stretch: var(--engrave-stretch);
@@ -1185,10 +1296,6 @@
     height: 54px;
   }
 
-  .release-cap {
-    inset: 15px;
-  }
-
   .thumbwheel-knurl {
     height: 80px;
   }
@@ -1218,10 +1325,6 @@
   .release {
     width: 84px;
     height: 84px;
-  }
-
-  .release-cap {
-    inset: 24px;
   }
 
   .thumbwheel-knurl {
