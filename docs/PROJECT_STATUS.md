@@ -184,6 +184,12 @@ Known limitations / next design pass:
 - The picker's close key shows a focus ring when opened by pointer.
 - Needs a real-phone check of the feel.
 
+**Follow-up (user review, 2026-09-28):** in the Studio, the sticky reading column slid over the "Exposure and film / Camera and lens / Sharpness standard" folds when they were opened, and the folds were easy to miss.
+- The folds now sit outside the sticky grid, so nothing can overlap them.
+- Each closed fold shows its current values (e.g. "ISO 400 · A 1/60").
+- The card nested inside each fold, with its duplicate heading, is flattened.
+- The gear buttons inside are restyled to match.
+
 Previously completed:
 
 **Iris transition** (user request, follow-up to #37) — **COMPLETE, user review pending** (2026-09-28)

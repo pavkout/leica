@@ -1169,6 +1169,7 @@ export default function App() {
     // Studio: understand the shot. The picture, what's sharp in it, and why, with the lens right there;
     // camera settings folded away below (the camera itself is where you shoot).
     studio: (
+      <>
       <div className="bench">
         <div className="bench-main">
           {previewSection}
@@ -1178,21 +1179,36 @@ export default function App() {
           <ShotReading shot={shot} stops={stops} units={units} onAperture={changeAperture} onFocus={(mm) => setFocusMm(Math.max(mm, lens.minFocusMm))} />
           {barrelSection}
         </div>
-        <div className="bench-more">
-          <details className="bench-fold" open={testAll || undefined}>
-            <summary>Exposure and film</summary>
-            {exposurePanel}
-          </details>
-          <details className="bench-fold" open={testAll || undefined}>
-            <summary>Camera and lens</summary>
-            {setupSection}
-          </details>
-          <details className="bench-fold" open={testAll || undefined}>
-            <summary>Sharpness standard and optics numbers</summary>
-            {detailsSection}
-          </details>
-        </div>
       </div>
+      {/* Outside the bench, so the sticky reading column can't slide over it. Each fold shows what it's set to while closed. */}
+      <div className="bench-more">
+        <details className="bench-fold" open={testAll || undefined}>
+          <summary>
+            <span className="bench-fold-title">Exposure and film</span>
+            <span className="bench-fold-value">
+              {isFilm ? look.name : `ISO ${iso}`} · {auto ? "A" : "M"} {formatShutter(shutterSec)}
+            </span>
+          </summary>
+          {exposurePanel}
+        </details>
+        <details className="bench-fold" open={testAll || undefined}>
+          <summary>
+            <span className="bench-fold-title">Camera and lens</span>
+            <span className="bench-fold-value">
+              {body.name} · {lens.name}
+            </span>
+          </summary>
+          {setupSection}
+        </details>
+        <details className="bench-fold" open={testAll || undefined}>
+          <summary>
+            <span className="bench-fold-title">Sharpness standard</span>
+            <span className="bench-fold-value">{standardInfo.label}</span>
+          </summary>
+          {detailsSection}
+        </details>
+      </div>
+      </>
     ),
     motion: (
       <MotionSimulator

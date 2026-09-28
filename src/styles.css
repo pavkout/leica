@@ -656,26 +656,25 @@ input[type="text"]::placeholder {
 .gear-button {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
   min-height: 72px;
   padding: 8px 14px 8px 8px;
   text-align: left;
   border: 1px solid var(--line-strong);
-  border-radius: 16px;
-  background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
-  box-shadow: var(--shadow-inset-top);
+  border-radius: var(--radius-control);
+  background: var(--plate-2);
   cursor: pointer;
-  transition: border-color 0.18s var(--ease-fast), box-shadow 0.18s var(--ease-fast), transform 0.15s var(--ease-fast);
+  transition: border-color var(--t-detent) var(--ease-detent), background-color var(--t-detent) var(--ease-detent);
 }
 
 .gear-button:hover:not(:disabled) {
-  border-color: var(--red);
-  box-shadow: var(--shadow-inset-top), 0 0 0 1px rgba(207, 46, 37, 0.35);
+  border-color: #55554f;
+  background: var(--plate-3);
 }
 
 .gear-button:active:not(:disabled) {
-  transform: scale(0.995);
+  background: var(--plate);
 }
 
 .gear-button:disabled {
@@ -686,9 +685,8 @@ input[type="text"]::placeholder {
   flex: none;
   width: 84px;
   height: 56px;
-  border-radius: 10px;
-  background: radial-gradient(100% 100% at 50% 30%, #3c3c3c, #1a1a1a);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  border-radius: 2px;
+  background: radial-gradient(100% 100% at 50% 30%, #333330, #171716);
 }
 
 .gear-text {
@@ -699,9 +697,7 @@ input[type="text"]::placeholder {
 }
 
 .gear-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -4578,11 +4574,11 @@ html.kiosk body {
 }
 
 .bench-more {
-  grid-area: more;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
+  margin-top: 12px;
 }
 
 /* The sharp zone over the photo: outside the depth of field goes dim. */
@@ -4701,18 +4697,52 @@ html.kiosk body {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.015);
+  background: var(--plate);
 }
 
+/* Closed, a fold still says what it's set to: the title, then the current values in engraving figures. */
 .bench-fold > summary {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title chevron"
+    "value chevron";
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-  font-size: 15px;
-  font-weight: 600;
+  column-gap: 12px;
+  row-gap: 2px;
+  min-height: 64px;
+  padding: 12px 18px;
   list-style: none;
   cursor: pointer;
+  transition: background-color var(--t-detent) var(--ease-detent);
+}
+
+@media (hover: hover) {
+  .bench-fold > summary:hover {
+    background: var(--plate-2);
+  }
+}
+
+.bench-fold-title {
+  grid-area: title;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.bench-fold-value {
+  grid-area: value;
+  overflow: hidden;
+  color: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bench-fold[open] > summary {
+  border-bottom: 1px solid var(--line);
 }
 
 .bench-fold > summary::-webkit-details-marker {
@@ -4721,22 +4751,40 @@ html.kiosk body {
 
 .bench-fold > summary::after {
   content: "";
+  grid-area: chevron;
   width: 8px;
   height: 8px;
+  margin-top: -4px;
   border-right: 1.5px solid var(--muted);
   border-bottom: 1.5px solid var(--muted);
   transform: rotate(45deg);
-  transition: transform 0.2s var(--ease);
+  transition: transform var(--t-detent) var(--ease-detent);
 }
 
 .bench-fold[open] > summary::after {
+  margin-top: 4px;
   transform: rotate(-135deg);
 }
 
+/* Inside a fold, the section is the fold's content, not a second card with a second title. */
 .bench-fold > .panel {
-  margin: 0 8px 8px;
+  margin: 0;
   border: 0;
-  box-shadow: none;
+  border-radius: 0;
+  background: none;
+}
+
+.bench-fold > .panel > .panel-head > h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.bench-fold > .panel > .panel-head:not(:has(> :not(h2))) {
+  display: none;
 }
 
 @media (min-width: 1080px) {
@@ -4757,5 +4805,7 @@ html.kiosk body {
   .bench-more {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: start;
+    gap: 16px;
+    margin-top: 16px;
   }
 }
