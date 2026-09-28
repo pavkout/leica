@@ -20,7 +20,9 @@ Last updated: 2026-09-28
 
 ## Current task
 
-**#37 — The camera is the interface ("hold a Leica")** (user request, 2026-09-28; Priority 1; spec added to the Master Plan at the user's request) — IN PROGRESS.
+**UI/UX redesign pass: "operate a Leica, not a website"** (user request, 2026-09-28): code COMPLETE, waiting for the user's review on a phone. Notes are under *Last completed*.
+
+Before that: **#37 — The camera is the interface ("hold a Leica")** (user request, 2026-09-28; Priority 1; spec added to the Master Plan at the user's request) — IN PROGRESS.
 - **Slice 1:** the camera body, controls, instant feedback, MENU and PLAY. COMPLETE.
 - **Slice 2:** live camera through the simulated camera, including live depth of field. COMPLETE.
 - **Remaining:** a real-phone review (feel, depth speed on the device), then polish from that review.
@@ -136,6 +138,53 @@ Things to try by hand. Nothing is committed; everything below is in the working 
 ---
 
 ## Last completed
+
+**UI/UX redesign pass** (user request, 2026-09-28): **COMPLETE, user review pending.**
+
+A full audit (camera home, MENU, all tool pages; desktop, phone landscape, phone portrait) found:
+- The camera home was already right.
+- The tool pages read as a SaaS dashboard: blurred sticky topbar, gradient cards with drop shadows, cards inside cards, pill buttons with red dots, and red on every selected state.
+
+The fix went into the shared primitives, so all 24 tools changed without rewriting them.
+- **Tokens** (`styles.css` `:root`):
+  - warm graphite plates, off-white engraving;
+  - radii by role (3–6 px), no pills;
+  - one detent easing (`--ease-detent`, 70–90 ms), no overshoot;
+  - red only for an index mark, a live state or a warning.
+- **Type:** Archivo (variable) replaces Outfit + Oswald. Condensed (`--engrave-stretch`) for figures and engravings, wide and light (`--display-stretch`) for tool titles and placards.
+- **Primitives:**
+  - `.panel` is a flat plate with one hairline.
+  - `.btn` is a machined key. `.btn-red` is now the one satin-chrome primary key per page.
+  - Engaged or selected states (`aria-pressed`, `.seg-on`, `.tab-on`, `.picker-card`) sit on a red index line.
+  - `.dial`/`.dial-step` (f-stops, speeds) is an engraved scale with ticks.
+  - Tiles and specs are ruled data plates.
+- **Shell:**
+  - The topbar is a top plate: Camera return key, rig readout (body, lens, f / shutter / ISO) and MENU. Sound and units live in MENU › Setup.
+  - The floating MENU/Camera pill is removed; it covered content.
+  - The rail no longer repeats each tool's blurb.
+  - MENU turns into a tab row on narrow screens.
+- **Camera home:**
+  - Body and lens nameplates below the rings open the choosers. The lens is engraved as its front ring is (`lensEngraving`: "Summilux-M 1:1.4/21 ASPH.", derived from catalogue data, tested).
+  - A lens change swings the scales home like a bayonet (320 ms; off under reduced motion).
+  - Viewfinder mode (corner key, Escape to leave) shows only the picture, the info line, the release and the lever.
+  - Keys are flatter rubber. LIVE is shown by a red tally, not a red key.
+  - The ring scales roll off round the barrel instead of being cut off.
+  - The DoF band is off-white, since red is the index.
+- **Museum timeline:** a ruled time axis with hanging index labels; the selected piece gets a placard (staged art, wide light title, ruled data plate).
+- **Studio:** the shutter is the same chrome release as the camera's, the scene strip reads like a contact strip, and "what to try next" is set off by a rule, not a red-edged box.
+- **Performance:**
+  - Removed the fixed full-screen `mix-blend-mode` grain layer and every decorative `backdrop-filter`. The focus-challenge veil keeps its blur on purpose, because it hides the answer.
+  - Removed the spring curves on the dials.
+
+Validation: typecheck clean; lint 0 errors (the same 5 warnings as before); 51 files / 482 tests pass; production build OK. Screenshots checked at 1440×900, 844×390 and 390×844.
+
+Known limitations / next design pass:
+- Individual tool internals (Long Exposure Lab, Darkroom, 3D view overlays, Kiosk) inherit the new primitives but weren't redesigned one by one.
+- Scales don't scroll their set value into view on phones.
+- The picker's close key shows a focus ring when opened by pointer.
+- Needs a real-phone check of the feel.
+
+Previously completed:
 
 **Iris transition** (user request, follow-up to #37) — **COMPLETE, user review pending** (2026-09-28)
 

@@ -60,12 +60,12 @@
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  border-radius: 14px;
+  border-radius: 8px;
   background: #030303;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
     inset 0 10px 30px rgba(0, 0, 0, 0.9),
-    0 1px 0 rgba(255, 255, 255, 0.05);
+    0 1px 0 rgba(255, 255, 255, 0.04);
   overflow: hidden;
 }
 
@@ -115,11 +115,10 @@
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.65);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.7);
+  font-size: 12px;
 }
 
 /* LCD info line, M11-style: white figures on black, the meter in the middle. */
@@ -136,6 +135,7 @@
   padding: 6px 12px 7px;
   background: linear-gradient(0deg, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.55));
   font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
   font-size: clamp(12px, 1.5vw, 15px);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.03em;
@@ -230,22 +230,24 @@
 }
 
 .live-chip {
-  padding: 3px 9px;
+  padding: 3px 8px;
   border: 0;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.62);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.66);
   color: #ecebe7;
   font: inherit;
-  font-size: 11px;
-  letter-spacing: 0.03em;
+  font-size: 12px;
+  letter-spacing: 0.02em;
 }
 
 .live-chip-rec {
   color: #fff;
   font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
   letter-spacing: 0.14em;
 }
 
+/* A red tally, like a recording light. */
 /* A red tally, like a recording light. */
 .live-chip-rec::before {
   content: "";
@@ -255,7 +257,6 @@
   margin-right: 6px;
   border-radius: 50%;
   background: var(--red);
-  box-shadow: 0 0 6px var(--red);
   vertical-align: 1px;
 }
 
@@ -295,9 +296,16 @@
   text-align: center;
 }
 
-.cam-btn-live-on {
-  box-shadow: inset 0 0 0 1px var(--red), 0 0 12px rgba(207, 46, 37, 0.45);
-  background: linear-gradient(180deg, #5a1a14, #2a0d0a);
+/* Live: the key stays black; a red tally beside the engraving says the camera is running. */
+.cam-btn-live-on::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 7px 1px -3px;
+  border-radius: 50%;
+  background: var(--red);
+  vertical-align: middle;
 }
 
 .light-list {
@@ -327,6 +335,7 @@
 .light-ev {
   color: var(--engrave-dim);
   font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
 }
 
 /* ── FN: scene choice, over the screen ───────────────────── */
@@ -348,6 +357,7 @@
   justify-content: space-between;
   margin-bottom: 10px;
   font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -358,28 +368,34 @@
   gap: 9px;
 }
 
+/* ── Back buttons: rubber keys, engraved, pressed flat ───── */
 .cam-btn {
+  position: relative;
   min-width: 58px;
   min-height: 38px;
   padding: 0 12px;
   border: 0;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #2a2a2b, #161617);
+  border-radius: 4px;
+  background: #1c1c1b;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.6),
-    0 2px 4px rgba(0, 0, 0, 0.6);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 1px 0 rgba(0, 0, 0, 0.8),
+    0 2px 3px rgba(0, 0, 0, 0.45);
   color: var(--engrave, #e9e6df);
   font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
   font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   cursor: pointer;
+  transition: transform var(--t-press, 70ms) var(--ease-detent, ease-out), background-color 90ms ease-out;
 }
 
 .cam-btn:active {
   transform: translateY(1px);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+  background: #161615;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .cam-btn:disabled {
@@ -395,7 +411,6 @@
 
 .cam-btn-live {
   color: #fff;
-  background: linear-gradient(180deg, #3a1714, #1f0d0b);
 }
 
 .cam-btn-preview {
@@ -425,11 +440,12 @@
   cursor: default;
 }
 
+/* A detent: the rotor lands on the stop and stays there. No overshoot. */
 .rdial-rotor {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  transition: transform 0.12s cubic-bezier(0.3, 1.5, 0.5, 1);
+  transition: transform var(--t-detent, 90ms) var(--ease-detent, ease-out);
 }
 
 .rdial-knurl {
@@ -462,6 +478,7 @@
   justify-content: center;
   color: var(--engrave);
   font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -507,12 +524,19 @@
   position: relative;
   height: 40px;
   overflow: hidden;
-  border-radius: 7px;
+  border-radius: 4px;
   background: linear-gradient(180deg, #1c1c1d, #0c0c0d 55%, #19191a);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 -1px 0 rgba(0, 0, 0, 0.8);
   cursor: ew-resize;
   outline: none;
   touch-action: none;
+}
+
+/* The barrel is a cylinder: figures roll away round the edges instead of being cut off. */
+.ring-scale,
+.ring-knurl {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
 }
 
 .ring:focus-visible {
@@ -551,6 +575,7 @@
   padding-top: 8px;
   color: var(--engrave-dim);
   font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
   font-size: 14px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -574,14 +599,15 @@
 }
 
 /* The depth of field, as a band on the distance scale. */
+/* The depth of field, as a band on the distance scale (the engraved DOF scale, read directly). */
 .ring-dof {
   position: absolute;
   left: 50%;
-  top: 6px;
+  top: 7px;
   bottom: 14px;
-  border-radius: 3px;
-  background: rgba(207, 46, 37, 0.28);
-  box-shadow: inset 0 0 0 1px rgba(207, 46, 37, 0.6);
+  border-radius: 2px;
+  background: rgba(233, 230, 223, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(233, 230, 223, 0.32);
 }
 
 .rings-index {
@@ -591,20 +617,146 @@
   bottom: -3px;
   width: 2px;
   margin-left: -1px;
-  border-radius: 1px;
   background: var(--red);
-  box-shadow: 0 0 6px rgba(207, 46, 37, 0.6);
   pointer-events: none;
+}
+
+/* ── Nameplates: the body's model and the lens's front-ring engraving ── */
+.cam-plates {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 14px;
+  flex: none;
+  min-width: 0;
+  padding: 0 2px;
+}
+
+.cam-plate {
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--engrave);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--t-detent, 90ms) ease-out;
+}
+
+/* The lens's engraving is its name on the front ring; tapping it opens the lens drawer. */
+.cam-plate-lens {
+  overflow: hidden;
+  color: var(--engrave-dim);
+  letter-spacing: 0.1em;
+  text-overflow: ellipsis;
+}
+
+.cam-plate-lens::after {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin: 0 0 3px 8px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+
+@media (hover: hover) {
+  .cam-plate:hover {
+    color: #fff;
+  }
 }
 
 .cam-caption {
   margin: 0;
   overflow: hidden;
   color: var(--engrave-dim);
-  font-size: 11px;
-  text-align: center;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* A lens change: the scales swing a few degrees and lock home, like a bayonet. */
+.cam-lens .ring-scale {
+  animation: lens-mount 320ms var(--ease-detent, ease-out) both;
+}
+
+@keyframes lens-mount {
+  from {
+    transform: translateX(-36px);
+    opacity: 0.25;
+  }
+  70% {
+    opacity: 1;
+  }
+}
+
+/* ── Viewfinder mode: the picture and the release, nothing else ── */
+.cam-vf {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(233, 230, 223, 0.75);
+  cursor: pointer;
+  transition: color var(--t-detent, 90ms) ease-out, background-color var(--t-detent, 90ms) ease-out;
+}
+
+@media (hover: hover) {
+  .cam-vf:hover {
+    color: #fff;
+    background: rgba(0, 0, 0, 0.7);
+  }
+}
+
+.camera-immersed .cam-left,
+.camera-immersed .cam-lens,
+.camera-immersed .cam-plates,
+.camera-immersed .dial-shutter,
+.camera-immersed .thumbwheel,
+.camera-immersed .cam-btn-preview {
+  display: none;
+}
+
+.camera-immersed {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.camera-immersed .cam-screen {
+  border-radius: 4px;
+}
+
+/* Out of the way until the meter wakes (half-press). */
+.camera-immersed .cam-info {
+  opacity: 0.4;
+}
+
+.camera-immersed .cam-screen-lit .cam-info {
+  opacity: 1;
+}
+
+.camera-immersed .cam-vf {
+  background: transparent;
+  color: rgba(233, 230, 223, 0.5);
 }
 
 /* ── Shutter release ─────────────────────────────────────── */
@@ -670,6 +822,7 @@
 .thumbwheel-value {
   min-width: 34px;
   font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
   font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
@@ -704,6 +857,7 @@
   bottom: -8px;
   color: var(--engrave-dim);
   font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -727,6 +881,7 @@
 
 .cam-film-name {
   font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
   font-size: 14px;
   letter-spacing: 0.04em;
 }
@@ -766,6 +921,7 @@
 
 .menu-title {
   font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
   font-size: 15px;
   letter-spacing: 0.24em;
 }
@@ -849,6 +1005,37 @@
   font-size: 12.5px;
 }
 
+/* Narrow screens: the sections become a row of pages across the top, the entries get the full width. */
+@media (max-width: 599px) {
+  .menu-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .menu-sections {
+    display: flex;
+    padding: 0;
+    border-right: 0;
+    border-bottom: 1px solid #1f1f1f;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .menu-section {
+    padding: 14px 14px 12px;
+    white-space: nowrap;
+  }
+
+  .menu-section-on::before {
+    left: 14px;
+    right: 14px;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    height: 2px;
+  }
+}
+
 /* ── PLAY ────────────────────────────────────────────────── */
 .play {
   position: fixed;
@@ -882,6 +1069,7 @@
   padding: 8px 4px;
   color: #bdbbb5;
   font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
   font-size: 13px;
 }
 
@@ -903,23 +1091,7 @@
 }
 
 /* ── Back from a MENU page to the camera ─────────────────── */
-.page-return {
-  position: fixed;
-  left: 50%;
-  bottom: max(12px, env(safe-area-inset-bottom));
-  z-index: 60;
-  display: flex;
-  gap: 8px;
-  padding: 6px;
-  border-radius: 14px;
-  background: rgba(10, 10, 10, 0.88);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-  transform: translateX(-50%);
-}
 
-.cam-btn-camera {
-  color: #fff;
-}
 
 /* ── Portrait: stacked, like the camera turned on its side ─ */
 @media (orientation: portrait) {
@@ -953,6 +1125,15 @@
 
   .cam-buttons {
     grid-template-columns: repeat(2, auto);
+  }
+
+  .cam-plates {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .cam-caption {
+    grid-column: 1 / -1;
+    text-align: left;
   }
 
   .thumbwheel-knurl {
@@ -1002,6 +1183,15 @@
   .cam-caption {
     display: none;
   }
+
+  .cam-plates {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .cam-plate {
+    min-height: 22px;
+    font-size: 12px;
+  }
 }
 
 /* Tall screens (desktop, tablet): bigger keys and wheel, so the body doesn't look toy-sized. */
@@ -1040,6 +1230,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .cam-lens .ring-scale {
+    animation: none;
+  }
+
   .rdial-rotor,
   .lever-arm,
   .cam-meter-scale b {

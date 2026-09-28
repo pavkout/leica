@@ -35,7 +35,6 @@ export default function ToolNav({ mode, tools, active, onSelect }: Props) {
               onClick={() => onSelect(t.id)}
             >
               <span className="tool-link-label">{t.label}</span>
-              <span className="tool-link-blurb">{t.blurb}</span>
             </button>
           </li>
         ))}

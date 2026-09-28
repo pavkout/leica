@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDistance, parseDistanceInput, scaleLabel } from "./format";
+import { formatDistance, lensEngraving, parseDistanceInput, scaleLabel } from "./format";
 
 describe("parseDistanceInput", () => {
   it("parses a metric value as metres", () => {
@@ -31,5 +31,22 @@ describe("formatDistance / parseDistanceInput agree on units", () => {
   it("a value that formats as '2.00 m' parses back to 2000mm", () => {
     expect(formatDistance(2000, "metric")).toBe("2.00 m");
     expect(parseDistanceInput("2.00", "metric")).toBeCloseTo(2000, 6);
+  });
+});
+
+describe("lensEngraving", () => {
+  it("sets the aperture and focal length as the front ring does", () => {
+    expect(lensEngraving("Summilux-M 35 f/1.4 ASPH.")).toBe("Summilux-M 1:1.4/35 ASPH.");
+    expect(lensEngraving("Noctilux-M 50 f/0.95 ASPH.")).toBe("Noctilux-M 1:0.95/50 ASPH.");
+    expect(lensEngraving("APO-Telyt-M 135 f/3.4")).toBe("APO-Telyt-M 1:3.4/135");
+  });
+
+  it("drops the catalogue's bracketed notes", () => {
+    expect(lensEngraving("Summilux 35 f/1.4 (pre-ASPH)")).toBe("Summilux 1:1.4/35");
+    expect(lensEngraving("Elmar-M 50 f/2.8 (collapsible)")).toBe("Elmar-M 1:2.8/50");
+  });
+
+  it("leaves names outside the pattern alone", () => {
+    expect(lensEngraving("Q3 43")).toBe("Q3 43");
   });
 });

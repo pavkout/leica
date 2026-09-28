@@ -41,7 +41,7 @@ function LineChart({ points, units, onHover, hover }: { points: { d: number; r: 
     onHover(best);
   };
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="cal-chart" fontFamily="system-ui, -apple-system, sans-serif" role="img" aria-label="Subject blur against subject distance, as a multiple of the circle of confusion" onPointerMove={onMove} onPointerLeave={() => onHover(null)}>
+    <svg viewBox={`0 0 ${W} ${H}`} className="cal-chart" fontFamily="Archivo, system-ui, sans-serif" role="img" aria-label="Subject blur against subject distance, as a multiple of the circle of confusion" onPointerMove={onMove} onPointerLeave={() => onHover(null)}>
       <rect x={0} y={0} width={W} height={H} fill={SURFACE} />
       {[0, 1, yMax].map((v) => (
         <g key={v}>
@@ -82,7 +82,7 @@ function BarChart({ bars, onHover, hover }: { bars: { f: number; r: number }[]; 
   const slot = (W - PAD.l - PAD.r) / bars.length;
   const bw = Math.min(28, slot - 8);
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="cal-chart" fontFamily="system-ui, -apple-system, sans-serif" role="img" aria-label="Subject blur by focal length at this distance and aperture" onPointerLeave={() => onHover(null)}>
+    <svg viewBox={`0 0 ${W} ${H}`} className="cal-chart" fontFamily="Archivo, system-ui, sans-serif" role="img" aria-label="Subject blur by focal length at this distance and aperture" onPointerLeave={() => onHover(null)}>
       <rect x={0} y={0} width={W} height={H} fill={SURFACE} />
       {[0, 1, yMax].map((v) => (
         <g key={v}>

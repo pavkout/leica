@@ -96,7 +96,7 @@ export default function LensArt({ lens, className }: { lens: Lens; className?: s
       {ribs.map((x) => (
         <line key={x} x1={x} x2={x} y1={cy - d / 2 + d * 0.3} y2={cy + d / 2 - 1} stroke={c.rib} strokeWidth={0.55} opacity={0.8} />
       ))}
-      <text x={xf + focusLen / 2} y={cy - d / 2 + d * 0.2} fontSize={2.6} fill={c.text} textAnchor="middle" fontFamily="Outfit, Helvetica, sans-serif" letterSpacing="0.6">
+      <text x={xf + focusLen / 2} y={cy - d / 2 + d * 0.2} fontSize={2.6} fill={c.text} textAnchor="middle" fontFamily="Archivo, Helvetica, sans-serif" letterSpacing="0.6">
         0.7  1  1.5  2  3  5  ∞
       </text>
       {tab && (
@@ -108,13 +108,13 @@ export default function LensArt({ lens, className }: { lens: Lens; className?: s
       {apRibs.map((x) => (
         <rect key={x} x={x} y={cy - d / 2 - 0.4} width={1.1} height={d + 0.8} fill={c.rib} opacity={0.55} />
       ))}
-      <text x={xa + apLen / 2} y={cy - d / 2 + 3.8} fontSize={2.8} fill={c.text} textAnchor="middle" fontFamily="Outfit, Helvetica, sans-serif">
+      <text x={xa + apLen / 2} y={cy - d / 2 + 3.8} fontSize={2.8} fill={c.text} textAnchor="middle" fontFamily="Archivo, Helvetica, sans-serif">
         {aperture}
       </text>
 
       {/* Front barrel with engraving */}
       <rect x={xb} y={cy - d / 2} width={xEnd - xb} height={d} fill={shaded} />
-      <text x={(xb + xEnd) / 2} y={cy - d / 2 + 4.2} fontSize={2.4} fill={c.text} textAnchor="middle" fontFamily="Outfit, Helvetica, sans-serif" letterSpacing="0.3">
+      <text x={(xb + xEnd) / 2} y={cy - d / 2 + 4.2} fontSize={2.4} fill={c.text} textAnchor="middle" fontFamily="Archivo, Helvetica, sans-serif" letterSpacing="0.3">
         {`1:${aperture}/${focal}`}
       </text>
 

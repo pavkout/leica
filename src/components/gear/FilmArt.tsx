@@ -36,13 +36,13 @@ export default function FilmArt({ film, className }: { film: FilmLook; className
       <rect x="70" y="6" width="12" height="7" rx="2" fill={`url(#${g("cap")})`} />
       <rect x="52" y="18" width="48" height="66" rx="3" fill={label} />
       <rect x="52" y="44" width="48" height="16" fill={band} />
-      <text x="76" y="55" fontSize="7" fontWeight="700" textAnchor="middle" fill={film.colors[0] === "#1f2a44" ? "#fff" : label} fontFamily="Outfit, Helvetica, sans-serif">
+      <text x="76" y="55" fontSize="7" fontWeight="700" textAnchor="middle" fill={film.colors[0] === "#1f2a44" ? "#fff" : label} fontFamily="Archivo, Helvetica, sans-serif">
         {film.iso}
       </text>
-      <text x="76" y="32" fontSize="5.4" fontWeight="700" textAnchor="middle" fill={band} fontFamily="Outfit, Helvetica, sans-serif">
+      <text x="76" y="32" fontSize="5.4" fontWeight="700" textAnchor="middle" fill={band} fontFamily="Archivo, Helvetica, sans-serif">
         {film.mono ? "B&W" : film.kind === "slide" ? "SLIDE" : "COLOR"}
       </text>
-      <text x="76" y="74" fontSize="4.6" textAnchor="middle" fill={band} fontFamily="Outfit, Helvetica, sans-serif" letterSpacing="0.5">
+      <text x="76" y="74" fontSize="4.6" textAnchor="middle" fill={band} fontFamily="Archivo, Helvetica, sans-serif" letterSpacing="0.5">
         35 mm · 36
       </text>
       <rect x="52" y="18" width="48" height="66" rx="3" fill={`url(#${g("can")})`} />

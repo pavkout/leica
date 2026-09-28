@@ -734,7 +734,7 @@ export default function App() {
         <span className="row-actions">
           <button
             type="button"
-            className={`btn btn-small${showSharp ? " btn-red" : ""}`}
+            className="btn btn-small"
             aria-pressed={showSharp}
             onClick={() => setShowSharp((v) => !v)}
             disabled={compare}
@@ -742,7 +742,7 @@ export default function App() {
             What&apos;s sharp
           </button>
           {FLAGS.liveView && (
-            <button type="button" className="btn btn-small btn-red" onClick={openLive}>
+            <button type="button" className="btn btn-small" onClick={openLive}>
               Live
             </button>
           )}
@@ -1468,27 +1468,27 @@ export default function App() {
             }}
             onMenu={() => navigate({ ...route, screen: "menu" })}
             onPlay={() => (isFilm ? goTool("roll") : setPlayOpen(true))}
+            onPickBody={() => setPicker("body")}
+            onPickLens={() => lenses.length > 1 && setPicker("lens")}
           />
         </div>
       )}
 
       <div className="pages" hidden={!onTools && !testAll}>
+      {/* The top plate: back to the camera, what's mounted and set, MENU. Nothing else competes with the tool. */}
       <header className="topbar">
-        <a className="brand" href="#/simulate/studio" aria-label="Rangefinder, back to the studio">
-          <span className="brand-mark" aria-hidden="true" />
-          <span className="brand-text">
-            <span className="brand-name">Rangefinder</span>
-            <span className="brand-sub">Depth of field studio</span>
-          </span>
-        </a>
+        <button type="button" className="plate-back" onClick={goCamera} aria-label="Back to the camera">
+          <svg viewBox="0 0 12 20" width="8" height="14" aria-hidden="true">
+            <path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square" />
+          </svg>
+          <span>Camera</span>
+        </button>
 
         <div className="rig" role="group" aria-label="Camera on the simulator">
-          <button type="button" className="rig-part" onClick={() => setPicker("body")}>
-            <span className="rig-label">Camera</span>
+          <button type="button" className="rig-part" onClick={() => setPicker("body")} aria-label={`Camera: ${body.name}. Change`}>
             <span className="rig-name">{body.name}</span>
           </button>
-          <button type="button" className="rig-part rig-lens" onClick={() => setPicker("lens")} disabled={lenses.length === 1}>
-            <span className="rig-label">Lens</span>
+          <button type="button" className="rig-part rig-lens" onClick={() => setPicker("lens")} disabled={lenses.length === 1} aria-label={`Lens: ${lens.name}. Change`}>
             <span className="rig-name">{lens.name}</span>
           </button>
           <span className="rig-window" aria-label={`${formatFNumber(fNumber)}, ${formatShutter(shutterSec)}, ${isFilm ? look.name : `ISO ${iso}`}`}>
@@ -1498,37 +1498,9 @@ export default function App() {
           </span>
         </div>
 
-        <div className="topbar-tools">
-          <button
-            type="button"
-            className="icon-button"
-            aria-pressed={!muted}
-            aria-label={muted ? "Turn sounds on" : "Turn sounds off"}
-            onClick={() => {
-              setMuted(!muted);
-              setMutedState(!muted);
-              if (muted) playApertureClick();
-            }}
-          >
-            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-              <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" />
-              {muted ? (
-                <path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              ) : (
-                <path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
-              )}
-            </svg>
-          </button>
-          <Segmented
-            label="Units"
-            value={units}
-            onChange={setUnits}
-            options={[
-              { value: "metric", label: "m" },
-              { value: "imperial", label: "ft" },
-            ]}
-          />
-        </div>
+        <button type="button" className="cam-btn plate-menu" onClick={() => navigate({ ...route, screen: "menu" })}>
+          MENU
+        </button>
       </header>
 
       <div className={`shell shell-${route.mode}`}>
@@ -1556,14 +1528,6 @@ export default function App() {
         </main>
       </div>
 
-        <div className="page-return" role="group" aria-label="Back to the camera">
-          <button type="button" className="cam-btn" onClick={() => navigate({ ...route, screen: "menu" })}>
-            MENU
-          </button>
-          <button type="button" className="cam-btn cam-btn-camera" onClick={goCamera}>
-            Camera
-          </button>
-        </div>
       </div>
 
       {route.screen === "menu" && (

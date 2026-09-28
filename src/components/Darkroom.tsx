@@ -172,16 +172,16 @@ export default function Darkroom({ rollFilm, rollFrames, boxIso, rollEi, pushPul
             {[0, 0.5, 1, 1.5, 2].map((d) => (
               <g key={d}>
                 <line x1={CHART.left} x2={CHART.w - CHART.right} y1={sy(d)} y2={sy(d)} stroke="#2c2d31" strokeWidth={1} />
-                <text x={CHART.left - 5} y={sy(d) + 3} textAnchor="end" fill="#8b8b8b" fontSize={9} fontFamily="system-ui, sans-serif">
+                <text x={CHART.left - 5} y={sy(d) + 3} textAnchor="end" fill="#8b8b8b" fontSize={9} fontFamily="Archivo, system-ui, sans-serif">
                   {d.toFixed(1)}
                 </text>
               </g>
             ))}
-            <text x={(CHART.left + CHART.w) / 2} y={CHART.h - 6} textAnchor="middle" fill="#8b8b8b" fontSize={9} fontFamily="system-ui, sans-serif">
+            <text x={(CHART.left + CHART.w) / 2} y={CHART.h - 6} textAnchor="middle" fill="#8b8b8b" fontSize={9} fontFamily="Archivo, system-ui, sans-serif">
               exposure (stops from middle grey) →
             </text>
             {[-6, -3, 0, 3, 6].map((st) => (
-              <text key={st} x={sx(st * 0.3)} y={CHART.h - 17} textAnchor="middle" fill="#8b8b8b" fontSize={9} fontFamily="system-ui, sans-serif">
+              <text key={st} x={sx(st * 0.3)} y={CHART.h - 17} textAnchor="middle" fill="#8b8b8b" fontSize={9} fontFamily="Archivo, system-ui, sans-serif">
                 {st > 0 ? `+${st}` : st}
               </text>
             ))}

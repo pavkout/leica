@@ -63,3 +63,16 @@ export function parseDistanceInput(text: string, units: Units): number | null {
   if (!Number.isFinite(value) || value <= 0) return null;
   return units === "metric" ? value * 1000 : value * 12 * MM_PER_INCH;
 }
+
+/**
+ * A lens name as its front ring engraves it: "Summilux-M 35 f/1.4 ASPH." →
+ * "Summilux-M 1:1.4/35 ASPH.". Notes in brackets ("(pre-ASPH)") are the
+ * catalogue's, not the engraving's, so they're dropped. Names that don't
+ * follow the pattern are returned unchanged.
+ */
+export function lensEngraving(name: string): string {
+  const m = /^(.+?) (\d+) f\/([\d.]+)((?: ASPH\.)?)/.exec(name);
+  if (!m) return name;
+  const [, family, focal, aperture, asph] = m;
+  return `${family} 1:${aperture}/${focal}${asph}`;
+}

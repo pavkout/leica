@@ -211,7 +211,7 @@ export default function Viewfinder({ body, lens, focusMm, subjectMm, backgroundM
       ctx.arc(lx, ly, R, 0, Math.PI * 2);
       ctx.stroke();
       ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.font = `600 ${Math.round(W / 45)}px Outfit, "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      ctx.font = `600 ${Math.round(W / 45)}px Archivo, "Helvetica Neue", Helvetica, Arial, sans-serif`;
       ctx.textAlign = "center";
       ctx.fillText(`Patch ${LOUPE_ZOOM}×`, lx, ly + R + W / 35);
     });

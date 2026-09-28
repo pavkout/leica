@@ -119,7 +119,7 @@ export default function BodyArt({ body, lens, className }: Props) {
           <rect x={bx + s(40)} y={by - s(3)} width={s(5)} height={s(3.5)} rx={s(1)} fill={`url(#${g("chrome")})`} />
           {film && <rect x={bx + s(34)} y={by - s(2)} width={s(16)} height={s(2.2)} rx={s(1)} fill="#0e0e0f" />}
           <rect x={bx + s(bw - 34)} y={by - s(film ? 6 : 3.5)} width={s(18)} height={s(film ? 6.5 : 4)} rx={s(1.5)} fill={film ? `url(#${g("chrome")})` : plate} />
-          <text x={bx + s(bw - 10)} y={by + s(25)} fontSize={s(4.5)} textAnchor="end" fill={silver ? "#2a2a2a" : "#bdbdbd"} fontFamily="Outfit, Helvetica, sans-serif" fontWeight={600}>
+          <text x={bx + s(bw - 10)} y={by + s(25)} fontSize={s(4.5)} textAnchor="end" fill={silver ? "#2a2a2a" : "#bdbdbd"} fontFamily="Archivo, Helvetica, sans-serif" fontWeight={600}>
             {body.name.replace(/\s*\(.*\)/, "")}
           </text>
         </>

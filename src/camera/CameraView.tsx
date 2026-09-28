@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { prepareAudio } from "../audio/sounds";
 import type { Body, Lens } from "../data/gear";
 import { formatShutter } from "../data/gear";
-import { formatDistance, formatFNumber, type Units } from "../utils/format";
+import { formatDistance, formatFNumber, lensEngraving, type Units } from "../utils/format";
 import { AdvanceLever, ReleaseButton, ThumbWheel } from "./Controls";
 import { evLabel } from "./controlMath";
 import { useInteracting } from "./interaction";
@@ -62,6 +62,9 @@ export interface CameraProps {
   onLive: () => void;
   onMenu: () => void;
   onPlay: () => void;
+  /** The engraved body and lens names open their choosers. */
+  onPickBody: () => void;
+  onPickLens: () => void;
 }
 
 const shutterStops = (speeds: number[], hasAuto: boolean): DialStop[] => [
@@ -86,6 +89,16 @@ export default function CameraView(p: CameraProps) {
   const [fnOpen, setFnOpen] = useState(false);
   const [wound, setWound] = useState(true);
   const [previewHeld, setPreviewHeld] = useState(false);
+  // Viewfinder mode: the picture and the release, nothing else. Escape (or the corner key) brings the controls back.
+  const [immersed, setImmersed] = useState(false);
+  useEffect(() => {
+    if (!immersed) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") setImmersed(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [immersed]);
   // Dials scale with the screen: thumb-sized on a phone, generous on a desktop.
   const [short, setShort] = useState(() => Math.min(innerWidth, innerHeight));
   useEffect(() => {
@@ -128,7 +141,7 @@ export default function CameraView(p: CameraProps) {
   );
 
   return (
-    <div className={`camera ${p.isFilm ? "camera-film" : "camera-digital"}`} aria-label={`${p.body.name} with ${p.lens.name}`} role="region">
+    <div className={`camera ${p.isFilm ? "camera-film" : "camera-digital"}${immersed ? " camera-immersed" : ""}`} aria-label={`${p.body.name} with ${p.lens.name}`} role="region">
       {/* Left of the screen: ISO dial (digital) and the back buttons. */}
       <div className="cam-left">
         {!p.isFilm && isoStops.length > 0 ? (
@@ -195,21 +208,48 @@ export default function CameraView(p: CameraProps) {
               {p.scenes}
             </div>
           )}
+          <button
+            type="button"
+            className="cam-vf"
+            aria-pressed={immersed}
+            aria-label={immersed ? "Show the camera controls" : "Viewfinder mode: hide the controls"}
+            onClick={() => setImmersed((v) => !v)}
+          >
+            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+              {immersed ? (
+                <path d="M7 2v5H2M13 2v5h5M7 18v-5H2M13 18v-5h5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              ) : (
+                <path d="M2 7V2h5M18 7V2h-5M2 13v5h5M18 13v5h-5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              )}
+            </svg>
+          </button>
         </div>
-        <LensRings
-          stops={p.stops}
-          fNumber={p.fNumber}
-          onAperture={p.onAperture}
-          focusMm={p.focusMm}
-          minFocusMm={p.lens.minFocusMm}
-          onFocus={p.onFocus}
-          nearMm={p.nearMm}
-          farMm={p.farMm}
-          units={p.units}
-        />
-        <p className="cam-caption" aria-live="polite">
-          {p.lens.name} · focused at {formatDistance(p.focusMm, p.units)} · sharp {formatDistance(p.nearMm, p.units)} to {formatDistance(p.farMm, p.units)}
-        </p>
+        {/* Remounted on a lens change, so the scales twist in like a bayonet lens locking home. */}
+        <div className="cam-lens" key={p.lens.id}>
+          <LensRings
+            stops={p.stops}
+            fNumber={p.fNumber}
+            onAperture={p.onAperture}
+            focusMm={p.focusMm}
+            minFocusMm={p.lens.minFocusMm}
+            onFocus={p.onFocus}
+            nearMm={p.nearMm}
+            farMm={p.farMm}
+            units={p.units}
+          />
+        </div>
+        <div className="cam-plates">
+          <button type="button" className="cam-plate" onClick={p.onPickBody} aria-label={`Camera: ${p.body.name}. Change the camera`}>
+            {p.body.name}
+          </button>
+          <button type="button" className="cam-plate cam-plate-lens" onClick={p.onPickLens} aria-label={`Lens: ${p.lens.name}. Change the lens`}>
+            {lensEngraving(p.lens.name)}
+          </button>
+          <p className="cam-caption" aria-live="polite">
+            <span className="visually-hidden">{p.lens.name}, </span>
+            focused at {formatDistance(p.focusMm, p.units)} · sharp {formatDistance(p.nearMm, p.units)} to {formatDistance(p.farMm, p.units)}
+          </p>
+        </div>
       </div>
 
       {/* Right: the top-plate shutter dial, the release, then the back's thumb wheel or the film lever. */}
