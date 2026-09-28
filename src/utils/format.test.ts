@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDistance, lensEngraving, parseDistanceInput, scaleLabel } from "./format";
+import { formatDistance, lensEngraving, parseDistanceInput, scaleLabel, sentenceEnd } from "./format";
 
 describe("parseDistanceInput", () => {
   it("parses a metric value as metres", () => {
@@ -48,5 +48,12 @@ describe("lensEngraving", () => {
 
   it("leaves names outside the pattern alone", () => {
     expect(lensEngraving("Q3 43")).toBe("Q3 43");
+  });
+});
+
+describe("sentenceEnd", () => {
+  it("doesn't double the full stop after ASPH.", () => {
+    expect(sentenceEnd("Summilux-M 35 f/1.4 ASPH.")).toBe("Summilux-M 35 f/1.4 ASPH.");
+    expect(sentenceEnd("Summicron-M 50 f/2")).toBe("Summicron-M 50 f/2.");
   });
 });

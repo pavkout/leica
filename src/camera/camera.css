@@ -920,6 +920,17 @@
 }
 
 .menu-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.menu-title .wordmark {
+  font-size: 18px;
+}
+
+.menu-title-label {
+  color: #8e8c86;
   font-family: var(--font-engraving);
   font-stretch: var(--engrave-stretch);
   font-size: 15px;
@@ -1080,7 +1091,9 @@
 .play-empty {
   flex: 1;
   display: grid;
-  place-items: center;
+  place-content: center;
+  justify-items: center;
+  gap: 16px;
   color: #9a988f;
 }
 

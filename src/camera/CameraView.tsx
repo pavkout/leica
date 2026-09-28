@@ -239,10 +239,10 @@ export default function CameraView(p: CameraProps) {
           />
         </div>
         <div className="cam-plates">
-          <button type="button" className="cam-plate" onClick={p.onPickBody} aria-label={`Camera: ${p.body.name}. Change the camera`}>
+          <button type="button" className="cam-plate" onClick={p.onPickBody} aria-label={`Camera: ${p.body.name}, change the camera`}>
             {p.body.name}
           </button>
-          <button type="button" className="cam-plate cam-plate-lens" onClick={p.onPickLens} aria-label={`Lens: ${p.lens.name}. Change the lens`}>
+          <button type="button" className="cam-plate cam-plate-lens" onClick={p.onPickLens} aria-label={`Lens: ${p.lens.name}, change the lens`}>
             {lensEngraving(p.lens.name)}
           </button>
           <p className="cam-caption" aria-live="polite">

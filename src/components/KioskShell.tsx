@@ -1,4 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from "react";
+import Wordmark from "./app/Wordmark";
 import { playMountClick } from "../audio/sounds";
 import { BODIES, findBody, findLens, lensesForBody } from "../data/gear";
 import { clearFrames } from "../services/db";
@@ -134,10 +135,12 @@ export default function KioskShell({ config, onSelectBody, onSelectLens }: Props
   }
 
   return (
-    <div className="kiosk-shell" role="dialog" aria-modal="true" aria-label="Rangefinder kiosk">
+    <div className="kiosk-shell" role="dialog" aria-modal="true" aria-label="leica.rt kiosk">
       {s.step === "home" && (
         <div className="kiosk-home">
-          <h1 className="kiosk-title">Rangefinder</h1>
+          <h1 className="kiosk-title">
+            <Wordmark />
+          </h1>
           <p className="kiosk-sub">Build a camera, then try it.</p>
           <button
             type="button"

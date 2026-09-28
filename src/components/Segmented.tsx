@@ -5,6 +5,9 @@ interface Props<T extends string | number> {
   onChange: (value: T) => void;
 }
 
+/** Keeps a figure with its unit ("4 s", "60 MP", "± 1 stop") on one line when a label wraps. */
+const bindUnits = (label: string) => label.replace(/(\d|±) (?=\S)/g, "$1\u00a0");
+
 export default function Segmented<T extends string | number>({ label, options, value, onChange }: Props<T>) {
   return (
     <div className="segmented" role="radiogroup" aria-label={label}>
@@ -17,7 +20,7 @@ export default function Segmented<T extends string | number>({ label, options, v
           className={o.value === value ? "seg seg-on" : "seg"}
           onClick={() => onChange(o.value)}
         >
-          {o.label}
+          {bindUnits(o.label)}
         </button>
       ))}
     </div>

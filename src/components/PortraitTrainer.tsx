@@ -8,7 +8,7 @@ import {
   scaledSubjectHeightM,
   type FramingId,
 } from "../physics/portrait";
-import { formatDistance, type Units } from "../utils/format";
+import { formatDistance, type Units, sentenceEnd } from "../utils/format";
 import DistanceInput from "./DistanceInput";
 
 interface Props {
@@ -83,7 +83,7 @@ export default function PortraitTrainer({ lens, frameWidthMm, frameHeightMm, uni
 
         <div className="portrait-result">
           <p className="gear-name">Stand back to {formatDistance(distanceMm, units)}</p>
-          <p className="muted small">for a {framing.label.toLowerCase()} framing with the {lens.name}.</p>
+          <p className="muted small">for a {framing.label.toLowerCase()} framing with the {sentenceEnd(lens.name)}</p>
           {tooClose && (
             <p className="warn-text small">
               Closer than this lens's minimum focus distance ({formatDistance(lens.minFocusMm, units)}) — it can't

@@ -186,7 +186,7 @@ export default function Darkroom({ rollFilm, rollFrames, boxIso, rollEi, pushPul
               </text>
             ))}
             <path d={path((x) => densityAt(x, normal, 0))} fill="none" stroke="#8b8b8b" strokeWidth={1.5} strokeDasharray="4 3" />
-            <path d={path((x) => densityAt(x, r, eiStops))} fill="none" stroke="#3987e5" strokeWidth={2} />
+            <path d={path((x) => densityAt(x, r, eiStops))} fill="none" stroke="#e9e6df" strokeWidth={2} />
           </svg>
           <figcaption className="muted small">
             Negative density. <span className="dr-key dr-key-ref" /> normal development at box speed · <span className="dr-key dr-key-you" /> your

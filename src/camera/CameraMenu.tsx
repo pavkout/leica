@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { MODES, type ModeId, type Tool, type ToolId } from "../app/tools";
+import Wordmark from "../components/app/Wordmark";
 
 export interface MenuSetting {
   id: string;
@@ -66,7 +67,10 @@ export default function CameraMenu({ tools, settings, onOpenTool, onClose, initi
   return (
     <div className="menu" role="dialog" aria-modal="true" aria-label="Menu" onKeyDown={onKey}>
       <div className="menu-head">
-        <span className="menu-title">MENU</span>
+        <span className="menu-title">
+          <Wordmark />
+          <span className="menu-title-label">MENU</span>
+        </span>
         <button type="button" className="cam-btn cam-btn-small" onClick={onClose} aria-label="Back to the camera">
           Camera
         </button>

@@ -12,6 +12,8 @@ const DEPTH_WIDTH = 320;
 export interface LiveHandle {
   /** The current frame, as a JPEG data URL (for the roll). */
   capture(): string | null;
+  /** Share of the source frame shown on screen, per axis (to map a tap on the picture back to the source). */
+  crop(): [number, number] | null;
 }
 
 interface Props {
@@ -34,6 +36,12 @@ interface Props {
   onSceneEv: (ev: number, measured: boolean) => void;
   onFocus: (mm: number) => void;
   onExit: () => void;
+  /** Hands out what's being rendered (the camera's video, or the stand-in photo), e.g. for a spot meter. */
+  onSource?: (source: HTMLVideoElement | HTMLImageElement | null, track: MediaStreamTrack | null) => void;
+  /** Without a camera, render this photo through the same simulated camera instead of stopping. */
+  fallbackImageUrl?: string;
+  /** Label for the way out when the camera isn't available. */
+  exitLabel?: string;
 }
 
 type DepthState = { kind: "off" } | { kind: "loading"; message: string; fraction: number | null } | { kind: "on"; perSec: number } | { kind: "error"; message: string };
@@ -46,6 +54,7 @@ type DepthState = { kind: "off" } | { kind: "loading"; message: string; fraction
 const LiveScreen = forwardRef<LiveHandle, Props>(function LiveScreen(props, ref) {
   const { status, message, start, stop, streamRef } = useCameraStream();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const renderer = useRef<LiveRenderer | null>(null);
   const latest = useRef(props);
@@ -66,6 +75,9 @@ const LiveScreen = forwardRef<LiveHandle, Props>(function LiveScreen(props, ref)
       renderer.current.render(v, lastParams.current);
       return c.toDataURL("image/jpeg", 0.9);
     },
+    crop() {
+      return lastParams.current?.crop ?? null;
+    },
   }));
 
   // Camera on while this screen is shown.
@@ -76,6 +88,7 @@ const LiveScreen = forwardRef<LiveHandle, Props>(function LiveScreen(props, ref)
       if (cancelled || !stream || !v) return;
       v.srcObject = stream;
       void v.play().catch(() => undefined);
+      latest.current.onSource?.(v, stream.getVideoTracks()[0] ?? null);
     });
     return () => {
       cancelled = true;
@@ -98,9 +111,14 @@ const LiveScreen = forwardRef<LiveHandle, Props>(function LiveScreen(props, ref)
     let seed = 0;
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
-      const v = videoRef.current;
       const r = renderer.current;
-      if (!v || !r || v.readyState < 2 || !v.videoWidth) return;
+      // The camera's video, or (no camera) the stand-in photo, through the same pipeline.
+      const img = standIn.current ? imgRef.current : null;
+      const v = img && img.complete && img.naturalWidth ? img : videoRef.current;
+      if (!v || !r) return;
+      const srcW = v instanceof HTMLImageElement ? v.naturalWidth : v.videoWidth;
+      const srcH = v instanceof HTMLImageElement ? v.naturalHeight : v.videoHeight;
+      if (v instanceof HTMLVideoElement && (v.readyState < 2 || !srcW)) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = Math.min(1280, Math.round(c.clientWidth * dpr));
       const h = Math.round(w / latest.current.aspect);
@@ -109,7 +127,7 @@ const LiveScreen = forwardRef<LiveHandle, Props>(function LiveScreen(props, ref)
         c.height = h;
       }
       const p = latest.current;
-      const { crop, wider: w2 } = liveCrop(v.videoWidth, v.videoHeight, p.aspect, 1, p.lensHFovDeg, ASSUMED_PHONE_FOV_DEG);
+      const { crop, wider: w2 } = liveCrop(srcW, srcH, p.aspect, 1, p.lensHFovDeg, ASSUMED_PHONE_FOV_DEG);
       if (w2 !== wider) setWider(w2);
       const { a, b } = blurCoefficients(p.focusMm, p.focalMm, p.fNumber, p.frameWidthMm, w);
       const params: LiveParams = {
@@ -226,21 +244,32 @@ const LiveScreen = forwardRef<LiveHandle, Props>(function LiveScreen(props, ref)
   }
 
   const blocked = status === "denied" || status === "unsupported" || status === "error";
+  const standIn = useRef(false);
+  standIn.current = blocked && !!props.fallbackImageUrl;
+  const showStandIn = blocked && !!props.fallbackImageUrl;
+  useEffect(() => {
+    if (!showStandIn) return;
+    const img = imgRef.current;
+    const hand = () => latest.current.onSource?.(img, null);
+    if (img?.complete && img.naturalWidth) hand();
+    else img?.addEventListener("load", hand, { once: true });
+  }, [showStandIn]);
   return (
     <div className="live" style={{ aspectRatio: String(props.aspect) }}>
       <video ref={videoRef} className="live-video" playsInline muted autoPlay aria-hidden="true" />
+      {showStandIn && <img ref={imgRef} className="live-video" src={props.fallbackImageUrl} alt="" aria-hidden="true" />}
       <canvas ref={canvasRef} className="live-canvas" role="img" aria-label="Live picture through the simulated camera" onClick={tapFocus} />
-      {blocked && (
+      {blocked && !showStandIn && (
         <div className="live-blocked" role="alert">
           <p>{message ?? "The camera isn't available."}</p>
           <button type="button" className="cam-btn" onClick={props.onExit}>
-            Back to the scene
+            {props.exitLabel ?? "Back to the scene"}
           </button>
         </div>
       )}
       {status === "requesting" && <p className="live-note">Allow the camera to go live…</p>}
       <div className="live-chips">
-        <span className="live-chip live-chip-rec">LIVE</span>
+        {showStandIn ? <span className="live-chip">Stand-in photo: no camera</span> : <span className="live-chip live-chip-rec">LIVE</span>}
         {measured !== null && <span className="live-chip">{measured ? "Metered" : "Light estimated"}</span>}
         {wider && <span className="live-chip">Lens wider than your phone: whole frame shown</span>}
         <button type="button" className={`live-chip live-chip-btn${depth.kind === "on" || depth.kind === "loading" ? " live-chip-on" : ""}`} aria-pressed={depth.kind === "on" || depth.kind === "loading"} onClick={toggleDepth}>

@@ -1054,9 +1054,18 @@ input[type="text"]::placeholder {
 
 .stock {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 12px 16px;
+  margin-bottom: 18px;
+}
+
+.stock .gear-meta {
+  white-space: normal;
+}
+
+.stock > .btn {
+  margin-left: auto;
 }
 
 .stock-art,
@@ -1083,7 +1092,7 @@ input[type="text"]::placeholder {
 .stock-text {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1 1 200px;
   min-width: 0;
 }
 
@@ -1103,6 +1112,9 @@ input[type="text"]::placeholder {
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
   overscroll-behavior-x: contain;
+  /* Like the camera's rings: figures roll away at the edges instead of being cut off. */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
 }
 
 .dial-step {
@@ -1162,9 +1174,10 @@ input[type="text"]::placeholder {
   margin: 4px 0 6px;
 }
 
+/* The meter as a scale: stops engraved above ticks, the film's latitude a bright stretch of the baseline, a red pointer on the reading. */
 .meter-scale {
   position: relative;
-  height: 34px;
+  height: 40px;
   margin: 0 12px;
   border-bottom: 1px solid var(--line-strong);
 }
@@ -1175,29 +1188,38 @@ input[type="text"]::placeholder {
   transform: translateX(-50%);
   font-family: var(--font-engraving);
   font-stretch: var(--engrave-stretch);
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
+.meter-scale span::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  width: 1px;
+  height: 7px;
+  background: var(--line-strong);
+}
+
 .meter-latitude {
   position: absolute;
-  bottom: 0;
-  height: 8px;
-  border-radius: 4px 4px 0 0;
-  background: rgba(255, 255, 255, 0.12);
+  bottom: -1px;
+  height: 2px;
+  background: var(--engrave);
 }
 
 .meter-marker {
   position: absolute;
-  bottom: -5px;
-  width: 12px;
-  height: 12px;
+  bottom: 2px;
+  width: 0;
+  height: 0;
   margin-left: -6px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ea5147, var(--red) 60%, var(--red-dim));
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.6);
-  transition: left 0.2s var(--ease);
+  border: 6px solid transparent;
+  border-top: 9px solid var(--red);
+  border-bottom: 0;
+  transition: left var(--t-detent) var(--ease-detent);
 }
 
 .meter-text {
@@ -1283,7 +1305,7 @@ input[type="text"]::placeholder {
   color: var(--text);
 }
 
-.sheet-tag-good { background: var(--red); color: #fff; }
+.sheet-tag-good { background: var(--chrome); color: #151514; }
 .sheet-tag-missed-focus,
 .sheet-tag-motion-blur,
 .sheet-tag-underexposed,
@@ -1440,7 +1462,7 @@ a.btn {
 }
 
 .scene-upload:focus-within {
-  outline: 2px solid var(--red);
+  outline: 2px solid var(--chrome-hi);
   outline-offset: 2px;
 }
 
@@ -1463,7 +1485,7 @@ a.btn {
 .progress i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--red-dim), var(--red));
+  background: var(--engrave);
   transition: width 0.25s var(--ease);
 }
 
@@ -1473,9 +1495,74 @@ a.btn {
   margin-top: 10px;
 }
 
+/* Sliders as a fader: a hairline track and a satin-chrome knob. */
 input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
   width: 100%;
-  accent-color: var(--red);
+  height: 32px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--line-strong);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--line-strong);
+}
+
+input[type="range"]::-moz-range-progress {
+  height: 2px;
+  background: var(--engrave);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -9px;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f7f6f3, #b8b6b0 55%, #6e6d69);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  transition: transform var(--t-press) var(--ease-detent);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f7f6f3, #b8b6b0 55%, #6e6d69);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+input[type="range"]:active::-webkit-slider-thumb {
+  transform: scale(0.92);
+}
+
+input[type="range"]:focus-visible {
+  outline: none;
+}
+
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--chrome-hi);
+}
+
+input[type="range"]:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--chrome-hi);
+}
+
+input[type="range"]:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .preview-tappable {
@@ -1584,8 +1671,8 @@ input[type="range"] {
   height: 36px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ea5147, var(--red) 60%, var(--red-dim));
-  color: #fff;
+  background: radial-gradient(circle at 35% 30%, #f7f6f3, #b8b6b0 55%, #6e6d69);
+  color: #151514;
   font-size: 14px;
   font-weight: 700;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 2px 10px rgba(0, 0, 0, 0.5);
@@ -1629,16 +1716,207 @@ input[type="range"] {
 }
 
 /* ── Full-screen overlays: M3 finder and Live View ───────── */
-.finder-fullscreen,
+/* Live view: the picture always on screen, the controls in their own panel beside it (under it in portrait). */
 .live-view {
   position: fixed;
   inset: 0;
   z-index: 100;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  background: #000;
+}
+
+@media (orientation: portrait), (max-width: 719px) {
+  .live-view {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* The picture's own height (the frame's shape across the width), never more than 62% of the screen. */
+  .lv-stage {
+    height: min(62dvh, calc(100vw / var(--aspect, 1.5)));
+  }
+
+  .lv-stage .lv-close {
+    top: 8px;
+    right: 8px;
+  }
+}
+
+.finder-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
   display: flex;
-  flex-direction: column;
   background: #000;
   padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
     max(12px, env(safe-area-inset-left));
+}
+
+.lv-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  container-type: size;
+  background: #050505;
+}
+
+/* The simulated camera's live picture, fitted whole: its edges are the lens's frame. */
+.lv-stage .live {
+  position: relative;
+  width: min(100cqw, calc(100cqh * var(--aspect, 1.5)));
+  overflow: hidden;
+  background: #000;
+}
+
+.lv-close {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: 12px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--engrave);
+  cursor: pointer;
+}
+
+.lv-note {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  z-index: 2;
+  max-width: min(calc(100% - 84px), 420px);
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: var(--radius-key);
+  background: rgba(0, 0, 0, 0.55);
+  color: #bdb9b0;
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+/* The camera's info line, on the picture: white engraving figures, the meter needle in the middle. */
+.lv-hud {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 2vw, 22px);
+  padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0));
+  color: #fff;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.lv-hud .cam-meter-scale b {
+  border-top-color: var(--red);
+}
+
+.lv-hud-count {
+  color: #bdb9b0;
+}
+
+/* The release where the right thumb is (landscape), or centred above the info line (portrait). */
+.lv-release {
+  position: absolute;
+  z-index: 3;
+  right: max(20px, env(safe-area-inset-right));
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.lv-release:active:not(:disabled) {
+  transform: translateY(-50%) scale(0.96);
+}
+
+@media (orientation: portrait), (max-width: 719px) {
+  .lv-release {
+    right: auto;
+    left: 50%;
+    top: auto;
+    bottom: 52px;
+    transform: translateX(-50%);
+  }
+
+  .lv-release:active:not(:disabled) {
+    transform: translateX(-50%) scale(0.96);
+  }
+
+  .lv-hud {
+    gap: 10px;
+    font-size: 14px;
+  }
+
+  .lv-hud-count {
+    display: none;
+  }
+}
+
+.lv-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) 18px;
+  background: var(--plate);
+  border-left: 1px solid var(--line);
+}
+
+@media (orientation: portrait), (max-width: 719px) {
+  .lv-panel {
+    padding-top: 16px;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+/* Scrolling happens in the panel, so its parts keep their size instead of squeezing. */
+.lv-panel > * {
+  flex: none;
+}
+
+.lv-summary {
+  display: grid;
+  gap: 4px;
+}
+
+.lv-summary-main {
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 22px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.lv-tab {
+  min-height: 0;
+}
+
+.lv-reset {
+  justify-self: start;
+  margin-top: 6px;
 }
 
 .finder-fullscreen {
@@ -1667,15 +1945,6 @@ input[type="range"] {
   font-size: 22px;
   line-height: 1;
   cursor: pointer;
-}
-
-.live-view-stage {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 12px;
-  background: #050505;
 }
 
 .live-view-video {
@@ -1717,57 +1986,6 @@ input[type="range"] {
   left: 3%;
   transform: none;
   border-style: dashed;
-}
-
-.live-view-badge {
-  position: absolute;
-  left: 50%;
-  top: 10px;
-  transform: translateX(-50%);
-  max-width: min(92%, 480px);
-  padding: 4px 10px;
-  border-radius: var(--radius-control);
-  background: rgba(0, 0, 0, 0.65);
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.4;
-  text-align: center;
-}
-
-.live-view-capture {
-  position: absolute;
-  left: 50%;
-  bottom: 14px;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.live-view-capture .muted {
-  padding: 2px 10px;
-  border-radius: var(--radius-control);
-  background: rgba(0, 0, 0, 0.65);
-}
-
-.live-view-sheet {
-  margin-top: 12px;
-  padding: 12px 4px 4px;
-}
-
-.live-view-readout {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-bottom: 10px;
-}
-
-.live-view-ev {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 4px;
 }
 
 .challenge {
@@ -1817,44 +2035,148 @@ input[type="range"] {
   border-color: var(--red-dim);
 }
 
-/* ── Aperture iris ─────────────────────────────────────── */
-.iris-diagrams {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  margin: 4px 0 10px;
+/* ── Aperture iris: the lens seen from the front, the diaphragm you can turn ── */
+.iris-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  margin: 4px 0 20px;
 }
 
-.iris-diagram {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
+@media (min-width: 760px) {
+  .iris-stage {
+    grid-template-columns: minmax(0, 1.25fr) minmax(220px, 1fr);
+    gap: 40px;
+  }
+}
+
+.iris-hero {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
   margin: 0;
 }
 
-.iris-diagram svg {
+.iris-hero svg {
   display: block;
-  width: 168px;
-  height: 168px;
+  width: min(100%, 460px);
+  height: auto;
 }
 
-.iris-bokeh svg {
-  width: 96px;
-  height: 96px;
-}
-
-.iris-barrel {
-  fill: #111;
-  stroke: var(--line-strong);
+/* Satin black mount, fine knurling, a painted-black front ring. */
+.iris-mount {
+  fill: #1b1b1a;
+  stroke: #2e2e2b;
   stroke-width: 1.5;
 }
 
-.iris-opening {
-  fill: var(--red);
-  transition: d 0.2s var(--ease-fast);
+.iris-knurl {
+  fill: none;
+  stroke: #3a3a37;
+  stroke-width: 8;
+  stroke-dasharray: 1.4 2.2;
+}
+
+.iris-front-ring {
+  fill: #0f0f0f;
+  stroke: #262624;
+  stroke-width: 1;
+}
+
+.iris-engraving {
+  fill: var(--engrave);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+}
+
+.iris-blade {
+  stroke: rgba(236, 232, 224, 0.1);
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+
+.iris-glint {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.iris-glass-edge {
+  fill: none;
+  stroke: #000;
+  stroke-width: 3;
+}
+
+.iris-side {
+  display: grid;
+  gap: 18px;
+  align-content: center;
+}
+
+/* The f-number, set like the figure on a ring: large, condensed, tabular. */
+.iris-f {
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: clamp(56px, 9vw, 96px);
+  font-weight: 300;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.iris-read {
+  display: grid;
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+
+.iris-read > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.iris-read dt {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.iris-read dd {
+  margin: 0;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.iris-bokeh {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+}
+
+.iris-bokeh svg {
+  flex: none;
+  width: 88px;
+  height: 88px;
+  border-radius: 2px;
+}
+
+.iris-bokeh-bg {
+  fill: #070707;
+}
+
+.iris-ring {
+  margin-bottom: 4px;
 }
 
 .iris-tube {
@@ -1864,24 +2186,14 @@ input[type="range"] {
 }
 
 .iris-element {
-  fill: rgba(140, 190, 230, 0.14);
-  stroke: rgba(140, 190, 230, 0.4);
+  fill: rgba(140, 190, 230, 0.12);
+  stroke: rgba(140, 190, 230, 0.35);
   stroke-width: 1;
 }
 
 .iris-diaphragm {
-  fill: var(--red);
-  transition: y 0.2s var(--ease-fast), height 0.2s var(--ease-fast);
-}
-
-.iris-bokeh-bg {
-  fill: #0a0a0a;
-}
-
-.iris-diagram figcaption {
-  font-size: 11px;
-  text-align: center;
-  max-width: 150px;
+  fill: #2a2a28;
+  stroke: #4a4a45;
 }
 
 /* ── Finder comparison ────────────────────────────────────── */
@@ -1896,14 +2208,65 @@ input[type="range"] {
   min-width: 180px;
 }
 
+/* Two finders side by side: the window in its black housing, the scene, the bright frame lines. */
+.finder-views {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin: 18px 0 14px;
+}
+
+.finder-view {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.finder-view svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.finder-view figcaption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.finder-view-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.finder-view-meta {
+  color: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.finder-housing {
+  fill: #0b0b0b;
+  stroke: #2a2a28;
+}
+
+/* A finder is a little darker and warmer than the world. */
+.finder-glass {
+  fill: rgba(20, 16, 8, 0.28);
+}
+
 .finder-frameline {
   fill: none;
   stroke: rgba(252, 248, 236, 0.95);
   stroke-width: 1.5;
 }
 
-.finder-grid {
-  stroke: var(--line-strong);
+.finder-patch {
+  fill: rgba(255, 236, 190, 0.14);
+  stroke: rgba(255, 236, 190, 0.4);
   stroke-width: 1;
 }
 
@@ -1924,7 +2287,7 @@ input[type="range"] {
 }
 
 .portrait-figure {
-  fill: var(--red);
+  fill: #cfcac0;
 }
 
 .portrait-result {
@@ -2155,8 +2518,8 @@ input[type="range"] {
 .b-ring { fill: #0f0f0f; }
 .b-knurl { stroke: #2a2a2a; stroke-width: 2.5; }
 .b-seam { stroke: #2b2b2b; }
-.b-dof-band { fill: rgba(207, 46, 37, 0.24); }
-.b-label-m text { fill: #f4f4f4; font-size: 14px; }
+.b-dof-band { fill: rgba(233, 230, 223, 0.1); }
+.b-label-m text { fill: var(--engrave); font-size: 14px; font-family: var(--font-engraving); font-stretch: var(--engrave-stretch); }
 .b-label-ft text { fill: #9a9a9a; font-size: 11px; }
 .b-label-m .b-infinity { font-size: 17px; }
 .b-label-ft .b-infinity { font-size: 13px; }
@@ -2165,14 +2528,16 @@ input[type="range"] {
 .b-fixed { fill: #1a1a1a; }
 .b-mark line { stroke: #8a8a8a; stroke-width: 1; }
 .b-mark text { fill: #a0a0a0; font-size: 10px; }
-.b-mark-current line { stroke: var(--red); stroke-width: 2; }
+/* The DoF limits for the set aperture: engraved bright, the way you read the real scale. */
+.b-mark-current line { stroke: var(--engrave); stroke-width: 1.5; }
+.b-mark-current text { fill: var(--engrave); }
 .b-index { stroke: var(--red); stroke-width: 2; }
 .b-aperture { fill: #151515; }
 .b-index-tri { fill: var(--red); }
-.b-stop { fill: #d4d4d4; font-size: 15px; }
+.b-stop { fill: #d4d4d4; font-size: 15px; font-family: var(--font-engraving); font-stretch: var(--engrave-stretch); }
 .b-halfstop { fill: #5a5a5a; }
-.b-stop.b-stop-current { fill: var(--red); font-weight: 600; font-size: 17px; }
-.b-halfstop.b-stop-current { fill: var(--red); }
+.b-stop.b-stop-current { fill: #fff; font-weight: 600; font-size: 17px; }
+.b-halfstop.b-stop-current { fill: #fff; }
 .b-shade { fill: url(#barrel-shade); pointer-events: none; }
 .b-edge { fill: url(#barrel-edge); pointer-events: none; }
 
@@ -2386,55 +2751,156 @@ input[type="range"] {
   position: fixed;
   z-index: 70;
   left: 50%;
-  bottom: calc(var(--dial-h) + 8px + env(safe-area-inset-bottom));
-  width: min(420px, calc(100vw - 24px));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  width: min(440px, calc(100vw - 24px));
   transform: translateX(-50%);
-  padding: 12px 14px;
+  padding: 16px 18px;
   border: 1px solid var(--line-strong);
-  border-radius: 16px;
+  border-radius: var(--radius);
   /* Solid: page text showing through made the card hard to read. */
-  background: #181818;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  background: var(--plate);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
 }
 
 .demo-tour-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
+  margin: -4px -6px 14px 0;
+}
+
+/* The tour's progress, as a scale: done ticks engraved, the current one on the red index. */
+.demo-tour-ticks {
+  display: flex;
+  gap: 4px;
+}
+
+.demo-tour-ticks i {
+  width: 18px;
+  height: 2px;
+  background: var(--line-strong);
+}
+
+.demo-tour-ticks i.demo-tick-done {
+  background: var(--engrave);
+}
+
+.demo-tour-ticks i.demo-tick-on {
+  background: var(--red);
+}
+
+.demo-tour-meta {
+  color: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
 }
 
 .demo-tour-exit {
-  width: 32px;
-  height: 32px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
   border: 0;
+  border-radius: var(--radius-control);
   background: transparent;
-  color: inherit;
-  font-size: 20px;
+  color: var(--muted);
   cursor: pointer;
 }
 
+@media (hover: hover) {
+  .demo-tour-exit:hover {
+    color: var(--text);
+    background: var(--plate-2);
+  }
+}
+
+.demo-tour-body {
+  display: grid;
+  gap: 6px;
+}
+
 .demo-tour-title {
-  margin: 2px 0 4px;
-  font-size: 17px;
+  margin: 0;
+  font-size: 22px;
+  font-stretch: var(--display-stretch);
+  font-weight: 300;
+  line-height: 1.15;
   outline: none;
 }
 
+.demo-tour-text {
+  color: #c9c5bc;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* The step's action on the left, Skip quietly on the right, one row. */
 .demo-tour-actions {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  align-items: center;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 18px;
+}
+
+.demo-tour-actions .btn {
+  flex: none;
+}
+
+.demo-tour-actions > :last-child {
+  margin-left: auto;
+}
+
+.demo-tour-actions > :only-child {
+  margin-left: auto;
+}
+
+.demo-tour-skip {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
 }
 
 .demo-tour-card {
-  white-space: normal;
+  margin-top: 14px;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 16px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
 }
 
 .demo-tour-times {
-  margin: 6px 0;
-  padding-left: 18px;
+  margin: 14px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.demo-tour-times > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.demo-tour-times dt {
   color: var(--muted);
+}
+
+.demo-tour-times dd {
+  margin: 0;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-tour-total dt,
+.demo-tour-total dd {
+  color: var(--text);
 }
 
 /* Photo Recipes (feature #28) */
@@ -2582,16 +3048,10 @@ input[type="range"] {
   width: 44px;
   height: 44px;
   margin: -22px 0 0 -22px;
-  border: 2px solid #ffd54f;
+  border: 1.5px solid rgba(252, 248, 236, 0.95);
   border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
   pointer-events: none;
-}
-
-.live-view-meter {
-  margin: 8px 0;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
 }
 
 .light-meter p {
@@ -2619,14 +3079,21 @@ input[type="range"] {
 }
 
 .light-meter-table td {
-  padding: 3px 6px;
+  padding: 7px 8px;
   border-top: 1px solid var(--line);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 15px;
 }
 
 .light-meter-table tr.meter-locked td {
   color: #fff;
-  background: rgba(229, 57, 53, 0.25);
-  font-weight: 700;
+  background: var(--plate-3);
+  font-weight: 600;
+}
+
+.light-meter-table tr.meter-locked td:first-child {
+  box-shadow: inset 2px 0 0 var(--red);
 }
 
 .light-meter-prefs {
@@ -2645,23 +3112,9 @@ input[type="range"] {
   gap: 6px;
 }
 
-/* Framelines and the approximation label are decorative: taps go through to the picture (tap-to-meter). */
-.live-view-frameline,
-.live-view-badge {
+/* Framelines are decorative: taps go through to the picture (tap-to-meter). */
+.live-view-frameline {
   pointer-events: none;
-}
-
-/* The picture keeps at least half the screen; the controls sheet scrolls below it.
-   (With the light meter the sheet grew enough to squeeze the picture to zero height.) */
-.live-view-stage {
-  flex: 1 0 50vh;
-}
-
-.live-view-sheet {
-  flex: 0 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
 /* Try Before You Buy (feature #19) */
@@ -2694,8 +3147,9 @@ input[type="range"] {
   stroke-width: 1;
 }
 
+/* The mounted lens's frame: bright, like a finder's frame line. */
 .trial-frame-on {
-  stroke: var(--red);
+  stroke: var(--chrome-hi);
   stroke-width: 2;
 }
 
@@ -3142,8 +3596,9 @@ input[type="range"] {
 .anat-part:hover .anat-front { fill: #45464b; }
 
 .anat-part-on polygon {
-  stroke: var(--red);
-  stroke-width: 1.2;
+  fill: rgba(233, 230, 223, 0.16);
+  stroke: var(--chrome-hi);
+  stroke-width: 1.4;
 }
 
 .anat-part-on .anat-front { fill: #4a3234; }
@@ -3490,7 +3945,7 @@ input[type="range"] {
 }
 
 .dr-key-ref { border-top: 2px dashed #8b8b8b; }
-.dr-key-you { border-top: 2px solid #3987e5; }
+.dr-key-you { border-top: 2px solid var(--engrave); }
 
 .dr-result,
 .dr-notes {
@@ -4745,6 +5200,11 @@ html.kiosk body {
   border-bottom: 1px solid var(--line);
 }
 
+/* Opened, a fold takes the whole row: its controls get room instead of a third of the width. */
+.bench-fold[open] {
+  grid-column: 1 / -1;
+}
+
 .bench-fold > summary::-webkit-details-marker {
   display: none;
 }
@@ -4808,4 +5268,309 @@ html.kiosk body {
     gap: 16px;
     margin-top: 16px;
   }
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   Finish layer: one set of rules for the details every tool shares.
+   Provenance as hallmarks, lists as ruled plates, red only as an index.
+   ════════════════════════════════════════════════════════════ */
+
+/* Text: headings balance, paragraphs avoid orphans. */
+h1,
+h2,
+h3,
+.tool-title,
+.headline,
+.gear-name {
+  text-wrap: balance;
+}
+
+p,
+li,
+dd,
+figcaption,
+.hint {
+  text-wrap: pretty;
+}
+
+/* Native controls in the house finish. */
+input[type="checkbox"],
+input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--chrome);
+  cursor: pointer;
+}
+
+input[type="number"] {
+  min-height: 36px;
+  padding: 0 10px;
+  font: inherit;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  background: var(--plate-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+}
+
+label:has(> input[type="checkbox"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  cursor: pointer;
+}
+
+/* Lists inside tools: ruled, with a short engraved dash, not browser bullets. */
+.panel ul:not([class]),
+ul.dr-notes,
+ul.dr-result,
+ul.lel-warn,
+.lel-card ul {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.panel ul:not([class]) > li,
+ul.dr-notes > li,
+ul.dr-result > li,
+ul.lel-warn > li,
+.lel-card ul > li {
+  position: relative;
+  padding: 7px 0 7px 18px;
+  border-bottom: 1px solid var(--line);
+  line-height: 1.45;
+}
+
+.panel ul:not([class]) > li::before,
+ul.dr-notes > li::before,
+ul.dr-result > li::before,
+ul.lel-warn > li::before,
+.lel-card ul > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 1.05em;
+  width: 8px;
+  height: 1px;
+  background: var(--muted);
+}
+
+/* Provenance hallmarks: what a value is, told by the mark's finish, spelled out in words.
+   Published and measured: struck solid. Calculated: a clean outline. Approximate and illustrative: dashed, dotted. */
+.dna-badge,
+.leica3d-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-key);
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.dna-published,
+.dna-measured {
+  border-color: var(--chrome);
+  background: var(--chrome);
+  color: #151514;
+}
+
+.dna-calculated {
+  border-color: var(--engrave);
+  color: var(--engrave);
+}
+
+.dna-community {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.dna-approximate,
+.leica3d-badge {
+  border-style: dashed;
+  border-color: #8a867e;
+  color: #c9c5bc;
+}
+
+.dna-illustrative {
+  border-style: dotted;
+  border-color: #8a867e;
+  color: #c9c5bc;
+}
+
+/* Rows in a list (recipes, lens trial, generations): hairlines between, the current one on a red index. */
+.recipe-list,
+.trial-list {
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.recipe,
+.trial-row,
+.gen-row {
+  padding: 14px 4px 14px 16px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+
+.recipe-on,
+.trial-row-on,
+.gen-row-on {
+  border-color: var(--line);
+  background: var(--plate-2);
+  box-shadow: inset 2px 0 0 var(--red);
+}
+
+.recipe-star {
+  color: var(--muted);
+  transition: color var(--t-detent) var(--ease-detent);
+}
+
+.recipe-star[aria-pressed="true"] {
+  color: var(--chrome-hi);
+}
+
+.gen-badge-on {
+  border-color: var(--chrome);
+  color: var(--text);
+}
+
+/* Sub-sections inside a tool: set off by a rule, never a box inside a box. */
+.lel-card,
+.dr-process,
+.anat-info {
+  margin: 18px 0;
+  padding: 16px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+
+.lel-card h3,
+.dr-process h3,
+.anat-info h3 {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* A state readout (film loading): a ruled data strip. */
+.loading-state {
+  gap: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.loading-state > div {
+  padding: 8px 10px 9px 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.loading-state dd {
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 15px;
+}
+
+/* Choices that pick a part or a phase: keys, the chosen one on the index. */
+.anat-chip {
+  min-height: 36px;
+  padding: 0 12px;
+  border-color: var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--plate-2);
+  transition: background-color var(--t-detent) var(--ease-detent);
+}
+
+.anat-chip-on {
+  border-color: #5a5a54;
+  background: var(--plate-3);
+  box-shadow: inset 0 -2px 0 var(--red);
+}
+
+/* What you want to do (Shooting intent): keys with a title and a line, not gradient cards. */
+.intent-pick {
+  padding: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--plate-2);
+  transition: background-color var(--t-detent) var(--ease-detent), border-color var(--t-detent) var(--ease-detent);
+}
+
+.intent-pick:hover {
+  border-color: #5a5a54;
+  background: var(--plate-3);
+}
+
+/* Motion blur scale: from sharp to smeared in the house greys, red only where it fails. */
+.motion-scale {
+  background: linear-gradient(90deg, #4a4a45 0%, #8a867e 45%, #c9c5bc 62%, var(--red) 100%);
+  border-radius: 1px;
+}
+
+.stability-unstable {
+  border-color: var(--line-strong);
+  box-shadow: inset 2px 0 0 var(--red);
+  color: var(--text);
+}
+
+.kiosk-lens-on {
+  border-color: var(--chrome);
+  box-shadow: inset 0 -3px 0 var(--red);
+}
+
+/* Warnings: the one place red is text. */
+.warn-text {
+  color: #e8574d;
+}
+
+/* An empty roll: what will land here, and the one thing to do next. */
+.sheet-empty {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  padding: 8px 0 4px;
+}
+
+.sheet-empty .btn-red {
+  flex: none;
+}
+
+/* The name: plain type in the house face, the wide display cut; ".rt" quieter. */
+.wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font);
+  font-stretch: var(--display-stretch);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.wordmark-rt {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.footer-mark {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 16px;
 }

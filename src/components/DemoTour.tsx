@@ -79,47 +79,58 @@ export default function DemoTour({ state, actions, setupSummary, saved, onSaveTo
 
   const summary = demoSummary(timings);
 
+  const steps = DEMO_STEPS.length - 1;
+  const stepAction =
+    step.id === "mount" ? (
+      <button type="button" className="btn btn-small btn-red" onClick={() => actions.selectLens(DEMO.lensId)} disabled={state.lensFocalMm === 50}>
+        Mount the 50 mm
+      </button>
+    ) : step.id === "live" ? (
+      <button type="button" className="btn btn-small btn-red" onClick={actions.openLive}>
+        Open LIVE
+      </button>
+    ) : null;
+
   return (
     <section className="demo-tour" role="region" aria-label="60-second tour">
       <div className="demo-tour-head">
-        <span className="muted small">
-          {finished ? "Done" : `Step ${index + 1} of ${DEMO_STEPS.length - 1}`} · {formatSec(finished ? summary.totalSec : elapsed)}
+        {/* Progress as a scale: one tick per step, the current one on the red index. */}
+        <span className="demo-tour-ticks" aria-hidden="true">
+          {Array.from({ length: steps }, (_, i) => (
+            <i key={i} className={finished || i < index ? "demo-tick-done" : i === index ? "demo-tick-on" : undefined} />
+          ))}
+        </span>
+        <span className="demo-tour-meta">
+          {finished ? "Done" : `Step ${index + 1} of ${steps}`} · {formatSec(finished ? summary.totalSec : elapsed)}
         </span>
         <button type="button" className="demo-tour-exit" onClick={onExit} aria-label="Exit the tour">
-          ×
+          <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+            <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.6" />
+          </svg>
         </button>
       </div>
-      <div aria-live="polite">
+      <div className="demo-tour-body" aria-live="polite">
         <h2 ref={heading} tabIndex={-1} className="demo-tour-title">
           {step.title}
         </h2>
-        <p className="small">{step.instruction}</p>
+        <p className="demo-tour-text">{step.instruction}</p>
       </div>
-
-      {step.id === "mount" && (
-        <button type="button" className="btn btn-small btn-red" onClick={() => actions.selectLens(DEMO.lensId)} disabled={state.lensFocalMm === 50}>
-          Mount the 50 mm
-        </button>
-      )}
-      {step.id === "live" && (
-        <button type="button" className="btn btn-small btn-red" onClick={actions.openLive}>
-          Open LIVE
-        </button>
-      )}
 
       {finished ? (
         <>
-          <p className="gear-name demo-tour-card">{setupSummary}</p>
-          <ul className="demo-tour-times small">
+          <p className="demo-tour-card">{setupSummary}</p>
+          <dl className="demo-tour-times">
             {timings.map((t) => (
-              <li key={t.id}>
-                {DEMO_STEPS.find((s) => s.id === t.id)!.title}: {t.seconds.toFixed(1)} s{t.skipped ? " (skipped)" : ""}
-              </li>
+              <div key={t.id}>
+                <dt>{DEMO_STEPS.find((s) => s.id === t.id)!.title}</dt>
+                <dd>{t.skipped ? "Skipped" : `${t.seconds.toFixed(1)} s`}</dd>
+              </div>
             ))}
-          </ul>
-          <p className="small">
-            {summary.underBudget ? `Under a minute: ${summary.totalSec.toFixed(0)} s.` : `${summary.totalSec.toFixed(0)} s — over the one-minute budget.`}
-          </p>
+            <div className="demo-tour-total">
+              <dt>{summary.underBudget ? "Under a minute" : "Over the one-minute budget"}</dt>
+              <dd>{summary.totalSec.toFixed(0)} s</dd>
+            </div>
+          </dl>
           <div className="demo-tour-actions">
             <button type="button" className="btn btn-small" onClick={onSaveToBag} disabled={saved}>
               {saved ? "Saved to My Leica Bag" : "Save to My Leica Bag"}
@@ -131,9 +142,10 @@ export default function DemoTour({ state, actions, setupSummary, saved, onSaveTo
         </>
       ) : (
         <div className="demo-tour-actions">
+          {stepAction}
           <button
             type="button"
-            className="btn btn-small"
+            className="btn btn-small demo-tour-skip"
             onClick={() => {
               step.skip(actions);
               advance(true);

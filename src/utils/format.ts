@@ -76,3 +76,8 @@ export function lensEngraving(name: string): string {
   const [, family, focal, aperture, asph] = m;
   return `${family} 1:${aperture}/${focal}${asph}`;
 }
+
+/** Ends a sentence on a name without doubling the stop: "… ASPH." stays "… ASPH.", "… f/2" becomes "… f/2.". */
+export function sentenceEnd(text: string): string {
+  return text.endsWith(".") ? text : `${text}.`;
+}

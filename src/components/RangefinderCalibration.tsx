@@ -11,7 +11,7 @@ interface Props {
 }
 
 // Chart palette: one series (validated dark-surface blue from the dataviz reference palette), recessive axes.
-const SERIES = "#3987e5";
+const SERIES = "#e9e6df";
 const INK = "#e6e6e6";
 const MUTED = "#9a9a9a";
 const GRID = "#333";

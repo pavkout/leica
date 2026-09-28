@@ -118,6 +118,28 @@ export function irisCycle(onClosed: () => void, timing: IrisTiming = PAGE_TIMING
   );
 }
 
+/** Opening the app, ms: the lens opens once, slowly enough to be seen, never long enough to wait for. */
+export const POWER_ON_TIMING = { hold: 320, open: 900 };
+
+/**
+ * The first look: the app starts behind a shut iris that opens on the camera.
+ * Runs once per page load, before the first render; silent (sound never
+ * autoplays); skipped under reduced motion.
+ */
+export function irisPowerOn() {
+  if (reducedMotion() || typeof window === "undefined") return;
+  generation++;
+  set({ phase: "closed", at: performance.now(), from: 0, dur: POWER_ON_TIMING.hold });
+  const gen = generation;
+  timers.push(
+    window.setTimeout(() => {
+      if (gen !== generation) return;
+      set({ phase: "opening", at: performance.now(), from: 0, dur: POWER_ON_TIMING.open });
+      timers.push(window.setTimeout(() => gen === generation && set({ phase: "idle", from: 1, dur: 0 }), POWER_ON_TIMING.open));
+    }, POWER_ON_TIMING.hold),
+  );
+}
+
 /** A transition is running. */
 export function irisActive() {
   return state.phase !== "idle";

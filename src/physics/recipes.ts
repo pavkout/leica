@@ -1,3 +1,4 @@
+import { sentenceEnd } from "../utils/format";
 // Photo Recipes (feature #28): turn a recipe into concrete settings for the
 // user's camera, using the shared engines. Pure.
 
@@ -41,7 +42,7 @@ export function recipeLens(recipe: Recipe, ctx: RecipeContext): Lens {
 export function recipePlan(recipe: Recipe, ctx: RecipeContext, boxIso: (filmId: string) => number): RecipePlan {
   const notes: string[] = [];
   const lens = recipeLens(recipe, ctx);
-  if (lens.focalMm !== recipe.focalMm) notes.push(`No ${recipe.focalMm} mm lens fits this camera; using ${lens.name}.`);
+  if (lens.focalMm !== recipe.focalMm) notes.push(`No ${recipe.focalMm} mm lens fits this camera; using ${sentenceEnd(lens.name)}`);
 
   const stops = apertureStops(lens);
   const fNumber = nearestStop(stops, Math.max(recipe.fNumber, lens.maxAperture));

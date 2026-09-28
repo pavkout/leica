@@ -11,6 +11,8 @@ interface Props {
   /** Colour negatives have an orange base; black and white is grey. */
   base: "color" | "bw" | "slide" | "digital";
   onRewind: () => void;
+  /** An empty roll's one next step: back to the camera to take a picture. */
+  onShoot?: () => void;
   onUpdateNote: (id: number, note: string) => void;
   onUpdateOutcome: (id: number, outcome: OutcomeTag | undefined) => void;
   /** The roll's recorded development (Darkroom mode), if any. */
@@ -31,7 +33,7 @@ function toExportable(f: Frame): ExportableFrame {
   return { number: f.number, fileName: f.fileName, meta: f.meta, note: f.note };
 }
 
-export default function ContactSheet({ frames, capacity, filmName, base, onRewind, onUpdateNote, onUpdateOutcome, development }: Props) {
+export default function ContactSheet({ frames, capacity, filmName, base, onRewind, onShoot, onUpdateNote, onUpdateOutcome, development }: Props) {
   const [openId, setOpenId] = useState<number | null>(null);
   const open = frames.find((f) => f.id === openId) ?? null;
   const dialog = useRef<HTMLDialogElement>(null);
@@ -75,11 +77,18 @@ export default function ContactSheet({ frames, capacity, filmName, base, onRewin
       {film && development && <p className="small roll-developed">Developed: {development}</p>}
 
       {frames.length === 0 ? (
-        <p className="muted small">
-          {film
-            ? `${capacity} exposures loaded. Press the shutter to take your first frame; it's developed with the film's look and lands here.`
-            : "Press the shutter. Your photos appear here and can be downloaded."}
-        </p>
+        <div className="sheet-empty">
+          <p className="muted">
+            {film
+              ? `${capacity} exposures loaded. Your first frame is developed with the film's look and lands here.`
+              : "Your pictures land here, ready to download."}
+          </p>
+          {onShoot && (
+            <button type="button" className="btn btn-red" onClick={onShoot}>
+              Take a picture
+            </button>
+          )}
+        </div>
       ) : (
         <div className={`sheet sheet-${base}`}>
           {frames.map((f) => (

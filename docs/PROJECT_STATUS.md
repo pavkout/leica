@@ -184,6 +184,67 @@ Known limitations / next design pass:
 - The picker's close key shows a focus ring when opened by pointer.
 - Needs a real-phone check of the feel.
 
+**Live view: settings now act on the picture** (user report, 2026-09-29): the Live view showed the raw phone feed, so changes in its panel had no visible effect.
+- The picture is now the simulated camera's live render (`LiveScreen`, the same renderer as the camera's LIVE). Exposure, ISO noise, film and mono, and shutter accumulation all act on it, and depth of field works with the on-picture "Depth of field" key.
+- `LiveScreen` gained `onSource`, which hands its video/track to the spot meter, so there's still only one camera stream. It also gained `fallbackImageUrl` (the tour's stand-in photo goes through the same pipeline), `exitLabel`, and `crop()` on its handle (taps meter the right spot through the lens crop). Capture now saves the simulated frame.
+- Scene light (the Light tab; the meter's base) is now separate from the exposure you choose. "Use this reading" exposes for the reading, the picture brightens or darkens by the difference, the needle shows it, and "Expose for the average again" resets it.
+- On a phone the picture area fits the frame (3:2 across the width, up to 62% of the height) instead of a letterboxed half-screen.
+
+**Review round 3** (user screenshots, 2026-09-29): **COMPLETE, user review pending.**
+- **Live view** is kept: it's the only home of the spot meter, the equivalent-exposures table and scene light. It's re-laid out like a camera:
+  - the picture always on screen;
+  - the info line (f / shutter / ISO / meter needle / frame count) and the release on the picture;
+  - controls in their own scrolling panel (beside it in landscape, under it in portrait), split into Meter / Light / Lens tabs.
+  No more scrolling between picture and controls. The release shows only with a real camera.
+- **Tour card:**
+  - a step scale with a red index in the header;
+  - a light display title;
+  - the step action and Skip on one row;
+  - the finished card has a ruled timing table instead of bullets.
+- **Studio settings:**
+  - an opened fold spans the full row;
+  - the film row wraps instead of squeezing;
+  - the meter is a camera-style scale (ticks, the latitude as a bright stretch of the baseline, a red pointer).
+- **Scales:** every scale row (`.dial`) keeps its set value centred when it appears or changes (`utils/scaleFollow.ts`, started in `main.tsx`), and fades at the edges like the rings.
+- **Lens barrel:** red only on the index. The DoF band and limits are engraved white, and the current aperture is white.
+- **Name:** **leica.rt** (the user's choice, after the trademark question): plain text in Archivo's wide cut via `components/app/Wordmark.tsx`, in the page title, the MENU header, the kiosk and the footer. The user's supplied Leica script-logo image is deliberately not used. The "not affiliated" footer stays.
+
+Validation: typecheck clean, lint 0 errors (5 old warnings), 483 tests pass, build OK.
+
+**Premium pass over every feature** (user request, 2026-09-28): **COMPLETE, user review pending.** I screenshotted all 24 tools at desktop and phone size and fixed what I found:
+- **Showpiece: Aperture iris, rebuilt.** It shows the lens from the front:
+  - a knurled mount ring, engraved with the lens name as the front ring reads it;
+  - coated glass, and real overlapping blades (the transition's `irisGeometry`) that swing and travel over ~150 ms as they close;
+  - an aperture ring, bound to the shared aperture;
+  - calculated readouts: light through the opening and stops closed.
+  Before, it was a flat red disc with no control.
+- **First look:** the app opens behind a shut iris with the lens's blade count, and it opens on the camera (`irisPowerOn`: 320 ms hold, 900 ms open, silent, skipped under reduced motion). The iris now draws in a layout effect, so it never shows the page for a frame. `index.html` paints the ground colour inline: there was a white flash before the CSS loaded.
+- **Finders compared:**
+  - rectangular finder windows with the patch;
+  - a real street photo as the default scene (credited);
+  - each finder's view scaled by its true field of view, so an M3 visibly sees less than an M6. Before, they were empty grey circles.
+- **Finish layer** (end of `styles.css`), applied to every tool:
+  - chrome-knob sliders instead of red-filled ones;
+  - provenance hallmarks, monochrome and sentence case (published = solid, calculated = outline, approximate = dashed, illustrative = dotted) instead of yellow/blue/green all-caps pills;
+  - ruled lists and rows instead of bullets and boxes-in-boxes;
+  - the current row on a red index instead of a red box;
+  - chrome checkboxes;
+  - balanced headings and pretty paragraphs.
+- **Red is no longer "selected"** anywhere: the selected part in Inside the camera, the mounted-lens frame in Try before you buy, the comparison knob, the progress bars, the "good" tag, the recipe stars and the Portrait figure. Chart series are off-white instead of generic blue.
+- **Text fixes:**
+  - `sentenceEnd` stops "ASPH.." double stops;
+  - switch labels keep a figure with its unit ("4 s" no longer breaks);
+  - the Portrait sentence and the recipe note are fixed.
+- **Empty states:** the Roll and PLAY each give one next action ("Take a picture").
+- **Tour card:** restyled as a plate.
+
+Validation: typecheck clean; lint 0 errors (the same 5 warnings); 51 files / 483 tests pass; build OK.
+
+Known limitations:
+- The Inside the camera and Perspective drawings are still simple geometric stand-ins.
+- The film-loading quiz is still a pile of buttons, by design (you pick the right step).
+- Real-phone feel is still to check.
+
 **Follow-up (user review, 2026-09-28):** in the Studio, the sticky reading column slid over the "Exposure and film / Camera and lens / Sharpness standard" folds when they were opened, and the folds were easy to miss.
 - The folds now sit outside the sticky grid, so nothing can overlap them.
 - Each closed fold shows its current values (e.g. "ISO 400 · A 1/60").

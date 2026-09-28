@@ -45,6 +45,7 @@ import LightPresets from "./camera/live/LightPresets";
 import IrisTransition from "./components/app/IrisTransition";
 import { PAGE_TRANSITION_MS, irisBlink, setIrisBlades } from "./components/app/iris";
 import ToolNav from "./components/app/ToolNav";
+import Wordmark from "./components/app/Wordmark";
 import ToolBoundary from "./components/app/ToolBoundary";
 import { useRoute } from "./components/app/useRoute";
 import { TOOLS, findTool, toolForStage, toolsFor, type Tool, type ToolId } from "./app/tools";
@@ -1241,7 +1242,7 @@ export default function App() {
       <FlareLab lens={lens} fNumber={fNumber} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} onAperture={changeAperture} />
     ) : null,
     perspective: <PerspectiveLab key={lens.id} lens={lens} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} focusMm={focusMm} units={units} />,
-    iris: <Iris lens={lens} fNumber={fNumber} />,
+    iris: <Iris lens={lens} fNumber={fNumber} stops={stops} onAperture={setFNumber} />,
 
     finder: isRangefinder(body) ? finderSection : needsRangefinder("Rangefinder focusing"),
     finders: <FinderCompare lens={lens} sceneImageUrl={sampleInfo?.image} />,
@@ -1294,6 +1295,7 @@ export default function App() {
           filmName={isFilm ? look.name : null}
           base={isFilm ? (look.mono ? "bw" : look.kind === "slide" ? "slide" : "color") : "digital"}
           onRewind={rewind}
+          onShoot={goCamera}
           onUpdateNote={updateFrameNote}
           onUpdateOutcome={updateFrameOutcome}
           development={isFilm && devRecord ? describeRecord(devRecord) : null}
@@ -1501,10 +1503,10 @@ export default function App() {
         </button>
 
         <div className="rig" role="group" aria-label="Camera on the simulator">
-          <button type="button" className="rig-part" onClick={() => setPicker("body")} aria-label={`Camera: ${body.name}. Change`}>
+          <button type="button" className="rig-part" onClick={() => setPicker("body")} aria-label={`Camera: ${body.name}, change`}>
             <span className="rig-name">{body.name}</span>
           </button>
-          <button type="button" className="rig-part rig-lens" onClick={() => setPicker("lens")} disabled={lenses.length === 1} aria-label={`Lens: ${lens.name}. Change`}>
+          <button type="button" className="rig-part rig-lens" onClick={() => setPicker("lens")} disabled={lenses.length === 1} aria-label={`Lens: ${lens.name}, change`}>
             <span className="rig-name">{lens.name}</span>
           </button>
           <span className="rig-window" aria-label={`${formatFNumber(fNumber)}, ${formatShutter(shutterSec)}, ${isFilm ? look.name : `ISO ${iso}`}`}>
@@ -1537,6 +1539,7 @@ export default function App() {
           })}
 
           <footer className="footer">
+            <Wordmark className="footer-mark" />
             Independent tool, not affiliated with or endorsed by Leica Camera AG. Product names are trademarks of their owners.
             {GEAR_IMAGE_CREDITS.length > 0 && ` Product photos: ${GEAR_IMAGE_CREDITS.join("; ")}.`} Lens specs come from public sources; check
             them against Leica&apos;s datasheets. Distances are measured from the lens (thin-lens model).
@@ -1653,6 +1656,8 @@ export default function App() {
           onClose={() => setLiveViewOpen(false)}
           syntheticSceneUrl={demoActive ? demoLiveSceneUrl : undefined}
           recipe={findRecipe(activeRecipe?.id)}
+          mono={look.mono}
+          baseIso={body.isoRange?.[0] ?? boxIso}
         />
       )}
 

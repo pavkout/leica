@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { irisBlades, irisCorners, openRadius } from "./irisGeometry";
 import { openness, useIris, type IrisState } from "./iris";
 
@@ -16,7 +16,8 @@ export default function IrisTransition() {
   const stateRef = useRef<IrisState>(iris);
   stateRef.current = iris;
 
-  useEffect(() => {
+  // Layout effect: the first frame is drawn before the browser paints, so a shut iris never shows the page for a frame.
+  useLayoutEffect(() => {
     if (!active) return;
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");

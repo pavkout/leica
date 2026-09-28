@@ -46,7 +46,12 @@ export default function Playback({ frames, onClose, onSheet }: Props) {
           </figcaption>
         </figure>
       ) : (
-        <p className="play-empty">No pictures yet. Press the shutter release.</p>
+        <div className="play-empty">
+          <p>No pictures on the card yet.</p>
+          <button type="button" className="cam-btn" onClick={onClose}>
+            Take a picture
+          </button>
+        </div>
       )}
       <div className="play-bar">
         <button type="button" className="cam-btn" disabled={i <= 0} onClick={() => setI((v) => v - 1)} aria-label="Previous picture">
