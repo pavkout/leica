@@ -8,12 +8,12 @@ import {
   colourProcess,
   conceptualResult,
   densityAt,
-  lookupTime,
   type Agitation,
   type DevelopChoice,
   type DeveloperType,
   type Dilution,
 } from "../physics/darkroom";
+import { datasheetOptions, datasheetTime } from "../data/processTimes";
 import { FILM_STOCKS, type FilmLook } from "../preview/film";
 import Segmented from "./Segmented";
 
@@ -38,6 +38,15 @@ const X_MIN = -1.8;
 const X_MAX = 1.8;
 const D_MAX = 2.4;
 
+/** 6.75 → "6¾". */
+function minutesText(m: number) {
+  const whole = Math.floor(m);
+  const frac = { 0.25: "¼", 0.5: "½", 0.75: "¾" }[m - whole as 0.25 | 0.5 | 0.75] ?? "";
+  return `${whole || ""}${frac}`;
+}
+
+const pushLabel = (stops: number) => (stops === 0 ? "normal development" : stops > 0 ? `push +${stops}` : `pull ${stops}`);
+
 function tendency(v: number) {
   if (v > 1.04) return "higher";
   if (v < 0.96) return "lower";
@@ -57,7 +66,17 @@ export default function Darkroom({ rollFilm, rollFrames, boxIso, rollEi, pushPul
   const c = { ...choice, developStops };
   const r = conceptualResult(film, c, eiStops);
   const normal = conceptualResult(film, REFERENCE_CHOICE, 0);
-  const time = lookupTime(film.id, c.developer, c.dilution, c.temperatureC, c.developStops);
+  // Datasheet times: the film's own maker's table, chosen separately from the conceptual model above.
+  const opts = datasheetOptions(film.id);
+  const [sheetDev, setSheetDev] = useState<string | null>(null);
+  const [sheetDil, setSheetDil] = useState<string | null>(null);
+  const [sheetTemp, setSheetTemp] = useState<number | null>(null);
+  const dev = sheetDev && opts.developers.includes(sheetDev) ? sheetDev : opts.developers[0];
+  const dils = dev ? opts.dilutions(dev) : [];
+  const dil = sheetDil && dils.includes(sheetDil) ? sheetDil : dils[0];
+  const temps = dev && dil ? opts.temps(dev, dil) : [];
+  const temp = sheetTemp !== null && temps.includes(sheetTemp) ? sheetTemp : temps.includes(20) ? 20 : temps[0];
+  const sheet = dev && dil && temp !== undefined ? datasheetTime(film.id, dev, dil, temp, developStops) : null;
   const colour = rollFilm ? colourProcess(rollFilm) : null;
   const set = (patch: Partial<DevelopChoice>) => setChoice((prev) => ({ ...prev, ...patch }));
 
@@ -207,18 +226,68 @@ export default function Darkroom({ rollFilm, rollFrames, boxIso, rollEi, pushPul
       </ul>
 
       <div className="dr-process" role="region" aria-label="Process time">
-        <h3>Process time</h3>
-        {time ? (
-          <p className="small">
-            {time.minutes} min at {time.temperatureC} °C — <a href={time.url}>{time.source}</a>
-          </p>
+        <h3>Process time from the datasheet</h3>
+        {opts.developers.length ? (
+          <>
+            <div className="dr-grid">
+              <label className="field">
+                <span>Developer</span>
+                <select value={dev} onChange={(e) => setSheetDev(e.target.value)}>
+                  {opts.developers.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Dilution</span>
+                <select value={dil} onChange={(e) => setSheetDil(e.target.value)}>
+                  {dils.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>At</span>
+                <select value={temp} onChange={(e) => setSheetTemp(Number(e.target.value))}>
+                  {temps.map((t) => (
+                    <option key={t} value={t}>
+                      {t} °C
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {sheet ? (
+              <>
+                <p className="dr-time">
+                  <strong>{minutesText(sheet.minutes)} min</strong> · {film.name} at EI {sheet.ei} ({pushLabel(developStops)}), {dev} {dil}, {temp} °C
+                </p>
+                <p className="muted small">
+                  {sheet.agitation}.{sheet.note ? ` ${sheet.note}` : ""} Source:{" "}
+                  <a href={sheet.url} target="_blank" rel="noreferrer">
+                    {sheet.source}
+                  </a>
+                  .
+                </p>
+              </>
+            ) : (
+              <p className="small">
+                The datasheet gives no time for {film.name} in {dev} {dil} at {temp} °C with {pushLabel(developStops)}, so none is shown. Try another
+                developer or temperature, or change the development above.
+              </p>
+            )}
+          </>
         ) : (
-          <p className="small">
-            No verified time for this film and developer in the app's data, so none is shown. Use the film or developer maker's datasheet, which
-            also {c.temperatureC === 20 ? "gives its reference temperature" : `tells you how ${c.temperatureC} °C changes the time (warmer runs faster)`}.
-          </p>
+          <p className="small">No datasheet times for {film.name} in the app's data, so none is shown. Use the film maker's datasheet.</p>
         )}
-        <p className="muted small">Handle processing chemicals as their safety data sheets direct.</p>
+        <p className="muted small">
+          Starting points from the film maker, not a guarantee: test and adjust. The developer types above are a conceptual model; these are named
+          products. Handle processing chemicals as their safety data sheets direct.
+        </p>
       </div>
 
       {rollIsBw && rollFrames > 0 && (

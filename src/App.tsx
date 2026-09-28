@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { isMuted, playAdvance, playApertureClick, playDialClick, playMountClick, playRewind, playShutter, setMuted } from "./audio/sounds";
 import { shutterVoiceFor } from "./audio/voices";
 import BokehPreview, { type PreviewHandle, type PreviewSide } from "./components/BokehPreview";
@@ -36,6 +36,12 @@ import CameraAnatomy from "./components/CameraAnatomy";
 import MuseumTimeline from "./components/MuseumTimeline";
 import Darkroom from "./components/Darkroom";
 import KioskShell from "./components/KioskShell";
+import ModeDial from "./components/app/ModeDial";
+import ShutterCurtain from "./components/app/ShutterCurtain";
+import ToolNav from "./components/app/ToolNav";
+import ToolBoundary from "./components/app/ToolBoundary";
+import { CLOSE_MS, OPEN_MS, useRoute } from "./components/app/useRoute";
+import { DEFAULT_TOOL, TOOLS, findTool, toolForStage, toolsFor, type ModeId, type Tool, type ToolId } from "./app/tools";
 import { parseKiosk } from "./state/kiosk";
 import { describeRecord, parseRecord, type DevelopmentRecord } from "./physics/darkroom";
 import { bodyForLens } from "./data/timeline";
@@ -372,8 +378,36 @@ export default function App() {
       : `Frame ${rollFrames.length + 1} of ${ROLL_LENGTH}`
     : `${cardFrames.length} on the card`;
 
+  // App structure: four modes of tools, routed by the URL hash (see app/tools.ts).
+  const { route, navigate } = useRoute();
+  const toolAvailable = (t: Tool) =>
+    (t.id !== "stability" || FLAGS.motionSensors) && ((t.id !== "character" && t.id !== "flare") || FLAGS.experimentalLensCharacter);
+  const modeTools = toolsFor(route.mode, toolAvailable);
+  const activeTool: ToolId = modeTools.some((t) => t.id === route.tool) ? route.tool : modeTools[0].id;
+  // The last tool used in each mode, so turning the dial back returns to it.
+  const lastTool = useRef<Partial<Record<ModeId, ToolId>>>({});
+  lastTool.current[route.mode] = activeTool;
+  // Tools stay mounted once visited, so their settings survive switching; the 3D view is the exception
+  // and is released when left, to give back the GPU.
+  const [visited, setVisited] = useState<Set<ToolId>>(() => new Set([activeTool]));
+  useEffect(() => {
+    setVisited((v) => (v.has(activeTool) ? v : new Set(v).add(activeTool)));
+  }, [activeTool]);
+  const goTool = (id: ToolId) => {
+    const t = findTool(id);
+    if (t) navigate({ mode: t.mode, tool: t.id });
+  };
+  const goMode = (m: ModeId) => {
+    playDialClick();
+    navigate({ mode: m, tool: lastTool.current[m] ?? DEFAULT_TOOL[m] });
+  };
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    (window as unknown as { __leicaNav?: unknown }).__leicaNav = { go: goTool };
+  });
+
   // 3D view (feature #2): the procedural model is an M body, so it's offered for M rangefinders only.
-  const [show3D, setShow3D] = useState(false);
+  const show3D = activeTool === "camera3d";
   // Counts film wind-ons so the 3D advance lever strokes in time with the advance sound.
   const [advanceCount, setAdvanceCount] = useState(0);
   const can3D = FLAGS.threeD && !!body.rangefinder && lens.mount === "M" && threeDAvailable();
@@ -399,15 +433,20 @@ export default function App() {
   }
 
   /** Adds a captured image (however it was rendered) to the current roll/card, and persists it. */
-  function addFrame(url: string, captionSuffix?: string) {
+  /** `settings` records another tool's settings (e.g. the Long Exposure Lab's) instead of the simulator's. */
+  function addFrame(url: string, captionSuffix?: string, settings?: { fNumber: number; shutterSec: number; iso: number; note?: string }) {
     const number = frames.length + 1;
+    const n = settings?.fNumber ?? fNumber;
+    const t = settings?.shutterSec ?? shutterSec;
+    const i = settings?.iso ?? iso;
     const frame: Frame = {
       id: Math.floor(Math.random() * 100000),
       number,
       url,
-      caption: `${body.name} · ${lens.name} · ${formatFNumber(fNumber)} · ${formatShutter(shutterSec)} · ${isFilm ? look.name : `ISO ${iso}`}${captionSuffix ? ` · ${captionSuffix}` : ""}`,
+      caption: `${body.name} · ${lens.name} · ${formatFNumber(n)} · ${formatShutter(t)} · ${isFilm && !settings ? look.name : `ISO ${i}`}${captionSuffix ? ` · ${captionSuffix}` : ""}`,
       fileName: `rangefinder-${String(number).padStart(2, "0")}.jpg`,
-      meta: { body: body.name, lens: lens.name, focalMm: lens.focalMm, fNumber, shutterSec, focusMm, iso, filmOrSensor: isFilm ? look.name : `ISO ${iso}`, evOffset: errorStops },
+      meta: { body: body.name, lens: lens.name, focalMm: lens.focalMm, fNumber: n, shutterSec: t, focusMm, iso: i, filmOrSensor: isFilm ? look.name : `ISO ${i}`, evOffset: settings ? 0 : errorStops },
+      note: settings?.note,
     };
     (isFilm ? setRollFrames : setCardFrames)((list) => [...list, frame]);
     void saveStoredFrame(isFilm ? "film" : "digital", frame);
@@ -505,7 +544,8 @@ export default function App() {
     void saveStoredFrame(isFilm ? "film" : "digital", updated);
   }
 
-  const shape = apertureShape(lens, fNumber);
+  // Memoised: the viewfinder repaints (expensively) whenever this object changes identity.
+  const shape = useMemo(() => apertureShape(lens, fNumber), [lens, fNumber]);
   const standardInfo = SHARPNESS_STANDARDS.find((s) => s.id === shot.standard)!;
   const canHyperfocal = shot.dof.hyperfocalMm >= lens.minFocusMm;
   const viewfinderProps = {
@@ -596,27 +636,695 @@ export default function App() {
   const demoActions: DemoActions = {
     selectBody,
     selectLens,
-    open3D: () => setShow3D(true),
+    open3D: () => goTool("camera3d"),
     setFocusMm,
     setAperture: changeAperture,
     setDemoSubject: setDemoSubjectMm,
     openLive,
     reveal: (selector) => {
       const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-      document.querySelector(selector)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      const t = toolForStage(selector.replace(/^\./, ""));
+      if (t && t.id !== activeTool) navigate({ mode: t.mode, tool: t.id });
+      // Scroll once the tool is on screen (after the curtain has opened).
+      window.setTimeout(
+        () => document.querySelector(selector)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }),
+        reduce ? 60 : CLOSE_MS + OPEN_MS + 60,
+      );
     },
   };
+
+  const needsRangefinder = (what: string) => (
+    <section className="panel tool-empty" aria-label={`${what} needs a rangefinder`}>
+      <p>
+        The {body.name} has no rangefinder. {what} works with an M body.
+      </p>
+      <button type="button" className="btn btn-red" onClick={() => setPicker("body")}>
+        Choose a camera
+      </button>
+    </section>
+  );
+
+  const previewSection = (
+    <section className="panel stage-preview" aria-label="Simulated photo">
+      <div className="panel-head">
+        <h2>Simulated photo</h2>
+        <span className="row-actions">
+          {FLAGS.liveView && (
+            <button type="button" className="btn btn-small btn-red" onClick={openLive}>
+              Live
+            </button>
+          )}
+          {lenses.length > 1 && (
+            <button type="button" className="btn btn-small" aria-pressed={compare} onClick={toggleCompare}>
+              {compare ? "Close comparison" : "Compare lenses"}
+            </button>
+          )}
+        </span>
+      </div>
+      <ScenePicker
+        sceneId={sceneId}
+        onSelect={selectScene}
+        onUpload={uploadPhoto}
+        status={sceneStatus}
+        hasUpload={upload !== null}
+        units={units}
+        upload={
+          upload
+            ? {
+                distanceM: upload.distanceM,
+                ev100: upload.ev100,
+                onDistance: (m) => {
+                  setUpload({ ...upload, distanceM: m });
+                  setFocusMm(Math.max(m * 1000, lens.minFocusMm));
+                },
+                onLight: (ev) => setUpload({ ...upload, ev100: ev }),
+              }
+            : undefined
+        }
+      />
+      <BokehPreview
+        veil={challengeHidden ? "The photo appears when you take the shot." : undefined}
+        ref={previewRef}
+        a={previewSide(lens, shot, developFor(lens, fNumber, shot.frameWidthMm, 7, 0.35), photo)}
+        b={compare && lenses.length > 1 ? previewSide(lensB, shotB, developFor(lensB, shotB.fNumber, shotB.frameWidthMm, 7, 0.35), photo) : null}
+        onTap={photo ? tapToFocus : undefined}
+        aspect={shot.frameWidthMm / shot.frameHeightMm}
+      />
+      <div className="shutter-row">
+        <div className="shutter-info">
+          <span className="gear-name">
+            {formatFNumber(fNumber)} · {formatShutter(shutterSec)} · {isFilm ? look.name : `ISO ${iso}`}
+          </span>
+          <span className="gear-meta">{frameStatusLabel}</span>
+        </div>
+        <button
+          type="button"
+          className="shutter-button"
+          onClick={() => {
+            fireShutter();
+            if (challenge && !challenge.shotTaken) setChallenge({ ...challenge, shotTaken: true });
+          }}
+          disabled={rollFull}
+          aria-label="Release the shutter"
+        >
+          <span key={flash} className={flash ? "shutter-blink" : undefined} />
+        </button>
+      </div>
+
+      {compare && lenses.length > 1 && (
+        <div className="compare-row">
+          <label className="field">
+            <span>Lens B</span>
+            <select
+              value={lensB.id}
+              onChange={(e) => {
+                const next = findLens(e.target.value);
+                setLensBId(next.id);
+                setFNumberB(next.maxAperture);
+              }}
+            >
+              <LensOptions body={body} lenses={lenses} />
+            </select>
+          </label>
+          <label className="field field-narrow">
+            <span>Aperture B</span>
+            <select value={shotB.fNumber} onChange={(e) => setFNumberB(Number(e.target.value))}>
+              {stopsB.map((n) => (
+                <option key={n} value={n}>
+                  {formatFNumber(n)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
+      <p className="hint">
+        {lens.apertureBlades
+          ? `${shape.blades}-blade iris, as published for this lens.`
+          : `Generic ${GENERIC_BLADES}-blade rounded iris; Leica doesn't publish this lens's blade count.`}{" "}
+        {photo
+          ? `Blur, exposure and grain are computed from the optics and an AI depth map, so edges can be imperfect. ${sampleInfo ? sampleInfo.credit + "." : ""} Tap the photo to focus.`
+          : "Blur, exposure and grain are computed; the scene itself is illustrated."}
+        {compare && " Drag the divider to compare."}
+      </p>
+    </section>
+  );
+
+  const finderSection = (
+    <section className="panel stage-finder" aria-label="Rangefinder">
+      <div className="panel-head">
+        <h2>Rangefinder · {body.name}</h2>
+        <span className="row-actions">
+          <button type="button" className="btn btn-small" onClick={() => setFullScreenFinder(true)}>
+            Full screen
+          </button>
+          {!challenge && !photo && (
+            <button type="button" className="btn btn-small" onClick={startChallenge}>
+              Focus challenge
+            </button>
+          )}
+        </span>
+      </div>
+      {!fullScreenFinder && <Viewfinder {...viewfinderProps} />}
+      {challenge && (
+        <div className="challenge" role="status">
+          {challenge.shotTaken ? (
+            <p>
+              <strong className={shot.subjectSharp ? "ok" : "miss"}>{shot.subjectSharp ? "Sharp." : "Missed focus."}</strong> The subject was at{" "}
+              {formatDistance(shot.subjectMm, units)}; you focused at {formatDistance(focusMm, units)}
+              {Number.isFinite(focusMm) &&
+                ` (${formatLength(Math.abs(focusMm - shot.subjectMm), units)} ${focusMm > shot.subjectMm ? "behind" : "in front"})`}
+              . Depth of field at {formatFNumber(fNumber)}: {formatDistance(shot.dof.nearMm, units)} to {formatDistance(shot.dof.farMm, units)}.
+            </p>
+          ) : (
+            <p>
+              The subject is somewhere between {formatDistance(challengeMinMm, units)} and {formatDistance(challengeMaxMm, units)}. Turn the
+              focus ring, or drag across the finder, until the two images of the scarf in the patch merge into one. Then take the shot.
+            </p>
+          )}
+          <div className="actions">
+            {challenge.shotTaken ? (
+              <>
+                <button type="button" className="btn btn-red" onClick={startChallenge}>
+                  Try again
+                </button>
+                <button type="button" className="btn" onClick={() => setChallenge(null)}>
+                  Done
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-red"
+                  onClick={() => {
+                    fireShutter();
+                    setChallenge({ ...challenge, shotTaken: true });
+                  }}
+                >
+                  Take the shot
+                </button>
+                <button type="button" className="btn" onClick={() => setChallenge(null)}>
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+
+  const barrelSection = (
+    <section className="panel stage-barrel" aria-label="Lens">
+      <div className="panel-head">
+        <h2>Focus &amp; aperture rings</h2>
+        <span className="muted small">Drag or tap the rings</span>
+      </div>
+      <DistanceInput mm={focusMm} units={units} minMm={lens.minFocusMm} onChange={setFocusMm} />
+      <LensBarrel
+        lens={lens}
+        stops={stops}
+        fNumber={fNumber}
+        focusMm={focusMm}
+        cocMm={shot.cocMm}
+        units={units}
+        onFocusChange={setFocusMm}
+        onApertureChange={changeAperture}
+      />
+      <div className="actions">
+        <button type="button" className="btn" disabled={lens.minFocusMm > 2000} onClick={() => setFocusMm(2000)}>
+          2 m street
+        </button>
+        <button type="button" className="btn" disabled={lens.minFocusMm > 3000} onClick={() => setFocusMm(3000)}>
+          3 m street
+        </button>
+        <button type="button" className="btn btn-red" disabled={!canHyperfocal} onClick={() => setFocusMm(shot.dof.hyperfocalMm)}>
+          Hyperfocal · {formatDistance(shot.dof.hyperfocalMm, units)}
+        </button>
+        <button type="button" className="btn" onClick={() => setFocusMm(Infinity)}>
+          ∞
+        </button>
+        <button type="button" className="btn" onClick={() => setFocusMm(lens.minFocusMm)}>
+          Closest · {formatDistance(lens.minFocusMm, units)}
+        </button>
+      </div>
+      <p className="hint">
+        Copy to a real lens: set the distance scale to {formatDistance(focusMm, units)} and the aperture ring to {formatFNumber(fNumber)}, then
+        match the {formatFNumber(fNumber)} marks on the engraved DOF scale against the distance index. Everything from{" "}
+        {formatDistance(shot.dof.nearMm, units)} to {formatDistance(shot.dof.farMm, units)} will be sharp.
+      </p>
+    </section>
+  );
+
+  const sceneSection = (
+    <section className="panel stage-scene" aria-label="Scene">
+      <div className="panel-head">
+        <h2>
+          {body.name} · {lens.name}
+        </h2>
+        <span className="chip chip-red">{formatFNumber(fNumber)}</span>
+      </div>
+      <SceneDiagram
+        shot={shot}
+        minFocusMm={lens.minFocusMm}
+        units={units}
+        onFocusChange={setFocusMm}
+        hideSubject={challengeHidden}
+        onBackgroundChange={(mm) => setBackgroundOffsetMm(Number.isFinite(mm) ? mm - shot.subjectMm : Infinity)}
+      />
+      <p className="hint">Drag the figure to focus, or drag the tree to move the background.</p>
+    </section>
+  );
+
+  const exposurePanel = (
+    <ExposurePanel
+      body={body}
+      look={look}
+      onFilm={selectFilm}
+      iso={iso}
+      boxIso={boxIso}
+      onFilmEI={(ei) => {
+        playDialClick();
+        setFilmEI(ei);
+        setPushPullStops(ei === null ? 0 : nearestDevelopLevel(eiStops(boxIso, ei)).stops);
+      }}
+      pushPullStops={pushPullStops}
+      onPushPull={(stops) => {
+        playDialClick();
+        setPushPullStops(stops);
+      }}
+      onIso={(i) => {
+        playDialClick();
+        setIsoDigital(i);
+      }}
+      auto={auto}
+      onAuto={setAutoExposure}
+      shutterSec={shutterSec}
+      onShutter={changeShutter}
+      errorStops={errorStops}
+      tripod={tripod}
+      onTripod={setTripod}
+      shakeLikely={shakeLikely}
+      sceneLabel={sceneLabel}
+      filmLocked={rollFrames.length > 0}
+      savedFilmIds={savedIds.film}
+      onToggleSavedFilm={(id) => toggleBag("film", id)}
+    />
+  );
+
+  const setupSection = (
+    <section className="panel stage-setup" aria-label="Camera and lens">
+      <div className="panel-head">
+        <h2>Camera &amp; lens</h2>
+        <span className="panel-head-actions">
+          {!demoActive && (
+            <button type="button" className="btn btn-small" onClick={startDemo} aria-label="Start the 60-second tour">
+              Tour
+            </button>
+          )}
+          {can3D && (
+            <button type="button" className="btn btn-small" onClick={() => goTool("camera3d")}>
+              3D
+            </button>
+          )}
+        </span>
+      </div>
+
+      {hasGearImage("bodies", body.id) || hasGearImage("lenses", lens.id) ? (
+        <div className="kit kit-photos">
+          <GearImage kind="bodies" id={body.id} alt={body.name} sizes="(min-width: 1080px) 180px, 45vw">
+            <BodyArt body={body} className="gear-photo-fallback" />
+          </GearImage>
+          <GearImage kind="lenses" id={lens.id} alt={lens.name} sizes="(min-width: 1080px) 180px, 45vw">
+            <LensArt lens={lens} className="gear-photo-fallback" />
+          </GearImage>
+        </div>
+      ) : (
+        <div className="kit">
+          <BodyArt body={body} lens={lens} className="kit-body" />
+        </div>
+      )}
+
+      <div className="gear-buttons">
+        <button type="button" className="gear-button" onClick={() => setPicker("body")}>
+          <GearImage kind="bodies" id={body.id} alt="" sizes="84px" className="gear-thumb">
+            <BodyArt body={body} className="gear-thumb" />
+          </GearImage>
+          <span className="gear-text">
+            <span className="gear-label">Camera</span>
+            <span className="gear-name">{body.name}</span>
+            <span className="gear-meta">{bodyMeta(body)}</span>
+          </span>
+        </button>
+        <button type="button" className="gear-button" onClick={() => setPicker("lens")} disabled={lenses.length === 1}>
+          <GearImage kind="lenses" id={lens.id} alt="" sizes="84px" className="gear-thumb">
+            <LensArt lens={lens} className="gear-thumb" />
+          </GearImage>
+          <span className="gear-text">
+            <span className="gear-label">Lens{isAdapted(body, lens) ? " · via adapter" : ""}</span>
+            <span className="gear-name">{lens.name}</span>
+            <span className="gear-meta">
+              {lens.year} · closest {formatDistance(lens.minFocusMm, units)}
+              {lens.nickname ? ` · ${lens.nickname}` : ""}
+            </span>
+          </span>
+        </button>
+      </div>
+
+      {body.megapixels && body.megapixels.length > 1 && (
+        <div className="field">
+          <span>Resolution</span>
+          <Segmented
+            label="Resolution"
+            value={megapixels ?? body.megapixels[0]}
+            onChange={setMegapixels}
+            options={body.megapixels.map((mp) => ({ value: mp, label: `${mp} MP` }))}
+          />
+        </div>
+      )}
+
+      {body.cropFocalLengths && (
+        <div className="field">
+          <span>Framing</span>
+          <Segmented
+            label="Digital crop framing"
+            value={cropFocalMm ?? body.cropFocalLengths[0]}
+            onChange={(mm) => setCropFocalMm(mm === body.cropFocalLengths![0] ? null : mm)}
+            options={body.cropFocalLengths.map((mm) => ({ value: mm, label: `${mm}` }))}
+          />
+        </div>
+      )}
+
+      {!photo && (
+        <div className="field">
+          <span>Background</span>
+          <Segmented
+            label="Background distance behind subject"
+            value={backgroundOffsetMm}
+            onChange={setBackgroundOffsetMm}
+            options={BACKGROUND_PRESETS[units].map(({ mm, label }) => ({ value: mm, label }))}
+          />
+        </div>
+      )}
+    </section>
+  );
+
+  const detailsSection = (
+    <section className="panel stage-details" aria-label="Details">
+      <div className="panel-head">
+        <h2>Sharpness standard</h2>
+      </div>
+      <Segmented
+        label="Sharpness standard"
+        value={shot.standard}
+        onChange={setStandard}
+        options={SHARPNESS_STANDARDS.filter((s) => s.id !== "pixel" || body.megapixels).map((s) => ({
+          value: s.id,
+          label: s.label,
+        }))}
+      />
+      <p className="muted small standard-note">{standardInfo.description}</p>
+      <Details shot={shot} />
+    </section>
+  );
+
+  const camera3dSection = (
+    <section className="panel stage-camera3d" aria-label="Virtual camera">
+      {can3D ? (
+        <Leica3D
+          body={body}
+          lens={lens}
+          fNumber={fNumber}
+          focusMm={focusMm}
+          shutterSec={shutterSec}
+          auto={auto}
+          advanceCount={advanceCount}
+          units={units}
+          onAperture={changeAperture}
+          onFocus={(mm) => setFocusMm(Math.max(mm, lens.minFocusMm))}
+          onShutter={turnShutterDial}
+          fallback={
+            <div className="kit">
+              <BodyArt body={body} lens={lens} className="kit-body" />
+            </div>
+          }
+        />
+      ) : (
+        <div className="camera3d-off">
+          <div className="kit">
+            <BodyArt body={body} lens={lens} className="kit-body" />
+          </div>
+          <p>
+            {!FLAGS.threeD || !threeDAvailable()
+              ? "This browser can't show the 3D camera (it needs WebGL). Everything else works without it."
+              : `The 3D camera is an M rangefinder with an M lens. The ${body.name} with the ${lens.name} is shown as a drawing.`}
+          </p>
+          {FLAGS.threeD && threeDAvailable() && (
+            <button type="button" className="btn btn-red" onClick={() => setPicker("body")}>
+              Choose an M camera
+            </button>
+          )}
+        </div>
+      )}
+    </section>
+  );
+
+  const liveSection = (
+    <section className="panel stage-live" aria-label="Live view">
+      <p className="live-intro">
+        Your phone&apos;s camera, framed like the {body.name} with the {lens.name}: framelines, focus distance and a light meter. Frames you
+        take go to your roll.
+      </p>
+      {FLAGS.liveView ? (
+        <button type="button" className="btn btn-red live-open" onClick={openLive}>
+          Open live view
+        </button>
+      ) : (
+        <p className="muted">Live view isn&apos;t available in this build.</p>
+      )}
+      <p className="muted small">The camera only runs while live view is open, and nothing leaves your device.</p>
+    </section>
+  );
+
+  const views: Partial<Record<ToolId, ReactNode>> = {
+    studio: (
+      <div className="studio">
+        <div className="studio-main">
+          {previewSection}
+          {sceneSection}
+          {barrelSection}
+        </div>
+        <div className="studio-side">
+          {setupSection}
+          <Readouts shot={shot} units={units} />
+          {exposurePanel}
+          {detailsSection}
+        </div>
+      </div>
+    ),
+    motion: (
+      <MotionSimulator
+        focalMm={lens.focalMm}
+        cocMm={shot.cocMm}
+        shutters={speeds}
+        shutterSec={shutterSec}
+        onShutter={(t) => {
+          if (body.autoExposure) setAutoExposure(false);
+          changeShutter(t);
+        }}
+        tripod={tripod}
+        units={units}
+      />
+    ),
+    character: FLAGS.experimentalLensCharacter ? (
+      <LensDNA
+        lens={lens}
+        lenses={lenses}
+        fNumber={fNumber}
+        cocMm={shot.cocMm}
+        frameWidthMm={shot.frameWidthMm}
+        frameHeightMm={shot.frameHeightMm}
+        digital={!isFilm}
+        units={units}
+        onAperture={changeAperture}
+      />
+    ) : null,
+    flare: FLAGS.experimentalLensCharacter ? (
+      <FlareLab lens={lens} fNumber={fNumber} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} onAperture={changeAperture} />
+    ) : null,
+    perspective: <PerspectiveLab key={lens.id} lens={lens} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} focusMm={focusMm} units={units} />,
+    iris: <Iris lens={lens} fNumber={fNumber} />,
+
+    finder: isRangefinder(body) ? finderSection : needsRangefinder("Rangefinder focusing"),
+    finders: <FinderCompare lens={lens} sceneImageUrl={sampleInfo?.image} />,
+    calibration: body.rangefinder ? <RangefinderCalibration lens={lens} fNumber={fNumber} cocMm={shot.cocMm} units={units} /> : needsRangefinder("Calibration"),
+    sunny16: <Sunny16Trainer apertures={stops} shutters={speeds} iso={iso} />,
+    portrait: <PortraitTrainer lens={lens} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} units={units} />,
+    stability: FLAGS.motionSensors ? <StabilityTrainer focalMm={lens.focalMm} cocMm={shot.cocMm} shutters={speeds} /> : null,
+    loading: <FilmLoadingTrainer bodyId={body.id} />,
+    anatomy: <CameraAnatomy shutterSec={shutterSec} />,
+
+    live: liveSection,
+    intent: (
+      <IntentAssistant
+        sceneEv100={sceneEv}
+        iso={iso}
+        apertures={stops}
+        shutters={speeds}
+        focalMm={lens.focalMm}
+        hyperfocalMm={shot.dof.hyperfocalMm}
+        units={units}
+        onApply={(result) => {
+          changeAperture(result.fNumber);
+          changeShutter(result.shutterSec);
+          if (body.autoExposure) setAutoExposure(false);
+          if (result.focusMm !== undefined) setFocusMm(result.focusMm);
+        }}
+      />
+    ),
+    recipes: (
+      <RecipesPanel
+        body={body}
+        lens={lens}
+        lenses={lenses}
+        lockedFilm={isFilm && rollFrames.length > 0 ? { id: filmId, name: baseLook.name, iso: boxIso } : null}
+        cocMm={shot.cocMm}
+        sceneEv100={sceneEv}
+        sceneLabel={sceneLabel}
+        units={units}
+        active={activeRecipe}
+        saved={savedRecipes}
+        onToggleSaved={toggleSavedRecipe}
+        onLoad={loadRecipe}
+      />
+    ),
+    roll: (
+      <>
+        <ContactSheet
+          frames={frames}
+          capacity={isFilm ? ROLL_LENGTH : null}
+          filmName={isFilm ? look.name : null}
+          base={isFilm ? (look.mono ? "bw" : look.kind === "slide" ? "slide" : "color") : "digital"}
+          onRewind={rewind}
+          onUpdateNote={updateFrameNote}
+          onUpdateOutcome={updateFrameOutcome}
+          development={isFilm && devRecord ? describeRecord(devRecord) : null}
+        />
+        <Insights frames={frames} />
+      </>
+    ),
+    darkroom: (
+      <Darkroom
+        rollFilm={isFilm ? baseLook : null}
+        rollFrames={rollFrames.length}
+        boxIso={boxIso}
+        rollEi={isFilm ? filmEI : null}
+        pushPullStops={pushPullStops}
+        onPushPull={(stops) => {
+          playDialClick();
+          setPushPullStops(stops);
+        }}
+        recorded={devRecord ? describeRecord(devRecord) : null}
+        onRecord={(id, choice) =>
+          setDevRecord({ filmId: id, filmName: baseLook.name, frames: rollFrames.length, choice, recordedAt: new Date().toISOString().slice(0, 10) })
+        }
+      />
+    ),
+    longexp: (
+      <LongExposureLab
+        body={body}
+        lens={lens}
+        frameShortMm={shot.frameHeightMm}
+        units={units}
+        logDisabled={rollFull}
+        onLog={(log) => addFrame(log.url, "Long exposure lab (predicted)", { fNumber: log.fNumber, shutterSec: log.shutterSec, iso: log.iso, note: log.note })}
+      />
+    ),
+
+    camera3d: camera3dSection,
+    timeline: (
+      <MuseumTimeline
+        body={body}
+        units={units}
+        onSimulate={(item) => {
+          if (item.body) selectBody(item.body.id);
+          else if (item.lens) {
+            const target = bodyForLens(item.lens, body);
+            if (!target) return;
+            if (target.id !== body.id) selectBody(target.id);
+            selectLens(item.lens.id);
+          }
+          goTool("studio");
+        }}
+      />
+    ),
+    generations: (
+      <LensGenerations
+        body={body}
+        lens={lens}
+        cocMm={shot.cocMm}
+        focusMm={focusMm}
+        units={units}
+        onTry={(lensId) => {
+          selectLens(lensId);
+          const l = lenses.find((x) => x.id === lensId);
+          if (l && Number.isFinite(focusMm) && focusMm < l.minFocusMm) setFocusMm(l.minFocusMm);
+        }}
+      />
+    ),
+    trial: (
+      <LensTrial
+        body={body}
+        lens={lens}
+        lenses={lenses}
+        frameWidthMm={shot.frameWidthMm}
+        frameHeightMm={shot.frameHeightMm}
+        focusMm={focusMm}
+        sceneId={sceneId}
+        fNumber={fNumber}
+        units={units}
+        onTry={(lensId, distanceMm) => {
+          if (lensId !== lens.id) selectLens(lensId);
+          const l = lenses.find((x) => x.id === lensId) ?? lens;
+          setFocusMm(Math.max(distanceMm, l.minFocusMm));
+        }}
+      />
+    ),
+  };
+
+  // Dev-only test hook: the feature suites predate the tool structure and drive several tools at once,
+  // so a test run can mount every tool at once. Stripped from production builds.
+  const testAll = import.meta.env.DEV && (window as unknown as { __LEICA_ALL__?: boolean }).__LEICA_ALL__ === true;
+  const mounted = TOOLS.filter((t) => toolAvailable(t) && (t.id === activeTool || (t.id !== "camera3d" && (testAll || visited.has(t.id)))));
 
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
+        <a className="brand" href="#/simulate/studio" aria-label="Rangefinder, back to the studio">
           <span className="brand-mark" aria-hidden="true" />
-          <div>
-            <h1>Rangefinder</h1>
-            <p>Depth of field studio</p>
-          </div>
+          <span className="brand-text">
+            <span className="brand-name">Rangefinder</span>
+            <span className="brand-sub">Depth of field studio</span>
+          </span>
+        </a>
+
+        <div className="rig" role="group" aria-label="Camera on the simulator">
+          <button type="button" className="rig-part" onClick={() => setPicker("body")}>
+            <span className="rig-label">Camera</span>
+            <span className="rig-name">{body.name}</span>
+          </button>
+          <button type="button" className="rig-part rig-lens" onClick={() => setPicker("lens")} disabled={lenses.length === 1}>
+            <span className="rig-label">Lens</span>
+            <span className="rig-name">{lens.name}</span>
+          </button>
+          <span className="rig-window" aria-label={`${formatFNumber(fNumber)}, ${formatShutter(shutterSec)}, ${isFilm ? look.name : `ISO ${iso}`}`}>
+            <span className="rig-val">{formatFNumber(fNumber)}</span>
+            <span className="rig-val">{formatShutter(shutterSec)}</span>
+            <span className="rig-val">{isFilm ? `${iso}` : `ISO ${iso}`}</span>
+          </span>
         </div>
+
         <div className="topbar-tools">
           <button
             type="button"
@@ -650,596 +1358,76 @@ export default function App() {
         </div>
       </header>
 
-      <main className="layout">
-        <div className="col-main">
-          <section className="panel stage-preview" aria-label="Simulated photo">
-            <div className="panel-head">
-              <h2>Simulated photo</h2>
-              <span className="row-actions">
-                {FLAGS.liveView && (
-                  <button type="button" className="btn btn-small btn-red" onClick={openLive}>
-                    Live
-                  </button>
-                )}
-                {lenses.length > 1 && (
-                  <button type="button" className="btn btn-small" aria-pressed={compare} onClick={toggleCompare}>
-                    {compare ? "Close comparison" : "Compare lenses"}
-                  </button>
-                )}
-              </span>
-            </div>
-            <ScenePicker
-              sceneId={sceneId}
-              onSelect={selectScene}
-              onUpload={uploadPhoto}
-              status={sceneStatus}
-              hasUpload={upload !== null}
-              units={units}
-              upload={
-                upload
-                  ? {
-                      distanceM: upload.distanceM,
-                      ev100: upload.ev100,
-                      onDistance: (m) => {
-                        setUpload({ ...upload, distanceM: m });
-                        setFocusMm(Math.max(m * 1000, lens.minFocusMm));
-                      },
-                      onLight: (ev) => setUpload({ ...upload, ev100: ev }),
-                    }
-                  : undefined
-              }
-            />
-            <BokehPreview
-              veil={challengeHidden ? "The photo appears when you take the shot." : undefined}
-              ref={previewRef}
-              a={previewSide(lens, shot, developFor(lens, fNumber, shot.frameWidthMm, 7, 0.35), photo)}
-              b={compare && lenses.length > 1 ? previewSide(lensB, shotB, developFor(lensB, shotB.fNumber, shotB.frameWidthMm, 7, 0.35), photo) : null}
-              onTap={photo ? tapToFocus : undefined}
-              aspect={shot.frameWidthMm / shot.frameHeightMm}
-            />
-            <div className="shutter-row">
-              <div className="shutter-info">
-                <span className="gear-name">
-                  {formatFNumber(fNumber)} · {formatShutter(shutterSec)} · {isFilm ? look.name : `ISO ${iso}`}
-                </span>
-                <span className="gear-meta">
-                  {frameStatusLabel}
-                </span>
+      <div className={`shell shell-${route.mode}`}>
+        <ToolNav mode={route.mode} tools={modeTools} active={activeTool} onSelect={goTool} />
+
+        <main className="tool-stage" id="main">
+          {mounted.map((t) => {
+            const solo = t.id !== "studio" && t.id !== "roll";
+            return (
+              <div key={t.id} className={`tool-view${solo ? " tool-solo" : ""}`} hidden={!testAll && t.id !== activeTool} data-tool={t.id}>
+                <header className="tool-head">
+                  <h1 className="tool-title">{t.label}</h1>
+                  <p className="tool-blurb">{t.blurb}</p>
+                </header>
+                <ToolBoundary label={t.label}>{views[t.id]}</ToolBoundary>
               </div>
-              <button
-                type="button"
-                className="shutter-button"
-                onClick={() => {
-                  fireShutter();
-                  if (challenge && !challenge.shotTaken) setChallenge({ ...challenge, shotTaken: true });
-                }}
-                disabled={rollFull}
-                aria-label="Release the shutter"
-              >
-                <span key={flash} className={flash ? "shutter-blink" : undefined} />
-              </button>
-            </div>
+            );
+          })}
 
-            {compare && lenses.length > 1 && (
-              <div className="compare-row">
-                <label className="field">
-                  <span>Lens B</span>
-                  <select
-                    value={lensB.id}
-                    onChange={(e) => {
-                      const next = findLens(e.target.value);
-                      setLensBId(next.id);
-                      setFNumberB(next.maxAperture);
-                    }}
-                  >
-                    <LensOptions body={body} lenses={lenses} />
-                  </select>
-                </label>
-                <label className="field field-narrow">
-                  <span>Aperture B</span>
-                  <select value={shotB.fNumber} onChange={(e) => setFNumberB(Number(e.target.value))}>
-                    {stopsB.map((n) => <option key={n} value={n}>{formatFNumber(n)}</option>)}
-                  </select>
-                </label>
-              </div>
-            )}
-            <p className="hint">
-              {lens.apertureBlades
-                ? `${shape.blades}-blade iris, as published for this lens.`
-                : `Generic ${GENERIC_BLADES}-blade rounded iris; Leica doesn't publish this lens's blade count.`}{" "}
-              {photo
-              ? `Blur, exposure and grain are computed from the optics and an AI depth map, so edges can be imperfect. ${sampleInfo ? sampleInfo.credit + "." : ""} Tap the photo to focus.`
-              : "Blur, exposure and grain are computed; the scene itself is illustrated."}
-              {compare && " Drag the divider to compare."}
-            </p>
-          </section>
+          <footer className="footer">
+            Independent tool, not affiliated with or endorsed by Leica Camera AG. Product names are trademarks of their owners.
+            {GEAR_IMAGE_CREDITS.length > 0 && ` Product photos: ${GEAR_IMAGE_CREDITS.join("; ")}.`} Lens specs come from public sources; check
+            them against Leica&apos;s datasheets. Distances are measured from the lens (thin-lens model).
+          </footer>
+        </main>
+      </div>
 
-          {isRangefinder(body) && (
-            <section className="panel stage-finder" aria-label="Rangefinder">
-              <div className="panel-head">
-                <h2>Rangefinder · {body.name}</h2>
-                <span className="row-actions">
-                  <button type="button" className="btn btn-small" onClick={() => setFullScreenFinder(true)}>
-                    Full screen
-                  </button>
-                  {!challenge && !photo && (
-                    <button type="button" className="btn btn-small" onClick={startChallenge}>
-                      Focus challenge
-                    </button>
-                  )}
-                </span>
-              </div>
-              {!fullScreenFinder && <Viewfinder {...viewfinderProps} />}
-              {challenge && (
-                <div className="challenge" role="status">
-                  {challenge.shotTaken ? (
-                    <p>
-                      <strong className={shot.subjectSharp ? "ok" : "miss"}>
-                        {shot.subjectSharp ? "Sharp." : "Missed focus."}
-                      </strong>{" "}
-                      The subject was at {formatDistance(shot.subjectMm, units)}; you focused at{" "}
-                      {formatDistance(focusMm, units)}
-                      {Number.isFinite(focusMm) &&
-                        ` (${formatLength(Math.abs(focusMm - shot.subjectMm), units)} ${focusMm > shot.subjectMm ? "behind" : "in front"})`}
-                      . Depth of field at {formatFNumber(fNumber)}: {formatDistance(shot.dof.nearMm, units)} to{" "}
-                      {formatDistance(shot.dof.farMm, units)}.
-                    </p>
-                  ) : (
-                    <p>
-                      The subject is somewhere between {formatDistance(challengeMinMm, units)} and{" "}
-                      {formatDistance(challengeMaxMm, units)}. Turn the focus ring, or drag across the finder, until the two
-                      images of the scarf in the patch merge into one. Then take the shot.
-                    </p>
-                  )}
-                  <div className="actions">
-                    {challenge.shotTaken ? (
-                      <>
-                        <button type="button" className="btn btn-red" onClick={startChallenge}>Try again</button>
-                        <button type="button" className="btn" onClick={() => setChallenge(null)}>Done</button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          className="btn btn-red"
-                          onClick={() => {
-                            fireShutter();
-                            setChallenge({ ...challenge, shotTaken: true });
-                          }}
-                        >
-                          Take the shot
-                        </button>
-                        <button type="button" className="btn" onClick={() => setChallenge(null)}>Cancel</button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </section>
-          )}
+      <ModeDial mode={route.mode} onChange={goMode} />
+      <ShutterCurtain />
 
-          <FinderCompare lens={lens} sceneImageUrl={sampleInfo?.image} />
-          {body.rangefinder && <RangefinderCalibration lens={lens} fNumber={fNumber} cocMm={shot.cocMm} units={units} />}
-
-          <section className="panel stage-barrel" aria-label="Lens">
-            <div className="panel-head">
-              <h2>Focus &amp; aperture rings</h2>
-              <span className="muted small">Drag or tap the rings</span>
-            </div>
-            <DistanceInput mm={focusMm} units={units} minMm={lens.minFocusMm} onChange={setFocusMm} />
-            <LensBarrel
-              lens={lens}
-              stops={stops}
-              fNumber={fNumber}
-              focusMm={focusMm}
-              cocMm={shot.cocMm}
-              units={units}
-              onFocusChange={setFocusMm}
-              onApertureChange={changeAperture}
-            />
-            <div className="actions">
-              <button type="button" className="btn" disabled={lens.minFocusMm > 2000} onClick={() => setFocusMm(2000)}>
-                2 m street
-              </button>
-              <button type="button" className="btn" disabled={lens.minFocusMm > 3000} onClick={() => setFocusMm(3000)}>
-                3 m street
-              </button>
-              <button
-                type="button"
-                className="btn btn-red"
-                disabled={!canHyperfocal}
-                onClick={() => setFocusMm(shot.dof.hyperfocalMm)}
-              >
-                Hyperfocal · {formatDistance(shot.dof.hyperfocalMm, units)}
-              </button>
-              <button type="button" className="btn" onClick={() => setFocusMm(Infinity)}>∞</button>
-              <button type="button" className="btn" onClick={() => setFocusMm(lens.minFocusMm)}>
-                Closest · {formatDistance(lens.minFocusMm, units)}
-              </button>
-            </div>
-            <p className="hint">
-              Copy to a real lens: set the distance scale to {formatDistance(focusMm, units)} and the aperture ring
-              to {formatFNumber(fNumber)}, then match the {formatFNumber(fNumber)} marks on the engraved DOF scale
-              against the distance index. Everything from {formatDistance(shot.dof.nearMm, units)} to{" "}
-              {formatDistance(shot.dof.farMm, units)} will be sharp.
-            </p>
-          </section>
-
-          <Iris lens={lens} fNumber={fNumber} />
-          {FLAGS.experimentalLensCharacter && (
-            <LensDNA
-              lens={lens}
-              lenses={lenses}
-              fNumber={fNumber}
-              cocMm={shot.cocMm}
-              frameWidthMm={shot.frameWidthMm}
-              frameHeightMm={shot.frameHeightMm}
-              digital={!isFilm}
-              units={units}
-              onAperture={changeAperture}
-            />
-          )}
-          {FLAGS.experimentalLensCharacter && (
-            <FlareLab lens={lens} fNumber={fNumber} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} onAperture={changeAperture} />
-          )}
-          <PerspectiveLab key={lens.id} lens={lens} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} focusMm={focusMm} units={units} />
-
-          <CameraAnatomy shutterSec={shutterSec} />
-
-          <MuseumTimeline
-            body={body}
-            units={units}
-            onSimulate={(item) => {
-              if (item.body) selectBody(item.body.id);
-              else if (item.lens) {
-                const target = bodyForLens(item.lens, body);
-                if (!target) return;
-                if (target.id !== body.id) selectBody(target.id);
-                selectLens(item.lens.id);
-              }
-              document.querySelector(".stage-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-          />
-
-          <ContactSheet
-            frames={frames}
-            capacity={isFilm ? ROLL_LENGTH : null}
-            filmName={isFilm ? look.name : null}
-            base={isFilm ? (look.mono ? "bw" : look.kind === "slide" ? "slide" : "color") : "digital"}
-            onRewind={rewind}
-            onUpdateNote={updateFrameNote}
-            onUpdateOutcome={updateFrameOutcome}
-            development={isFilm && devRecord ? describeRecord(devRecord) : null}
-          />
-
-          <Darkroom
-            rollFilm={isFilm ? baseLook : null}
-            rollFrames={rollFrames.length}
-            boxIso={boxIso}
-            rollEi={isFilm ? filmEI : null}
-            pushPullStops={pushPullStops}
-            onPushPull={(stops) => {
-              playDialClick();
-              setPushPullStops(stops);
-            }}
-            recorded={devRecord ? describeRecord(devRecord) : null}
-            onRecord={(filmId, choice) =>
-              setDevRecord({ filmId, filmName: baseLook.name, frames: rollFrames.length, choice, recordedAt: new Date().toISOString().slice(0, 10) })
-            }
-          />
-
-          <Insights frames={frames} />
-
-          <section className="panel stage-scene" aria-label="Scene">
-            <div className="panel-head">
-              <h2>{body.name} · {lens.name}</h2>
-              <span className="chip chip-red">{formatFNumber(fNumber)}</span>
-            </div>
-            <SceneDiagram
-              shot={shot}
-              minFocusMm={lens.minFocusMm}
-              units={units}
-              onFocusChange={setFocusMm}
-              hideSubject={challengeHidden}
-              onBackgroundChange={(mm) => setBackgroundOffsetMm(Number.isFinite(mm) ? mm - shot.subjectMm : Infinity)}
-            />
-            <p className="hint">Drag the figure to focus, or drag the tree to move the background.</p>
-          </section>
-        </div>
-
-        <div className="col-side">
-          <Readouts shot={shot} units={units} />
-
-          <ExposurePanel
-            body={body}
-            look={look}
-            onFilm={selectFilm}
-            iso={iso}
-            boxIso={boxIso}
-            onFilmEI={(ei) => {
-              playDialClick();
-              setFilmEI(ei);
-              setPushPullStops(ei === null ? 0 : nearestDevelopLevel(eiStops(boxIso, ei)).stops);
-            }}
-            pushPullStops={pushPullStops}
-            onPushPull={(stops) => {
-              playDialClick();
-              setPushPullStops(stops);
-            }}
-            onIso={(i) => {
-              playDialClick();
-              setIsoDigital(i);
-            }}
-            auto={auto}
-            onAuto={setAutoExposure}
-            shutterSec={shutterSec}
-            onShutter={changeShutter}
-            errorStops={errorStops}
-            tripod={tripod}
-            onTripod={setTripod}
-            shakeLikely={shakeLikely}
-            sceneLabel={sceneLabel}
-            filmLocked={rollFrames.length > 0}
-            savedFilmIds={savedIds.film}
-            onToggleSavedFilm={(id) => toggleBag("film", id)}
-          />
-
-          <Sunny16Trainer apertures={stops} shutters={speeds} iso={iso} />
-
-          <MotionSimulator
-            focalMm={lens.focalMm}
-            cocMm={shot.cocMm}
-            shutters={speeds}
-            shutterSec={shutterSec}
-            onShutter={(t) => {
-              if (body.autoExposure) setAutoExposure(false);
-              changeShutter(t);
-            }}
-            tripod={tripod}
-            units={units}
-          />
-
-          <LongExposureLab body={body} lens={lens} frameShortMm={shot.frameHeightMm} units={units} />
-
-          <IntentAssistant
-            sceneEv100={sceneEv}
-            iso={iso}
-            apertures={stops}
-            shutters={speeds}
-            focalMm={lens.focalMm}
-            hyperfocalMm={shot.dof.hyperfocalMm}
-            units={units}
-            onApply={(result) => {
-              changeAperture(result.fNumber);
-              changeShutter(result.shutterSec);
-              if (body.autoExposure) setAutoExposure(false);
-              if (result.focusMm !== undefined) setFocusMm(result.focusMm);
-            }}
-          />
-
-          <LensTrial
-            body={body}
-            lens={lens}
-            lenses={lenses}
-            frameWidthMm={shot.frameWidthMm}
-            frameHeightMm={shot.frameHeightMm}
-            focusMm={focusMm}
-            sceneId={sceneId}
-            fNumber={fNumber}
-            units={units}
-            onTry={(lensId, distanceMm) => {
-              if (lensId !== lens.id) selectLens(lensId);
-              const l = lenses.find((x) => x.id === lensId) ?? lens;
-              setFocusMm(Math.max(distanceMm, l.minFocusMm));
-            }}
-          />
-
-          <LensGenerations
-            body={body}
-            lens={lens}
-            cocMm={shot.cocMm}
-            focusMm={focusMm}
-            units={units}
-            onTry={(lensId) => {
-              selectLens(lensId);
-              const l = lenses.find((x) => x.id === lensId);
-              if (l && Number.isFinite(focusMm) && focusMm < l.minFocusMm) setFocusMm(l.minFocusMm);
-            }}
-          />
-
-          <RecipesPanel
-            body={body}
-            lens={lens}
-            lenses={lenses}
-            lockedFilm={isFilm && rollFrames.length > 0 ? { id: filmId, name: baseLook.name, iso: boxIso } : null}
-            cocMm={shot.cocMm}
-            sceneEv100={sceneEv}
-            sceneLabel={sceneLabel}
-            units={units}
-            active={activeRecipe}
-            saved={savedRecipes}
-            onToggleSaved={toggleSavedRecipe}
-            onLoad={loadRecipe}
-          />
-
-          <PortraitTrainer lens={lens} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} units={units} />
-
-          {FLAGS.motionSensors && <StabilityTrainer focalMm={lens.focalMm} cocMm={shot.cocMm} shutters={speeds} />}
-
-          <FilmLoadingTrainer bodyId={body.id} />
-
-          <section className="panel stage-setup" aria-label="Camera and lens">
-            <div className="panel-head">
-              <h2>Camera &amp; lens</h2>
-              <span className="panel-head-actions">
-              {!demoActive && (
-                <button type="button" className="btn btn-small" onClick={startDemo} aria-label="Start the 60-second tour">
-                  Tour
-                </button>
-              )}
-              {can3D && (
-                <button type="button" className="btn btn-small" aria-pressed={show3D} onClick={() => setShow3D((v) => !v)}>
-                  3D
-                </button>
-              )}
-              </span>
-            </div>
-
-            {can3D && show3D ? (
-              <Leica3D
-                body={body}
-                lens={lens}
-                fNumber={fNumber}
-                focusMm={focusMm}
-                shutterSec={shutterSec}
-                auto={auto}
-                advanceCount={advanceCount}
-                units={units}
-                onAperture={changeAperture}
-                onFocus={(mm) => setFocusMm(Math.max(mm, lens.minFocusMm))}
-                onShutter={turnShutterDial}
-                fallback={<div className="kit"><BodyArt body={body} lens={lens} className="kit-body" /></div>} />
-            ) : hasGearImage("bodies", body.id) || hasGearImage("lenses", lens.id) ? (
-              <div className="kit kit-photos">
-                <GearImage kind="bodies" id={body.id} alt={body.name} sizes="(min-width: 1080px) 180px, 45vw">
-                  <BodyArt body={body} className="gear-photo-fallback" />
-                </GearImage>
-                <GearImage kind="lenses" id={lens.id} alt={lens.name} sizes="(min-width: 1080px) 180px, 45vw">
-                  <LensArt lens={lens} className="gear-photo-fallback" />
-                </GearImage>
-              </div>
-            ) : (
-              <div className="kit">
-                <BodyArt body={body} lens={lens} className="kit-body" />
-              </div>
-            )}
-
-            <div className="gear-buttons">
-              <button type="button" className="gear-button" onClick={() => setPicker("body")}>
-                <GearImage kind="bodies" id={body.id} alt="" sizes="84px" className="gear-thumb">
-                <BodyArt body={body} className="gear-thumb" />
-              </GearImage>
-                <span className="gear-text">
-                  <span className="gear-label">Camera</span>
-                  <span className="gear-name">{body.name}</span>
-                  <span className="gear-meta">{bodyMeta(body)}</span>
-                </span>
-              </button>
-              <button type="button" className="gear-button" onClick={() => setPicker("lens")} disabled={lenses.length === 1}>
-                <GearImage kind="lenses" id={lens.id} alt="" sizes="84px" className="gear-thumb">
-                <LensArt lens={lens} className="gear-thumb" />
-              </GearImage>
-                <span className="gear-text">
-                  <span className="gear-label">Lens{isAdapted(body, lens) ? " · via adapter" : ""}</span>
-                  <span className="gear-name">{lens.name}</span>
-                  <span className="gear-meta">
-                    {lens.year} · closest {formatDistance(lens.minFocusMm, units)}
-                    {lens.nickname ? ` · ${lens.nickname}` : ""}
-                  </span>
-                </span>
-              </button>
-            </div>
-
-            <GearPicker
-              open={picker === "body"}
-              title="Choose a camera"
-              selectedId={bodyId}
-              onSelect={selectBody}
-              onClose={() => setPicker(null)}
-              saved={savedIds.body}
-              onToggleSaved={(id) => toggleBag("body", id)}
-              items={BODIES.map<PickerItem>((b) => ({
-                id: b.id,
-                name: b.name,
-                group: b.family,
-                meta: bodyMeta(b),
-                badge: b.medium === "film" ? "Film" : b.medium === "mono" ? "Monochrom" : undefined,
-                art: (
-                <GearImage kind="bodies" id={b.id} alt="">
-                  <BodyArt body={b} />
-                </GearImage>
-              ),
-              }))}
-            />
-            <GearPicker
-              open={picker === "lens"}
-              title={`Lenses for the ${body.name}`}
-              selectedId={lensId}
-              onSelect={selectLens}
-              onClose={() => setPicker(null)}
-              saved={savedIds.lens}
-              onToggleSaved={(id) => toggleBag("lens", id)}
-              items={lenses.map<PickerItem>((l) => ({
-                id: l.id,
-                name: l.name,
-                group: lensGroup(body, l),
-                meta: `${l.year} · f/${l.maxAperture} · closest ${formatDistance(l.minFocusMm, units)}`,
-                badge: l.classic ? "Classic" : l.nickname,
-                art: (
-                <GearImage kind="lenses" id={l.id} alt="">
-                  <LensArt lens={l} />
-                </GearImage>
-              ),
-              }))}
-            />
-
-            {body.megapixels && body.megapixels.length > 1 && (
-              <div className="field">
-                <span>Resolution</span>
-                <Segmented
-                  label="Resolution"
-                  value={megapixels ?? body.megapixels[0]}
-                  onChange={setMegapixels}
-                  options={body.megapixels.map((mp) => ({ value: mp, label: `${mp} MP` }))}
-                />
-              </div>
-            )}
-
-            {body.cropFocalLengths && (
-              <div className="field">
-                <span>Framing</span>
-                <Segmented
-                  label="Digital crop framing"
-                  value={cropFocalMm ?? body.cropFocalLengths[0]}
-                  onChange={(mm) => setCropFocalMm(mm === body.cropFocalLengths![0] ? null : mm)}
-                  options={body.cropFocalLengths.map((mm) => ({ value: mm, label: `${mm}` }))}
-                />
-              </div>
-            )}
-
-            {!photo && <div className="field">
-              <span>Background</span>
-              <Segmented
-                label="Background distance behind subject"
-                value={backgroundOffsetMm}
-                onChange={setBackgroundOffsetMm}
-                options={BACKGROUND_PRESETS[units].map(({ mm, label }) => ({ value: mm, label }))}
-              />
-            </div>}
-          </section>
-
-          <section className="panel stage-details" aria-label="Details">
-            <div className="panel-head"><h2>Sharpness standard</h2></div>
-            <Segmented
-              label="Sharpness standard"
-              value={shot.standard}
-              onChange={setStandard}
-              options={SHARPNESS_STANDARDS.filter((s) => s.id !== "pixel" || body.megapixels).map((s) => ({
-                value: s.id,
-                label: s.label,
-              }))}
-            />
-            <p className="muted small standard-note">{standardInfo.description}</p>
-            <Details shot={shot} />
-          </section>
-        </div>
-      </main>
-
-      <footer className="footer">
-        Independent tool, not affiliated with or endorsed by Leica Camera AG. Product names are
-        trademarks of their owners.{GEAR_IMAGE_CREDITS.length > 0 && ` Product photos: ${GEAR_IMAGE_CREDITS.join("; ")}.`} Lens specs come from public sources; check them against Leica's
-        datasheets. Distances are measured from the lens (thin-lens model).
-      </footer>
+      <GearPicker
+        open={picker === "body"}
+        title="Choose a camera"
+        selectedId={bodyId}
+        onSelect={selectBody}
+        onClose={() => setPicker(null)}
+        saved={savedIds.body}
+        onToggleSaved={(id) => toggleBag("body", id)}
+        items={BODIES.map<PickerItem>((b) => ({
+          id: b.id,
+          name: b.name,
+          group: b.family,
+          meta: bodyMeta(b),
+          badge: b.medium === "film" ? "Film" : b.medium === "mono" ? "Monochrom" : undefined,
+          art: (
+            <GearImage kind="bodies" id={b.id} alt="">
+              <BodyArt body={b} />
+            </GearImage>
+          ),
+        }))}
+      />
+      <GearPicker
+        open={picker === "lens"}
+        title={`Lenses for the ${body.name}`}
+        selectedId={lensId}
+        onSelect={selectLens}
+        onClose={() => setPicker(null)}
+        saved={savedIds.lens}
+        onToggleSaved={(id) => toggleBag("lens", id)}
+        items={lenses.map<PickerItem>((l) => ({
+          id: l.id,
+          name: l.name,
+          group: lensGroup(body, l),
+          meta: `${l.year} · f/${l.maxAperture} · closest ${formatDistance(l.minFocusMm, units)}`,
+          badge: l.classic ? "Classic" : l.nickname,
+          art: (
+            <GearImage kind="lenses" id={l.id} alt="">
+              <LensArt lens={l} />
+            </GearImage>
+          ),
+        }))}
+      />
 
       {fullScreenFinder && (
         <div className="finder-fullscreen" role="dialog" aria-modal="true" aria-label={`${body.name} viewfinder, full screen`}>

@@ -1,11 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { PATTERN_FILL, phaseAt, patternPoint, type LightParams } from "../physics/longExposure";
+import { PATTERN_FILL, lightPhase, phaseAt, patternPoint, type PatternId, type PatternParams } from "../physics/longExposure";
+
+export interface StageLight {
+  pattern: PatternId;
+  params: PatternParams;
+  sizePx: number;
+  /** CSS colour of the point, already dimmed to the light's brightness. */
+  colour: string;
+  /** Head start, fraction of a cycle. */
+  offset: number;
+}
 
 interface Props {
-  light: LightParams;
+  lights: StageLight[];
+  cycleSec: number;
   loop: boolean;
-  /** CSS colour of the point, already dimmed to the chosen brightness. */
-  colour: string;
   countdownSec: number;
   onClose: () => void;
 }
@@ -19,7 +28,7 @@ type FsDocument = Document & { webkitFullscreenElement?: Element | null; webkitE
  * computed from elapsed time on every frame, so the cycle keeps its duration
  * at any refresh rate and after dropped frames. Lazy-loaded.
  */
-export default function LongExposureStage({ light, loop, colour, countdownSec, onClose }: Props) {
+export default function LongExposureStage({ lights, cycleSec, loop, countdownSec, onClose }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [count, setCount] = useState(countdownSec);
@@ -80,7 +89,7 @@ export default function LongExposureStage({ light, loop, colour, countdownSec, o
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    const cycleMs = light.cycleSec * 1000;
+    const cycleMs = cycleSec * 1000;
     const t0 = performance.now();
     const probe = import.meta.env.DEV ? { t0, cycleMs, wraps: [] as number[], frames: 0 } : null;
     if (probe) (window as unknown as { __lel?: typeof probe }).__lel = probe;
@@ -105,17 +114,19 @@ export default function LongExposureStage({ light, loop, colour, countdownSec, o
       lastCycle = cycle;
       if (!done) {
         const half = (Math.min(w, h) * PATTERN_FILL) / 2;
-        const p = patternPoint(light.pattern, phase, light.params);
-        ctx.fillStyle = colour;
-        ctx.beginPath();
-        ctx.arc(w / 2 + p.x * half, h / 2 - p.y * half, (light.sizePx * dpr) / 2, 0, 2 * Math.PI);
-        ctx.fill();
+        for (const l of lights) {
+          const p = patternPoint(l.pattern, lightPhase(phase, l.offset), l.params);
+          ctx.fillStyle = l.colour;
+          ctx.beginPath();
+          ctx.arc(w / 2 + p.x * half, h / 2 - p.y * half, (l.sizePx * dpr) / 2, 0, 2 * Math.PI);
+          ctx.fill();
+        }
       }
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [count, light, loop, colour]);
+  }, [count, lights, cycleSec, loop]);
 
   return (
     <div ref={stageRef} className="lel-stage" role="dialog" aria-modal="true" aria-label="Long exposure running. Tap or press any key to stop.">

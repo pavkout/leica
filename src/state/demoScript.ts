@@ -59,7 +59,7 @@ export const DEMO_STEPS: DemoStep[] = [
     id: "mount",
     title: "An M3, in 3D",
     instruction: "Mount the 50 mm and watch it lock onto the bayonet.",
-    panel: ".stage-setup",
+    panel: ".stage-camera3d",
     enter: (a) => {
       a.selectBody(DEMO.bodyId);
       a.selectLens(DEMO.startLensId);

@@ -9,8 +9,8 @@ Last updated: 2026-09-27
 | Phase 0 — Repository Audit & Foundation | ✅ COMPLETE |
 | Phase 1 — M3 Film Companion | ✅ COMPLETE |
 | Phase 2 — Tactile Learning | ✅ COMPLETE |
-| Phase 3 — “WTF” / 3D Layer | 🟡 IN PROGRESS |
-| Phase 4 — Explore / Kiosk / Museum | ⬜ NOT STARTED |
+| Phase 3 — “WTF” / 3D Layer | 🟡 IN PROGRESS: all features done; #2 awaits the real-phone check |
+| Phase 4 — Explore / Kiosk / Museum | 🟡 MOSTLY DONE: #20, #23, #34 COMPLETE; #21 PARTIAL (no authored 3D assets). Not formally defined in the Master Plan |
 
 > Phase 0 and Phase 1 were verified directly against the repository (typecheck/lint/test/build all clean, 126 tests passing before this session's work) before Phase 2 began.
 
@@ -20,7 +20,17 @@ Last updated: 2026-09-27
 
 ## Current task
 
-**None in progress.**
+**Redesign, plus A–D (user request, 2026-09-27)** — IN PROGRESS.
+
+After testing on their phone, the user asked for all of A–D, plus a redesign: organise the features, use the installed design skills, make it "super wow".
+- **Redesign.** Slices 1–2 are COMPLETE.
+- **A.** #36 later enhancements: COMPLETE. #36 is now COMPLETE.
+- **C.** Datasheet development times are COMPLETE. Lens character and focus breathing stay empty: no citable data (see below).
+- **B.** BLOCKED on assets: real 3D models must be authored or licensed. The code pipeline is ready (`docs/MODEL_SPEC.md`).
+- **D.** Polish is ongoing; the fixes found this round are listed below.
+- **Next:** the user's call. B needs model files. Otherwise: a phone review of the redesign, then further polish.
+
+Earlier state:
 - **Phase 3:** every feature is COMPLETE except **#2**, which is code complete and waits only for the real-phone check.
 - **Also done in the overnight run:** two unscheduled Priority 1 briefs, #28 Photo Recipes and #8 Motion Simulator.
 - **Work queue (below):** #13, #19, #26, #7 and #24 are COMPLETE, #36 has its MVP and #21 an illustrative version (both PARTIAL); #23, #34 and #20 are COMPLETE. **The work queue is finished**; what comes next needs the user's decision (see Next).
@@ -63,7 +73,7 @@ The Master Plan's remaining briefs, in the plan's priority order. Recorded here,
 3. [x] #26 — Focus breathing / perspective lab (P3)
 4. [x] #7 — Rangefinder calibration simulator (P3)
 5. [x] #24 — Lens generations / collector mode (P3)
-6. [x] #36 — Long Exposure Lab (P3) — MVP done; PARTIAL (later enhancements open)
+6. [x] #36 — Long Exposure Lab (P3) — COMPLETE (MVP + later enhancements)
 7. [x] #21 — Exploded camera view (P4) — PARTIAL (illustrative 2D; authored 3D assets open)
 8. [x] #23 — Leica timeline / interactive museum (P4)
 9. [x] #34 — Darkroom mode (P4)
@@ -118,6 +128,94 @@ Things to try by hand. Nothing is committed; everything below is in the working 
 ---
 
 ## Last completed
+
+**Redesign slice 2 + A (#36 later enhancements) + C (datasheet development times) + D (fixes)** — (user request) — 2026-09-27
+
+**Redesign slice 2 (visual polish):**
+- One page-load moment: the mode dial rises from the bottom edge and spins into place under the index (not with reduced motion).
+- The phone Studio drops its blurb so the photo sits higher.
+- Links in panels use the text colour with an underline, never browser blue.
+
+**A. #36 Long Exposure Lab later enhancements — #36 now COMPLETE:**
+- **Pattern Designer:** `PatternPad` lets you draw the path with a finger or mouse, stroke by stroke, dark between strokes, with undo and clear. The engine gains `strokeSample` (constant speed along strokes) and `tidyStrokes`.
+- **Words in light:** `physics/strokeFont.ts` is our own single-stroke font (A–Z, 0–9, punctuation, 4×6 grid, no trademark lettering). One line is centred in the box; unsupported characters are named and skipped.
+- **Multi-light:** 1–3 lights, each with its own pattern, colour, size, brightness and head start (`lightPhase`). The stage draws them all; the suggestion is for light 1, and the app says so.
+- **Predicted photo:** `exposureTrace` gives each light's path during the exposure: partial for short exposures, repeated passes for long ones, split at jumps. It renders with additive light, labelled approximate, for 1 s, the cycle, twice the cycle, or a challenge's own exposure.
+- **"Log this frame":** puts the prediction on the roll with the lab's ISO, f-stop and shutter plus a note. `addFrame` gained a settings override.
+- **Guided challenges:** six, each with "Set it up" and a Done tick stored on the device; no scores or streaks. They cover one infinity, three circles without clipping, a word in 10 s, ISO 100 against 800, f/2 against f/8, and two lights in two colours.
+- Engine tests: 24 in the Lab's file (strokes, tidy, empty-path guard, head start, trace length short/long/once, letter splits, font layout).
+
+**C. Datasheet development times (sourced data):**
+- `data/processTimes.ts`, **transcribed from the makers' official datasheets, read today:**
+  - Kodak **TRI-X 400**, F-4017 (Feb 2016): small tank at 18/20/21/22/24 °C; box speed, the datasheet's "one stop under, use normal times" note, and the EI 1600 / 3200 push tables.
+  - Ilford **HP5 PLUS** (Nov 2018): 20 °C, EI 200–3200, Ilford and other makers' developers.
+  - Ilford **DELTA 3200** (Jun 2025): 20 and 24 °C, EI 400–12500.
+  - 150+ cited entries. "Not recommended" and blank cells are left out, never estimated; the sources' own notes are carried (e.g. Kodak's under-5-minutes uniformity warning).
+- The Darkroom's **"Process time from the datasheet"** box has its own developer, dilution and temperature choices, drawn only from the film's datasheet, and uses the Darkroom's push/pull. It shows the time, agitation, note and source link, or states plainly that the datasheet gives none. It stays separate from the conceptual model.
+- The empty placeholder table left the conceptual model. 6 new data tests: cited and plausible, no duplicates, spot checks against the sources, notes carried, **null for unlisted combinations** (acceptance), per-film options.
+- **Not done, deliberately:** `LENS_CHARACTER_PROFILES` (distortion and vignetting would be eyeballed off Leica's charts, which isn't published data) and `BREATHING_PROFILES` (not published for M lenses). Both stay empty, and the app says "no data".
+
+**D. Fixes found this round:**
+- **Error boundary per tool:** a failing tool now shows "stopped working · Try again" instead of white-screening the app. Found when the drawing pad crashed.
+- **Drawing pad:** it read the pointer target inside a state updater (a crash), lost strokes on quick flicks, and had a zero-width layout in WebKit.
+- **Stage stability:** the lights array is memoised so a re-render can't restart the exposure clock.
+- A challenge text was corrected: two lights at a half-cycle offset need a half-cycle exposure for one two-colour circle.
+
+**Validation:**
+- New **#36b suite, 28/28** (WebKit iPhone 13, Chromium):
+  - The prediction shortens with the exposure; words become strokes; unsupported characters are named and an empty path can't start.
+  - The pad draws and undoes; a challenge sets up two lights; the prediction shows both colours; ticks persist; the stage shows both lights.
+  - Log → the frame on the roll with the lab's settings and note; no scroll or errors.
+- #34 updated, **54/54:** a listed combination shows "6 min … Kodak T-MAX stock, 20 °C" with the Kodak link; push +3 at 20 °C says none is given; 24 °C gives 8¼ min; the conceptual slider doesn't change the datasheet box.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 453/453 unit tests, production build (main bundle 164 KB gz), dev test hooks absent from the build. Full browser regression: all 23 feature suites green, plus #36b 28/28 and the shell suite 48/48.
+
+**B. 3D models:** BLOCKED on assets. Photoreal camera and lens models must be authored (Blender or similar) or licensed. `npm run models:build` + `docs/MODEL_SPEC.md` define the pipeline and the named-parts contract, and Explore › Virtual camera and the exploded view will pick them up. Nothing more to build in code until files exist.
+
+---
+
+**Redesign slice 1 — app structure: four modes, one tool at a time** (user request) — **COMPLETE** (2026-09-27)
+
+Why: 29 panels on one page (about 10,000 px tall on desktop, 19,500 px on a phone). The Master Plan already defines the product as four modes (Simulate, Learn, Shoot, Explore), so the structure implements that; the Master Plan itself is unchanged. Design direction came from the installed `frontend-design` skill, within the user's saved style rules: Leica red #CF2E25, charcoal, pill buttons with the red dot.
+
+Implemented:
+- `app/tools.ts`: the registry of **4 modes × 24 tools**, each with a one-line blurb and the section classes it renders. Routes use the hash (`#/learn/sunny16`); a bare mode goes to its default tool, and anything unknown goes home. `toolForStage` serves the tour and old anchors. 5 unit tests.
+- **Mode dial** (`components/app/ModeDial.tsx`), the memorable element:
+  - The top of a knurled camera dial rises from the bottom edge, with a machined face, a knurled rim, the modes engraved and a fixed red index.
+  - It turns (with a slight detent overshoot and the dial click) to bring the chosen mode under the index.
+  - It's a real tab list: arrow keys and Home/End work, with a visible focus ring.
+- **Tool navigation** (`ToolNav`): a side rail with the mode name, its job and each tool's blurb on desktop; a sideways strip with a red underline on phones.
+- **Top-plate rig**, always visible: the camera and lens buttons open the pickers from any tool, and f-stop, shutter and ISO sit in a dark readout window in the engraving face. The gear pickers moved to the app root.
+- **Shutter-curtain transition** (`ShutterCurtain`, `useRoute`): switching tools runs a focal-plane shutter. The second curtain closes over the old tool (150 ms), the first opens on the new one (190 ms). Instant with reduced motion. The phase lives in a tiny external store, so animating it never re-renders the app.
+- **One tool at a time, kept alive:** a tool stays mounted after its first visit, so its settings survive switching. The Virtual camera (3D) is the exception and unmounts when you leave, to give back the GPU. Each mode remembers its last tool. Back and forward work; deep links work; `?recipe`, `?try`, `?demo` and `?kiosk` keep working.
+- **Studio** keeps the photo, scene, rings, Camera & lens, readouts, exposure and sharpness as a two-column workspace on desktop.
+- **New homes:**
+  - 3D moved from a toggle in Camera & lens to **Explore › Virtual camera**. The "3D" button now takes you there, and the tour's first step reveals it.
+  - Live view got a **Shoot › Live view** tool.
+  - Rangefinder-only tools show an empty state with "Choose a camera" on non-rangefinder bodies.
+- **Styling:**
+  - Tool titles are large and in sentence case.
+  - Panel headings changed from tracked all-caps to sentence case. The skill flags all-caps labels; the engraved dial keeps capitals, as real dials do.
+  - Single-panel tools visually hide the duplicate panel heading.
+  - Z-order normalised: full-screen overlays (Live view, full-screen finder) now sit above the dial, and the tour card sits above it. The dial had been covering Live view's controls.
+  - The one-page `order`/column CSS was removed.
+- **Performance fix found by the new structure:** `shape` (the aperture outline) was rebuilt on every App render, so the rangefinder viewfinder repainted (about 240 ms) on every unrelated state change. It's now memoised, and switching away from Rangefinder focus fell from about 800 ms with 700 ms long tasks to about 200 ms (the curtain) with none.
+- **Testing:**
+  - The 23 feature suites predate the structure and drive several tools at once. They now run through a runner shim (`allmode.cjs`) that sets a **dev-only** `__LEICA_ALL__` flag, making every tool visible except the 3D view, which still mounts only when opened. The flag is stripped from production (verified).
+  - Suites adapted for the new homes: the 3D suites find controls in Virtual camera and centre the 3D stage before pointer steps; "3D off" became "leave the tool"; the clipped-text scans skip visually hidden headings.
+  - New **shell suite, 48/48** on WebKit iPhone 13, iPhone SE (reduced motion) and Chromium desktop:
+    - Opens on Simulate › Studio; the rig is visible.
+    - **All 24 tools are reachable through the dial and the rail/strip, correctly titled, rendered, with no horizontal scroll**; only one is visible at a time.
+    - A mode returns to its last tool; arrow keys turn the dial; browser back works; deep links work.
+    - **A tool keeps its settings**; **leaving the virtual camera releases it**; the rig changes the camera from any tool.
+    - The tour's first step opens the virtual camera; **the dial never covers the end of a tool**; the curtain runs (and is absent with reduced motion); no errors.
+- Typecheck clean, lint 0 errors (5 pre-existing warnings), 442/442 unit tests, production build (main bundle 157 KB gz). Full browser regression: all 23 feature suites green (#2 ×4, #5, #4, #25, #33, #35, #28, #8, #13, #19, #26, #7, #24, #36, #21, #23, #34, #20, #22, #9) plus the shell suite 48/48.
+
+Known limitations:
+- The feature suites exercise behaviour with every tool mounted (a dev-only hook); navigation itself is covered by the shell suite.
+- Not yet reviewed on a physical iPhone.
+- Visual polish continues in slice 2.
+
+---
 
 **Feature #20 — Virtual Leica Store / kiosk mode** (Priority 4, work queue) — **COMPLETE** (2026-09-27)
 

@@ -6,36 +6,15 @@ import {
   DEVELOPER_TYPES,
   DILUTIONS,
   FOG,
-  PROCESS_TIMES,
   REFERENCE_CHOICE,
   colourProcess,
   conceptualResult,
   densityAt,
   describeRecord,
-  lookupTime,
   parseRecord,
-  type SourcedTime,
 } from "./darkroom";
 
 const trix = findFilm("trix400");
-
-describe("process times (acceptance: never fabricated)", () => {
-  it("ships no unverified times", () => {
-    expect(PROCESS_TIMES).toEqual([]);
-  });
-
-  it("returns null for any pair without a sourced entry", () => {
-    for (const d of DEVELOPER_TYPES) for (const dil of DILUTIONS) expect(lookupTime("trix400", d.id, dil.id, 20, 0)).toBeNull();
-  });
-
-  it("returns a cited entry only for the exact combination", () => {
-    const table: SourcedTime[] = [{ filmId: "f", developer: "d", dilution: "1+1", temperatureC: 20, developStops: 0, minutes: 9, source: "Test datasheet", url: "https://example.com" }];
-    expect(lookupTime("f", "d", "1+1", 20, 0, table)?.minutes).toBe(9);
-    expect(lookupTime("f", "d", "1+1", 21, 0, table)).toBeNull();
-    expect(lookupTime("f", "d", "1+1", 20, 1, table)).toBeNull();
-    expect(lookupTime("f", "d", "1+1", 20, 0, [{ ...table[0], url: "" }])).toBeNull();
-  });
-});
 
 describe("conceptual result", () => {
   it("normal development is the reference", () => {

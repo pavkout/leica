@@ -137,3 +137,73 @@ describe("light colour", () => {
     expect(dimmedCss([255, 255, 255], 0)).toBe("rgb(0, 0, 0)");
   });
 });
+
+describe("drawn and text patterns (#36 later enhancements)", () => {
+  it("strokes play at constant speed and jump between strokes", async () => {
+    const { strokeSample, pathLength } = await import("./longExposure");
+    const strokes = [[{ x: -1, y: 0 }, { x: 0, y: 0 }], [{ x: 0, y: 1 }, { x: 0, y: 0 }]];
+    expect(strokeSample(strokes, 0)).toEqual({ x: -1, y: 0, stroke: 0 });
+    expect(strokeSample(strokes, 0.25)).toEqual({ x: -0.5, y: 0, stroke: 0 });
+    expect(strokeSample(strokes, 0.75)).toEqual({ x: 0, y: 0.5, stroke: 1 });
+    expect(strokeSample(strokes, 1)).toEqual({ x: 0, y: 0, stroke: 1 });
+    expect(pathLength("drawn", { turns: 3, a: 3, b: 2, strokes })).toBeCloseTo(2, 9);
+  });
+
+  it("tidies a hand drawing: drops dots, jitter and out-of-box points", async () => {
+    const { tidyStrokes } = await import("./longExposure");
+    const t = tidyStrokes([[{ x: 0, y: 0 }], [{ x: 0, y: 0 }, { x: 0.001, y: 0 }, { x: 2, y: 0 }]]);
+    expect(t).toEqual([[{ x: 0, y: 0 }, { x: 1, y: 0 }]]);
+  });
+
+  it("an empty drawing doesn't break the exposure suggestion", async () => {
+    const { suggestSettings } = await import("./longExposure");
+    const s = suggestSettings({ ...REFERENCE_LIGHT, pattern: "drawn", params: { turns: 3, a: 3, b: 2, strokes: [] } }, 100, STOPS, 8);
+    expect(Number.isFinite(s.fNumber)).toBe(true);
+  });
+});
+
+describe("multi-light and the predicted exposure", () => {
+  it("a light's head start shifts its phase", async () => {
+    const { lightPhase } = await import("./longExposure");
+    expect(lightPhase(0.25, 0.5)).toBe(0.75);
+    expect(lightPhase(0.75, 0.5)).toBe(0.25);
+  });
+
+  it("the trace covers part of the path for a short exposure and repeats for a long one", async () => {
+    const { exposureTrace } = await import("./longExposure");
+    const light = { pattern: "circle" as const, params: { turns: 3, a: 3, b: 2 }, offset: 0 };
+    const len = (tr: { x: number; y: number }[][]) => tr.reduce((s, pl) => s + pl.slice(1).reduce((a, q, i) => a + Math.hypot(q.x - pl[i].x, q.y - pl[i].y), 0), 0);
+    expect(len(exposureTrace(light, 4, true, 1))).toBeCloseTo((2 * Math.PI) / 4, 1);
+    expect(len(exposureTrace(light, 4, true, 8))).toBeCloseTo(4 * Math.PI, 1);
+    // Once: a longer shutter records no more than one pattern.
+    expect(len(exposureTrace(light, 4, false, 8))).toBeCloseTo(2 * Math.PI, 1);
+  });
+
+  it("the trace splits where the light jumps between letters", async () => {
+    const { exposureTrace } = await import("./longExposure");
+    const { textStrokes } = await import("./strokeFont");
+    const strokes = textStrokes("HI");
+    const tr = exposureTrace({ pattern: "text", params: { turns: 3, a: 3, b: 2, strokes }, offset: 0 }, 5, false, 5);
+    expect(tr.length).toBe(strokes.length);
+  });
+});
+
+describe("single-stroke font", () => {
+  it("lays text out centred inside the box, skipping unknown characters", async () => {
+    const { textStrokes, unsupportedChars } = await import("./strokeFont");
+    const s = textStrokes("f/8");
+    const pts = s.flat();
+    expect(Math.min(...pts.map((p) => p.x))).toBeCloseTo(-Math.max(...pts.map((p) => p.x)), 9);
+    for (const p of pts) {
+      expect(Math.abs(p.x)).toBeLessThanOrEqual(0.9 + 1e-9);
+      expect(Math.abs(p.y)).toBeLessThanOrEqual(0.55 + 1e-9);
+    }
+    expect(unsupportedChars("héllo ✓")).toEqual(["É", "✓"]);
+    expect(textStrokes("✓✓")).toEqual([]);
+  });
+
+  it("has every letter and digit", async () => {
+    const { GLYPHS } = await import("./strokeFont");
+    for (const c of "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") expect(GLYPHS[c].length).toBeGreaterThan(0);
+  });
+});

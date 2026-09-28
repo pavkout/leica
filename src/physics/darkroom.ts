@@ -2,9 +2,10 @@
 // development — how developer type, dilution, agitation, temperature and
 // push/pull shift contrast, grain and sharpness *tendencies*. It is not a
 // process: it never produces development times. Real times belong to a
-// sourced dataset (PROCESS_TIMES, empty until verified manufacturer data is
-// added with citations); without an entry the app says so instead of
+// sourced dataset; without an entry the app says so instead of
 // guessing. Every effect size here is illustrative.
+// Real development times live apart from this model, in data/processTimes.ts,
+// transcribed from the film makers' datasheets with citations.
 
 import type { Provenance } from "../data/provenance";
 import type { FilmLook } from "../preview/film";
@@ -123,34 +124,6 @@ export function densityAt(logE: number, result: Pick<ConceptualResult, "contrast
   const dmax = 2.1 * result.highlights;
   const k = (4 * 0.62 * result.contrast) / (dmax - FOG);
   return FOG + (dmax - FOG) / (1 + Math.exp(-k * (x - 0.5)));
-}
-
-/** A development time taken from a cited source (manufacturer datasheet or a documented community database). */
-export interface SourcedTime {
-  filmId: string;
-  developer: string;
-  dilution: string;
-  temperatureC: number;
-  developStops: number;
-  minutes: number;
-  source: string;
-  url: string;
-}
-
-/**
- * Verified development times. Empty on purpose: the app's developer choices
- * are generic types, not named products, and no times have been checked
- * against a manufacturer's datasheet. Add entries only with a citation.
- */
-export const PROCESS_TIMES: SourcedTime[] = [];
-
-/** A sourced time for this exact combination, or null — never an estimate. */
-export function lookupTime(filmId: string, developer: string, dilution: string, temperatureC: number, developStops: number, table: SourcedTime[] = PROCESS_TIMES): SourcedTime | null {
-  return (
-    table.find(
-      (t) => t.filmId === filmId && t.developer === developer && t.dilution === dilution && t.temperatureC === temperatureC && t.developStops === developStops && !!t.source && /^https:\/\//.test(t.url),
-    ) ?? null
-  );
 }
 
 /** The development of the current roll, recorded for the Film Roll Companion. */
