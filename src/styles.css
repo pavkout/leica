@@ -7867,18 +7867,25 @@ ul.lel-warn > li::before,
   font-weight: 600;
 }
 
-/* ── Serial numbers: the number, the year, a page from the ledger ── */
-.sn-top {
+/* ── Serial numbers: the number, a year scale like a lens barrel's, the ledger ── */
+.sn-why {
+  margin: 8px 0 24px;
+}
+
+.sn-entry {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 20px;
+  gap: 16px 32px;
   align-items: start;
 }
 
 @media (min-width: 860px) {
-  .sn-top {
+  .sn-entry {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 40px;
+  }
+
+  .sn-entry-lens {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   }
 }
 
@@ -7888,107 +7895,242 @@ ul.lel-warn > li::before,
 
 .sn-input {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  gap: 12px;
+  padding: 0 18px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-control);
   background: var(--plate-2);
 }
 
 .sn-input:focus-within {
+  border-color: var(--chrome);
   outline: 2px solid var(--chrome-hi);
   outline-offset: 1px;
 }
 
 .sn-no {
-  padding: 0 0 0 16px;
   color: var(--muted);
   font-family: var(--font-engraving);
   font-stretch: var(--engrave-stretch);
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .sn-input input {
-  min-height: 60px;
+  flex: 1;
+  min-width: 0;
+  min-height: 68px;
+  padding: 0;
   border: 0;
   background: none;
+  color: var(--engrave);
   font-family: var(--font-engraving);
   font-stretch: var(--engrave-stretch);
-  font-size: 28px;
-  letter-spacing: 0.08em;
+  font-size: 32px;
+  letter-spacing: 0.1em;
   font-variant-numeric: tabular-nums;
+}
+
+.sn-input input::placeholder {
+  color: var(--faint);
+  opacity: 0.6;
 }
 
 .sn-input input:focus-visible {
   outline: none;
 }
 
-.sn-result {
-  display: grid;
-  gap: 8px;
-  align-content: start;
-  min-height: 120px;
+.sn-which select {
+  min-height: 70px;
 }
 
-.sn-empty {
-  color: var(--faint);
+/* The scale: a numeral riding an index over engraved year ticks. */
+.sn-readout {
+  margin-top: 36px;
+}
+
+.sn-scale {
+  padding: 0 2px;
+}
+
+.sn-flag-zone {
+  position: relative;
+  height: clamp(76px, 11vw, 124px);
+}
+
+.sn-flag,
+.sn-prompt {
+  position: absolute;
+  bottom: 0;
+  margin: 0;
+}
+
+.sn-flag {
+  left: calc(var(--p) * 100%);
+  padding-bottom: 12px;
+  transform: translateX(calc(var(--p) * -100%));
+  color: #d9a441;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: clamp(56px, 9vw, 108px);
+  font-weight: 300;
+  line-height: 0.85;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transition:
+    left 420ms var(--ease),
+    transform 420ms var(--ease);
+}
+
+.sn-flag-zone:has(.sn-prompt) {
+  height: auto;
+}
+
+.sn-prompt {
+  position: static;
+  max-width: 60ch;
+  padding-bottom: 14px;
+  color: var(--muted);
   font-size: 15px;
 }
 
-.sn-label {
+.sn-rule {
+  position: relative;
+  height: 20px;
+  border-top: 1px solid var(--line-strong);
+}
+
+.sn-cover {
+  position: absolute;
+  top: -1px;
+  height: 1px;
+  background: var(--muted);
+}
+
+.sn-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--red-soft);
+  transition:
+    left 420ms var(--ease),
+    width 420ms var(--ease);
+}
+
+.sn-tick {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 5px;
+  background: var(--muted);
+}
+
+.sn-tick-5 {
+  height: 9px;
+}
+
+.sn-tick-10 {
+  height: 14px;
+  background: var(--engrave);
+}
+
+.sn-tick-out {
+  opacity: 0.3;
+}
+
+.sn-index {
+  position: absolute;
+  top: -13px;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--red);
+  transition: left 420ms var(--ease);
+}
+
+.sn-scale-labels {
+  position: relative;
+  height: 18px;
+  margin-top: 2px;
   color: var(--muted);
   font-family: var(--font-engraving);
   font-stretch: var(--engrave-stretch);
   font-size: 13px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.sn-year {
-  color: #d9a441;
-  font-family: var(--font-engraving);
-  font-stretch: var(--engrave-stretch);
-  font-size: clamp(56px, 8vw, 96px);
-  font-weight: 300;
-  line-height: 0.9;
   font-variant-numeric: tabular-nums;
 }
 
-/* Where the number falls in that year's allocation: a scale with an index. */
-.sn-within {
-  display: grid;
-  gap: 4px;
-  max-width: 360px;
-  margin-top: 6px;
-}
-
-.sn-within-bar {
-  position: relative;
-  height: 2px;
-  background: var(--line-strong);
-}
-
-.sn-within-bar i {
+.sn-scale-labels span {
   position: absolute;
-  top: -5px;
-  width: 2px;
-  height: 12px;
-  margin-left: -1px;
-  background: var(--red);
+  transform: translateX(-50%);
 }
 
-.sn-within-ends {
+.sn-say {
+  max-width: 68ch;
+  margin-top: 18px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.sn-say:empty {
+  display: none;
+}
+
+.sn-say p {
+  margin: 0;
+}
+
+.sn-body {
+  display: grid;
+  gap: 8px;
+}
+
+.sn-model {
   display: flex;
-  justify-content: space-between;
-  color: var(--faint);
-  font-family: var(--font-engraving);
-  font-stretch: var(--engrave-stretch);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  font-size: clamp(32px, 5vw, 48px);
+  font-stretch: var(--display-stretch);
+  font-weight: 300;
+  line-height: 1.05;
+}
+
+.sn-variant {
+  color: #d9a441;
+  font-size: 16px;
+  font-stretch: 100%;
+  font-weight: 400;
+}
+
+.sn-notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sn-notes li {
+  padding: 4px 0 4px 12px;
+  box-shadow: inset 2px 0 0 var(--engrave);
+}
+
+/* The ledger page and the gear itself, side by side when there's room. */
+.sn-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px 40px;
+  align-items: start;
+  margin-top: 32px;
+}
+
+@media (min-width: 960px) {
+  .sn-detail:has(.sn-card) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }
 
 .sn-ledger {
-  width: min(100%, 720px);
-  margin-top: 28px;
+  width: 100%;
+  max-width: 620px;
   border-collapse: collapse;
   font-family: var(--font-engraving);
   font-stretch: var(--engrave-stretch);
@@ -7998,34 +8140,89 @@ ul.lel-warn > li::before,
 
 .sn-ledger th,
 .sn-ledger td {
-  padding: 7px 0 7px 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--line);
   text-align: right;
 }
 
 .sn-ledger th:first-child {
-  padding-left: 12px;
   text-align: left;
 }
 
 .sn-ledger thead th {
-  color: var(--muted);
-  font-size: 12px;
+  padding-top: 0;
+  color: var(--faint);
+  font-size: 13px;
   font-weight: 400;
 }
 
 .sn-ledger tbody tr:not(.sn-hit) {
-  color: #a8a59d;
+  color: var(--muted);
+}
+
+.sn-ledger tbody th {
+  font-weight: 500;
 }
 
 .sn-hit th,
 .sn-hit td {
-  color: #fff;
+  color: var(--chrome-hi);
   background: var(--plate-2);
 }
 
 .sn-hit th {
   box-shadow: inset 2px 0 0 var(--red);
+}
+
+.sn-row-variant {
+  display: block;
+  color: var(--faint);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.sn-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px 20px;
+  align-items: start;
+}
+
+@media (min-width: 520px) {
+  .sn-card {
+    grid-template-columns: 160px minmax(0, 1fr);
+  }
+
+  .sn-card .btn {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+.sn-art {
+  width: 100%;
+  max-width: 220px;
+  border-radius: 2px;
+  background: radial-gradient(90% 90% at 50% 40%, #2a2a27, #141413);
+}
+
+.sn-art svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.sn-sources {
+  max-width: 96ch;
+  margin-top: 40px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sn-flag,
+  .sn-band,
+  .sn-index {
+    transition: none;
+  }
 }
 
 /* ── Famous frames: museum labels, no reproductions ─────── */
@@ -8313,87 +8510,6 @@ ul.lel-warn > li::before,
   font-stretch: var(--engrave-stretch);
   font-size: 15px;
   font-variant-numeric: tabular-nums;
-}
-
-.sn-why {
-  margin: 8px 0 20px;
-}
-
-.sn-which select {
-  min-height: 60px;
-}
-
-.sn-body {
-  display: grid;
-  gap: 6px;
-}
-
-.sn-model {
-  font-size: clamp(40px, 6vw, 64px);
-  font-stretch: var(--display-stretch);
-  font-weight: 300;
-  line-height: 1;
-}
-
-.sn-variant {
-  color: #d9a441;
-  font-family: var(--font-engraving);
-  font-stretch: var(--engrave-stretch);
-  font-size: 16px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.sn-notes {
-  margin: 4px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.sn-notes li {
-  padding: 6px 0 6px 12px;
-  box-shadow: inset 2px 0 0 var(--engrave);
-}
-
-/* The camera or lens itself, with its catalogue facts. */
-.sn-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 16px 28px;
-  align-items: center;
-  margin-top: 24px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-control);
-}
-
-@media (min-width: 760px) {
-  .sn-card {
-    grid-template-columns: 220px minmax(0, 1fr) auto;
-  }
-}
-
-.sn-art {
-  width: 100%;
-  max-width: 220px;
-  border-radius: 2px;
-  background: radial-gradient(90% 90% at 50% 40%, #2a2a27, #141413);
-}
-
-.sn-art svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.sn-card .btn {
-  flex: none;
-}
-
-.sn-row-variant {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 400;
 }
 
 /* ════════════════════════════════════════════════════════════

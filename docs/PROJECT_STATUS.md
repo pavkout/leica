@@ -1,6 +1,6 @@
 # Rangefinder — Project Status
 
-Last updated: 2026-09-28
+Last updated: 2026-09-29
 
 ## Current state
 
@@ -192,6 +192,7 @@ Known limitations / next design pass:
   - The page shows the model, year, variant, stroke notes, catalogue specs with "Shoot with an M3", and the neighbouring blocks.
   - CameraQuest and the Leica Wiki (complete to 1999) block automated access, so M4 and later (except the M5) aren't covered.
 - **Lenses:** the year as before, plus an optional "Which lens is it?" pick. It shows that lens and flags a number older than the design's launch year.
+- **Redesign** (user request, 2026-09-29): the result is now a year scale drawn like a lens barrel's distance scale (1933–2011 for lenses, 1954–1975 for cameras, with the covered years brighter). A red index and the year numeral slide to where the number falls inside its year. The empty state shows the scale with a prompt. The ledger sits beside the gear card on wide screens. The motion respects reduced motion. Checked by headless-Chrome screenshots at 1280 and 390 px. A real-phone check is still pending.
 
 **Eleven more features (second ideas list)** (user request, 2026-09-29): all code COMPLETE, user review pending. Data for #1, #2, #3 and #9 was researched online, and every entry cites its source.
 - **Serial numbers** (Explore): lens serial → year for 1933–2011, from Leica Rumors / Leica Blog Russia and Camera-wiki (Puts, Pont). The two sources agree on every row they share. Overlaps and gaps are kept as published and reported as such. Bodies are not covered. Code: `data/lensSerials.ts`.
