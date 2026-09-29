@@ -5,10 +5,10 @@ import { beginInteraction, haptic } from "./interaction";
 
 const THUMB_STEP = 22;
 
-/** The thumb wheel, seen edge-on: drag it up or down; each third of a stop clicks. */
+/** The thumb wheel, seen edge-on and lying sideways: drag it left or right (right adds exposure); each third of a stop clicks. */
 export function ThumbWheel({ ev, onChange, disabled }: { ev: number; onChange: (ev: number) => void; disabled?: boolean }) {
   const index = EV_STEPS.findIndex((v) => Math.abs(v - ev) < 1e-3);
-  const drag = useRef<{ y: number; acc: number; cur: number; release: () => void } | null>(null);
+  const drag = useRef<{ x: number; acc: number; cur: number; release: () => void } | null>(null);
   const go = (i: number, from: number) => {
     const next = Math.min(EV_STEPS.length - 1, Math.max(0, i));
     if (next === from) return from;
@@ -23,6 +23,7 @@ export function ThumbWheel({ ev, onChange, disabled }: { ev: number; onChange: (
       role="slider"
       tabIndex={disabled ? -1 : 0}
       aria-label="Exposure compensation"
+      aria-orientation="horizontal"
       aria-valuemin={-3}
       aria-valuemax={3}
       aria-valuenow={ev}
@@ -35,14 +36,14 @@ export function ThumbWheel({ ev, onChange, disabled }: { ev: number; onChange: (
         } catch {
           // Capture refused: the wheel still follows while the pointer stays on it.
         }
-        drag.current = { y: e.clientY, acc: 0, cur: index, release: beginInteraction() };
+        drag.current = { x: e.clientX, acc: 0, cur: index, release: beginInteraction() };
       }}
       onPointerMove={(e) => {
         const d = drag.current;
         if (!d) return;
-        // Rolling the wheel upward adds exposure.
-        d.acc += d.y - e.clientY;
-        d.y = e.clientY;
+        // Rolling the wheel to the right adds exposure.
+        d.acc += e.clientX - d.x;
+        d.x = e.clientX;
         const steps = Math.trunc(d.acc / THUMB_STEP);
         if (!steps) return;
         d.acc -= steps * THUMB_STEP;
@@ -66,7 +67,7 @@ export function ThumbWheel({ ev, onChange, disabled }: { ev: number; onChange: (
         if (!disabled && Math.abs(e.deltaY) >= 4) go(index + (e.deltaY < 0 ? 1 : -1), index);
       }}
     >
-      <span className="thumbwheel-knurl" aria-hidden="true" style={{ backgroundPositionY: `${-index * THUMB_STEP * 0.5}px` }} />
+      <span className="thumbwheel-knurl" aria-hidden="true" style={{ backgroundPositionX: `${index * THUMB_STEP * 0.5}px` }} />
       <span className="thumbwheel-value" aria-hidden="true">
         {evLabel(ev)}
       </span>

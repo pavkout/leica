@@ -111,7 +111,7 @@ export const TOOLS: Tool[] = [
   { id: "collection", mode: "explore", label: "My collection", blurb: "Your cameras and lenses: serials, dates, service, photos. Printable for insurance.", stages: ["stage-collection"] },
   { id: "compat", mode: "explore", label: "Will it fit?", blurb: "Any lens on any camera: mount, adapter, frame lines and Leica's warnings.", stages: ["stage-compat"] },
   { id: "sounds", mode: "explore", label: "Sound library", blurb: "Every shutter mechanism and camera sound, drawn and played.", stages: ["stage-sounds"] },
-  { id: "serial", mode: "explore", label: "Serial numbers", blurb: "When was your lens made? Look up the serial on its front ring.", stages: ["stage-serial"] },
+  { id: "serial", mode: "explore", label: "Serial numbers", blurb: "Type a serial number: which camera it is, or when your lens was made.", stages: ["stage-serial"] },
   { id: "coding", mode: "explore", label: "Lens coding", blurb: "The 6-bit code on an M lens: look it up, or read it off the lens in your hand.", stages: ["stage-coding"] },
   { id: "kit", mode: "explore", label: "Kit planner", blurb: "Plan the bag for a trip: what's covered, what's missing, which two to take.", stages: ["stage-kit"] },
   { id: "trial", mode: "explore", label: "Try before you buy", blurb: "What another focal length would frame from where you stand.", stages: ["stage-trial"] },

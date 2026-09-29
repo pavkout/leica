@@ -1435,7 +1435,22 @@ export default function App() {
       />
     ),
     coding: <LensCoding lens={lens} />,
-    serial: <SerialLookup />,
+    serial: (
+      <SerialLookup
+        onUseBody={(id) => {
+          selectBody(id);
+          goCamera();
+        }}
+        onUseLens={(id) => {
+          const l = findLens(id);
+          const target = bodyForLens(l, body);
+          if (!target) return;
+          if (target.id !== body.id) selectBody(target.id);
+          selectLens(id);
+          goCamera();
+        }}
+      />
+    ),
     famous: (
       <FamousFrames
         onTry={(f) => {
