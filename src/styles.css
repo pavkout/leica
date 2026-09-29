@@ -7181,31 +7181,101 @@ ul.lel-warn > li::before,
 /* ── Rangefinder check ──────────────────────────────────── */
 .rfc-steps {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
   margin: 0;
   padding: 0;
   list-style: none;
   counter-reset: step;
 }
 
-.rfc-steps li {
+/* Each step: a picture on a small stage, then a short caption. */
+.rfc-step {
+  display: grid;
+  grid-template-rows: 200px auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  counter-increment: step;
+}
+
+.rfc-visual {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: radial-gradient(80% 90% at 50% 40%, #232321, #121211);
+}
+
+.rfc-visual-paper .rfc-target {
+  height: 168px;
+  width: auto;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  transform: rotate(-3deg);
+}
+
+.rfc-setup {
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+}
+
+.rfc-table {
+  stroke: #6f6c66;
+  stroke-width: 2;
+}
+
+.rfc-sheet {
+  fill: #f2f0eb;
+}
+
+.rfc-bar {
+  fill: #111;
+}
+
+.rfc-cam {
+  fill: #1c1c1b;
+  stroke: #8d8c87;
+}
+
+.rfc-lens {
+  fill: #2a2a28;
+  stroke: #8d8c87;
+}
+
+.rfc-axis {
+  stroke: var(--red);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+}
+
+.rfc-arc {
+  fill: none;
+  stroke: #d9a441;
+  stroke-width: 1.2;
+}
+
+.rfc-dim {
+  fill: #d9a441;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 12px;
+}
+
+.rfc-step-body {
   display: grid;
   align-content: start;
   justify-items: start;
   gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line-strong);
-  counter-increment: step;
+  padding: 14px 16px 16px;
 }
 
-.rfc-steps h3 {
+.rfc-step-body h3 {
   margin: 0;
   font-size: 17px;
   font-weight: 600;
 }
 
-.rfc-steps h3::before {
+.rfc-step-body h3::before {
   content: counter(step);
   margin-right: 10px;
   color: #d9a441;
@@ -7213,16 +7283,81 @@ ul.lel-warn > li::before,
   font-stretch: var(--engrave-stretch);
 }
 
-.rfc-upload {
-  position: relative;
-  overflow: hidden;
+.rfc-specs {
+  display: flex;
+  gap: 18px;
+  margin: 0;
 }
 
-.rfc-upload input {
+.rfc-specs dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.rfc-specs dd {
+  margin: 0;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 22px;
+  font-weight: 300;
+}
+
+/* The drop zone fills the step's picture area. */
+.rfc-drop {
+  position: relative;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  margin: 12px 12px 0;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  text-align: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color var(--t-detent) var(--ease-detent), background-color var(--t-detent) var(--ease-detent);
+}
+
+.rfc-drop:hover,
+.rfc-drop-over {
+  border-color: var(--chrome);
+  background: var(--plate-2);
+  color: var(--text);
+}
+
+.rfc-drop:focus-within {
+  outline: 2px solid var(--chrome-hi);
+  outline-offset: 2px;
+}
+
+.rfc-drop input {
   position: absolute;
   inset: 0;
   opacity: 0;
   cursor: pointer;
+}
+
+.rfc-drop-title {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.rfc-drop-done {
+  border-style: solid;
+}
+
+.rfc-drop-done img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.35;
+}
+
+.rfc-drop-done .rfc-drop-title {
+  position: relative;
 }
 
 .rfc-result {
@@ -7869,4 +8004,213 @@ ul.lel-warn > li::before,
   justify-items: start;
   gap: 4px;
   margin-top: 6px;
+}
+
+/* ── Light meter entrance ───────────────────────────────── */
+.lm-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+}
+
+@media (min-width: 860px) {
+  .lm-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 48px;
+  }
+}
+
+.lm-dial {
+  width: min(100%, 520px);
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.55));
+  height: auto;
+  justify-self: center;
+}
+
+.lm-speed {
+  fill: #f2f1ec;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.lm-ap {
+  fill: #f2f1ec;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 11px;
+}
+
+.lm-ap-red {
+  fill: #e0402f;
+}
+
+.lm-reddot {
+  fill: #e0402f;
+}
+
+.lm-index {
+  fill: #f2f1ec;
+}
+
+.lm-asa,
+.lm-din {
+  fill: #f2f1ec;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.lm-asa-window {
+  fill: #050505;
+  stroke: #4a4a46;
+}
+
+.lm-asa-value {
+  fill: #f2f1ec;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 12px;
+}
+
+/* The needle pivots below the window and swings up to its reading once. */
+.lm-needle {
+  stroke: #d8352a;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transform-origin: 300px 228px;
+  transform: rotate(6deg);
+  animation: lm-swing 1.6s var(--ease-detent) 0.2s both;
+}
+
+.lm-glass {
+  fill: rgba(255, 255, 255, 0.06);
+}
+
+.lm-arrow {
+  fill: none;
+  stroke: #f2f1ec;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.lm-button {
+  fill: #1a1a19;
+  stroke: #050505;
+  stroke-width: 2;
+}
+
+.lm-wheel {
+  fill: #151514;
+  stroke: #3a3a38;
+}
+
+.lm-knurl {
+  stroke: #5a5a56;
+  stroke-width: 1.4;
+}
+
+@keyframes lm-swing {
+  from {
+    transform: rotate(-24deg);
+  }
+  70% {
+    transform: rotate(8deg);
+  }
+  to {
+    transform: rotate(6deg);
+  }
+}
+
+.lm-copy {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+}
+
+.lm-lede {
+  font-size: clamp(24px, 3vw, 32px);
+  font-stretch: var(--display-stretch);
+  font-weight: 300;
+  line-height: 1.15;
+}
+
+.lm-kit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  color: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lm-copy .live-open {
+  flex: none;
+}
+
+.lm-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: lm;
+}
+
+.lm-features li {
+  padding-top: 12px;
+  border-top: 1px solid var(--line-strong);
+  counter-increment: lm;
+}
+
+.lm-features h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.lm-features h3::before {
+  content: counter(lm);
+  margin-right: 10px;
+  color: #d9a441;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lm-needle {
+    animation: none;
+  }
+}
+
+.lp-where {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 12px;
+}
+
+.lp-where svg {
+  color: var(--red);
+}
+
+.lp-where-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.lp-where-coords {
+  color: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
 }

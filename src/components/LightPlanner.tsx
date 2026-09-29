@@ -4,6 +4,7 @@ import { handheldLimit, lightSetting } from "../physics/pocketCard";
 import { sunDay, type Phase } from "../physics/sun";
 import { getString, setString } from "../services/persistence";
 import { formatFNumber } from "../utils/format";
+import { CITIES, formatCoords, nearestCity } from "../data/cities";
 
 interface Props {
   lens: Lens;
@@ -20,20 +21,34 @@ interface Place {
   lon: number;
   /** IANA time zone, so times read as local clock time there. */
   tz: string;
+  /** Your own position: named by the nearest city, never sent anywhere. */
+  here?: { nearest: string; km: number };
 }
 
-/** A few photographers' cities; coordinates are the city centres. */
-const PLACES: Place[] = [
-  { id: "wetzlar", name: "Wetzlar", lat: 50.556, lon: 8.504, tz: "Europe/Berlin" },
-  { id: "amsterdam", name: "Amsterdam", lat: 52.373, lon: 4.893, tz: "Europe/Amsterdam" },
-  { id: "athens", name: "Athens", lat: 37.984, lon: 23.728, tz: "Europe/Athens" },
-  { id: "london", name: "London", lat: 51.507, lon: -0.128, tz: "Europe/London" },
-  { id: "paris", name: "Paris", lat: 48.857, lon: 2.352, tz: "Europe/Paris" },
-  { id: "lisbon", name: "Lisbon", lat: 38.722, lon: -9.139, tz: "Europe/Lisbon" },
-  { id: "new-york", name: "New York", lat: 40.713, lon: -74.006, tz: "America/New_York" },
-  { id: "los-angeles", name: "Los Angeles", lat: 34.052, lon: -118.244, tz: "America/Los_Angeles" },
-  { id: "tokyo", name: "Tokyo", lat: 35.676, lon: 139.65, tz: "Asia/Tokyo" },
-];
+const PLACES: Place[] = CITIES.map((c) => ({ id: c.id, name: `${c.name}, ${c.country}`, lat: c.lat, lon: c.lon, tz: c.tz }));
+const COUNTRIES = [...new Set(CITIES.map((c) => c.country))].sort((a, b) => a.localeCompare(b));
+const HERE_KEY = "rangefinder-light-here";
+
+function loadHere(): Place | null {
+  try {
+    const h = JSON.parse(getString(HERE_KEY) ?? "null") as Place | null;
+    return h && typeof h.lat === "number" && typeof h.lon === "number" ? h : null;
+  } catch {
+    return null;
+  }
+}
+
+function herePlace(lat: number, lon: number): Place {
+  const n = nearestCity(lat, lon);
+  return {
+    id: "here",
+    name: n.km < 30 ? `${n.city.name}, ${n.city.country}` : `Near ${n.city.name}, ${n.city.country}`,
+    lat,
+    lon,
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    here: { nearest: `${n.city.name}, ${n.city.country}`, km: n.km },
+  };
+}
 
 const PLACE_KEY = "rangefinder-light-place";
 
@@ -67,8 +82,12 @@ function midnightIn(tz: string, dayOffset: number): Date {
  * each phase at the film's speed.
  */
 export default function LightPlanner({ lens, stops, speeds, iso, filmLabel }: Props) {
-  const [placeId, setPlaceId] = useState(() => getString(PLACE_KEY) ?? "amsterdam");
-  const [here, setHere] = useState<Place | null>(null);
+  const [here, setHere] = useState<Place | null>(loadHere);
+  const [placeId, setPlaceId] = useState(() => {
+    const saved = getString(PLACE_KEY);
+    if (saved === "here" && loadHere()) return "here";
+    return saved && PLACES.some((p) => p.id === saved) ? saved : "amsterdam";
+  });
   const [locating, setLocating] = useState<string | null>(null);
   const [dayOffset, setDayOffset] = useState(0);
   const [now, setNow] = useState(() => Date.now());
@@ -77,7 +96,7 @@ export default function LightPlanner({ lens, stops, speeds, iso, filmLabel }: Pr
     return () => window.clearInterval(id);
   }, []);
 
-  const place = placeId === "here" && here ? here : PLACES.find((p) => p.id === placeId) ?? PLACES[1];
+  const place = placeId === "here" && here ? here : PLACES.find((p) => p.id === placeId) ?? PLACES.find((p) => p.id === "amsterdam")!;
   const from = useMemo(() => midnightIn(place.tz, dayOffset), [place.tz, dayOffset]);
   const day = useMemo(() => sunDay(from, place.lat, place.lon), [from, place.lat, place.lon]);
   const time = (d: Date | null) => (d ? new Intl.DateTimeFormat(undefined, { timeZone: place.tz, hour: "2-digit", minute: "2-digit" }).format(d) : "none");
@@ -88,8 +107,11 @@ export default function LightPlanner({ lens, stops, speeds, iso, filmLabel }: Pr
     setLocating("Finding you…");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setHere({ id: "here", name: "Where you are", lat: pos.coords.latitude, lon: pos.coords.longitude, tz: Intl.DateTimeFormat().resolvedOptions().timeZone });
+        const h = herePlace(pos.coords.latitude, pos.coords.longitude);
+        setHere(h);
         setPlaceId("here");
+        setString(HERE_KEY, JSON.stringify(h));
+        setString(PLACE_KEY, "here");
         setLocating(null);
       },
       () => setLocating("Location wasn't shared. Pick the nearest city instead."),
@@ -120,14 +142,22 @@ export default function LightPlanner({ lens, stops, speeds, iso, filmLabel }: Pr
             value={placeId}
             onChange={(e) => {
               setPlaceId(e.target.value);
-              if (e.target.value !== "here") setString(PLACE_KEY, e.target.value);
+              setString(PLACE_KEY, e.target.value);
             }}
           >
-            {here && <option value="here">Where you are</option>}
-            {PLACES.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
+            {here && (
+              <optgroup label="Your location">
+                <option value="here">{here.name}</option>
+              </optgroup>
+            )}
+            {COUNTRIES.map((country) => (
+              <optgroup key={country} label={country}>
+                {CITIES.filter((c) => c.country === country).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>
@@ -135,6 +165,15 @@ export default function LightPlanner({ lens, stops, speeds, iso, filmLabel }: Pr
           Use my location
         </button>
       </div>
+      <p className="lp-where">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path d="M8 15s5-5.1 5-9A5 5 0 0 0 3 6c0 3.9 5 9 5 9z" fill="none" stroke="currentColor" strokeWidth="1.4" />
+          <circle cx="8" cy="6" r="1.8" fill="currentColor" />
+        </svg>
+        <span className="lp-where-name">{place.name}</span>
+        <span className="lp-where-coords">{formatCoords(place.lat, place.lon)}</span>
+        {place.here && place.here.km >= 30 && <span className="muted small">{Math.round(place.here.km)} km from {place.here.nearest}</span>}
+      </p>
       {locating && <p className="muted small">{locating}</p>}
 
       <div className="lp-main">
@@ -215,7 +254,7 @@ export default function LightPlanner({ lens, stops, speeds, iso, filmLabel }: Pr
       </div>
 
       <p className="hint">
-        Sun positions calculated for {place.name} (NOAA solar equations), times in {place.id === "here" ? "your time zone" : `${place.name} time`}. Settings for{" "}
+        Sun positions calculated for {place.here ? "your position" : place.name} (NOAA solar equations), times in {place.here ? "your time zone" : "local time there"}. Your position stays on this device. Settings for{" "}
         {filmLabel} at ISO {iso} with the {lens.focalMm} mm, kept hand-holdable where the light allows. Golden and blue hour light changes by
         the minute: meter when you can.
       </p>

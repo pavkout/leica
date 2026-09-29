@@ -46,6 +46,25 @@ function Target() {
   );
 }
 
+/** The set-up, from the side: camera looking down at 45° onto the target on a table, 1 m away. */
+function Setup() {
+  return (
+    <svg viewBox="0 0 240 150" className="rfc-setup" role="img" aria-label="The camera 1 metre from the target, looking down at 45 degrees">
+      <line x1="10" y1="122" x2="230" y2="122" className="rfc-table" />
+      <rect x="150" y="117" width="62" height="4" className="rfc-sheet" />
+      <rect x="178" y="117" width="6" height="4" className="rfc-bar" />
+      <g transform="translate(66 42) rotate(45)">
+        <rect x="-22" y="-12" width="44" height="24" rx="3" className="rfc-cam" />
+        <rect x="18" y="-7" width="16" height="14" rx="1.5" className="rfc-lens" />
+      </g>
+      <line x1="84" y1="60" x2="181" y2="118" className="rfc-axis" />
+      <path d="M130 122 A34 34 0 0 0 125 101" className="rfc-arc" />
+      <text x="138" y="108" className="rfc-dim">45°</text>
+      <text x="112" y="80" className="rfc-dim" transform="rotate(31 112 80)">1 m</text>
+    </svg>
+  );
+}
+
 /**
  * Check a real rangefinder at home. Print the target, photograph it at 45°
  * wide open, focused on the mark with the rangefinder, and upload the photo:
@@ -55,6 +74,7 @@ export default function RangefinderCheck({ onLearnMore }: Props) {
   const [photo, setPhoto] = useState<{ url: string; gray: Float32Array; w: number; h: number } | null>(null);
   const [result, setResult] = useState<FocusResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   function load(file: File) {
     setError(null);
@@ -85,35 +105,78 @@ export default function RangefinderCheck({ onLearnMore }: Props) {
   }
 
   const words = result && {
-    on: "On target: the sharpest band is at the mark you focused on.",
-    front: "Front focus: the sharpest band is nearer than the mark.",
-    back: "Back focus: the sharpest band is farther than the mark.",
+    on: "The sharpest band is at the mark you focused on.",
+    front: "The sharpest band is nearer than the mark.",
+    back: "The sharpest band is farther than the mark.",
   }[result.verdict];
 
   return (
     <section className="panel stage-rfcheck" aria-label="Rangefinder check">
       <ol className="rfc-steps">
-        <li>
-          <h3>Print the target</h3>
-          <p className="muted">On A4 at 100% scale. Lay it flat on a table in good light.</p>
-          <button type="button" className="btn btn-small" onClick={() => window.print()}>
-            Print the target
-          </button>
+        <li className="rfc-step">
+          <div className="rfc-visual rfc-visual-paper">
+            <Target />
+          </div>
+          <div className="rfc-step-body">
+            <h3>Print the target</h3>
+            <p className="muted">A4, at 100% scale. Lay it flat on a table in good light.</p>
+            <button type="button" className="btn btn-small" onClick={() => window.print()}>
+              Print the target
+            </button>
+          </div>
         </li>
-        <li>
-          <h3>Photograph it</h3>
-          <p className="muted">
-            Stand about 1 m away, looking down at roughly 45°. Open the lens fully, focus on the black bar with the rangefinder only (no
-            live view), and take the picture. Use a tripod or brace yourself, and a fast enough speed.
-          </p>
+        <li className="rfc-step">
+          <div className="rfc-visual">
+            <Setup />
+          </div>
+          <div className="rfc-step-body">
+            <h3>Photograph it</h3>
+            <dl className="rfc-specs">
+              <div>
+                <dt>Distance</dt>
+                <dd>1 m</dd>
+              </div>
+              <div>
+                <dt>Angle</dt>
+                <dd>45°</dd>
+              </div>
+              <div>
+                <dt>Aperture</dt>
+                <dd>Wide open</dd>
+              </div>
+            </dl>
+            <p className="muted">Focus on the black bar with the rangefinder only, not live view. Brace yourself or use a tripod.</p>
+          </div>
         </li>
-        <li>
-          <h3>Upload it</h3>
-          <label className="btn btn-red rfc-upload">
-            {photo ? "Choose another photo" : "Choose the photo"}
+        <li className="rfc-step">
+          <label
+            className={`rfc-drop${dragging ? " rfc-drop-over" : ""}${photo ? " rfc-drop-done" : ""}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragging(false);
+              const f = e.dataTransfer.files?.[0];
+              if (f) load(f);
+            }}
+          >
+            {photo ? <img src={photo.url} alt="" /> : (
+              <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+                <path d="M12 16V4M7 9l5-5 5 5M4 16v4h16v-4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+            )}
+            <span className="rfc-drop-title">{photo ? "Choose another photo" : "Drop the photo here"}</span>
+            {!photo && <span className="muted small">or tap to choose it</span>}
             <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && load(e.target.files[0])} />
           </label>
-          {error && <p className="warn-text small">{error}</p>}
+          <div className="rfc-step-body">
+            <h3>Upload it</h3>
+            <p className="muted">It&apos;s analysed in this browser; nothing is uploaded anywhere.</p>
+            {error && <p className="warn-text small">{error}</p>}
+          </div>
         </li>
       </ol>
 

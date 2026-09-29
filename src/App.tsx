@@ -70,6 +70,7 @@ import MuseumToday from "./components/MuseumToday";
 import LensCoding from "./components/LensCoding";
 import SerialLookup from "./components/SerialLookup";
 import FamousFrames from "./components/FamousFrames";
+import LightMeterIntro from "./components/LightMeterIntro";
 import RangefinderCalibration from "./components/RangefinderCalibration";
 import { parseTrial } from "./physics/lensTrial";
 import { findRecipe, type Recipe } from "./data/recipes";
@@ -1187,20 +1188,7 @@ export default function App() {
   );
 
   const liveSection = (
-    <section className="panel stage-live" aria-label="Light meter">
-      <p className="live-intro">
-        A handheld meter for the camera in your hands. Point your phone at the scene: meter a spot, place a highlight or a shadow, and read
-        off the equivalent settings and the zone-focus distance. The picture shows the result through the {body.name} with the {lens.name}.
-      </p>
-      {FLAGS.liveView ? (
-        <button type="button" className="btn btn-red live-open" onClick={openLive}>
-          Open the light meter
-        </button>
-      ) : (
-        <p className="muted">The light meter isn&apos;t available in this build.</p>
-      )}
-      <p className="muted small">The camera only runs while the meter is open, and nothing leaves your device.</p>
-    </section>
+    <LightMeterIntro iso={iso} bodyName={body.name} lensName={lens.name} filmLabel={isFilm ? look.name : `ISO ${iso}`} available={FLAGS.liveView} onOpen={openLive} />
   );
 
   /** From the museum: put that camera (or a body for that lens) on the simulator and go and shoot with it. */
