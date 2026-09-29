@@ -459,7 +459,7 @@ export default function App() {
 
   /** Adds a captured image (however it was rendered) to the current roll/card, and persists it. */
   /** `settings` records another tool's settings (e.g. the Long Exposure Lab's) instead of the simulator's. */
-  function addFrame(url: string, captionSuffix?: string, settings?: { fNumber: number; shutterSec: number; iso: number; note?: string }, manualWind = false) {
+  function addFrame(url: string, captionSuffix?: string, settings?: { fNumber: number; shutterSec: number; iso: number; note?: string }) {
     const number = frames.length + 1;
     const n = settings?.fNumber ?? fNumber;
     const t = settings?.shutterSec ?? shutterSec;
@@ -475,14 +475,14 @@ export default function App() {
     };
     (isFilm ? setRollFrames : setCardFrames)((list) => [...list, frame]);
     void saveStoredFrame(isFilm ? "film" : "digital", frame);
-    // In the camera the lever winds on (and plays the advance); elsewhere the app winds for you.
-    if (isFilm && !manualWind && rollFrames.length + 1 < ROLL_LENGTH) setTimeout(() => {
+    // Film winds on by itself once the shutter has closed: the advance plays and the 3D lever strokes.
+    if (isFilm && rollFrames.length + 1 < ROLL_LENGTH) setTimeout(() => {
         playAdvance();
         setAdvanceCount((n) => n + 1);
       }, Math.min(shutterSec, 2) * 1000 + 200);
   }
 
-  /** `fromCamera`: fired from the camera view, whose own preview captures and whose lever winds on. */
+  /** `fromCamera`: fired from the camera view, whose own preview captures. */
   function fireShutter(fromCamera = false) {
     if (rollFull) return;
     if (fromCamera && liveOn) {
@@ -492,7 +492,7 @@ export default function App() {
       playShutter(shutterSec, shutterVoiceFor(body));
       setFlash((f) => f + 1);
       irisBlink();
-      addFrame(live, "Live", undefined, true);
+      addFrame(live, "Live");
       return;
     }
     const seed = Math.floor(Math.random() * 100000);
@@ -502,7 +502,7 @@ export default function App() {
     irisBlink();
     const side = previewSide(lens, shot, developFor(lens, fNumber, shot.frameWidthMm, seed, angle), photo);
     const url = (fromCamera ? cameraPreviewRef : previewRef).current?.capture(side.params);
-    if (url) addFrame(url, undefined, undefined, fromCamera);
+    if (url) addFrame(url);
   }
 
   /** Same roll/card, but the image is a real captured Live View frame, not a simulated render. */
@@ -1425,10 +1425,6 @@ export default function App() {
             aspect={shot.frameWidthMm / shot.frameHeightMm}
             canShoot={!rollFull}
             onShoot={() => fireShutter(true)}
-            onWind={() => {
-              playAdvance();
-              setAdvanceCount((n) => n + 1);
-            }}
             image={(quality) =>
               liveOn ? (
                 <LiveScreen

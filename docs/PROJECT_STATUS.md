@@ -184,7 +184,12 @@ Known limitations / next design pass:
 - The picker's close key shows a focus ring when opened by pointer.
 - Needs a real-phone check of the feel.
 
-**Camera dials and lever** (user question, 2026-09-29):
+**Film winds on automatically** (user decision, 2026-09-29): the camera's film-advance lever is removed.
+- After every shot on a film body, the app plays the advance sound once the shutter closes and the frame counter moves on. The 3D camera's lever still strokes in time.
+- Digital bodies never had a lever, so they're unaffected.
+- `AdvanceLever`, its CSS and the `onWind`/`manualWind` plumbing are gone.
+
+**Camera dials and lever** (superseded: lever removed) (user question, 2026-09-29):
 - The shutter and ISO dials are smaller: 96–150 px, 22% of the short side (was 112–200 px, 30%).
 - The film advance lever is redrawn as a lever: a knurled hub, a tapered chrome arm and a black finger tip. It reads "Wound", or "Wind on →" in red when it needs winding.
 - The lever now explains itself:

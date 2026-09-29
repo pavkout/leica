@@ -3,7 +3,7 @@ import { prepareAudio } from "../audio/sounds";
 import type { Body, Lens } from "../data/gear";
 import { formatShutter } from "../data/gear";
 import { formatDistance, formatFNumber, lensEngraving, type Units } from "../utils/format";
-import { AdvanceLever, ReleaseButton, ThumbWheel } from "./Controls";
+import { ReleaseButton, ThumbWheel } from "./Controls";
 import { evLabel } from "./controlMath";
 import { useInteracting } from "./interaction";
 import LensRings from "./LensRings";
@@ -44,8 +44,6 @@ export interface CameraProps {
   frames: number;
   canShoot: boolean;
   onShoot: () => void;
-  /** Film bodies: the lever was wound (plays the advance). */
-  onWind: () => void;
 
   /** Frame width ÷ height, so the screen can fit the picture. */
   aspect: number;
@@ -83,13 +81,12 @@ const shutterStops = (speeds: number[], hasAuto: boolean): DialStop[] => [
 /**
  * The app as a camera: the picture fills the middle, the controls sit where
  * an M has them. Digital bodies show the rear screen with an info line; film
- * bodies look through the rangefinder, with a lever to wind on.
+ * bodies look through the rangefinder and wind on by themselves after each shot.
  */
 export default function CameraView(p: CameraProps) {
   const interacting = useInteracting();
   const [half, setHalf] = useState(false);
   const [fnOpen, setFnOpen] = useState(false);
-  const [wound, setWound] = useState(true);
   const [previewHeld, setPreviewHeld] = useState(false);
   // Viewfinder mode: the picture and the release, nothing else. Escape (or the corner key) brings the controls back.
   const [immersed, setImmersed] = useState(false);
@@ -121,15 +118,12 @@ export default function CameraView(p: CameraProps) {
   const isoIndex = Math.max(0, p.isoChoices.indexOf(p.iso));
   const meterLit = half || interacting;
   const clampedMeter = Math.max(-3, Math.min(3, p.meterStops));
-  const ready = p.canShoot && (!p.isFilm || wound);
+  // Film winds on by itself after each shot (the app plays the advance), so the camera is always ready.
+  const ready = p.canShoot;
 
-  // Pressing the release before winding nudges the lever: that's the part to use next.
-  const [leverNudge, setLeverNudge] = useState(0);
   function shoot() {
-    if (p.isFilm && !wound && p.canShoot) setLeverNudge((n) => n + 1);
     if (!ready) return;
     p.onShoot();
-    if (p.isFilm) setWound(false);
   }
 
   // The simulated image is always rendered (the shutter captures it); on a film body the rangefinder sits over it
@@ -272,7 +266,7 @@ export default function CameraView(p: CameraProps) {
         </div>
       </div>
 
-      {/* Right: the top-plate shutter dial, the release, then the back's thumb wheel or the film lever. */}
+      {/* Right: the top-plate shutter dial, the release, then the back's thumb wheel (digital) or the preview key (film). */}
       <div className="cam-right">
         <RotaryDial
           label="Shutter speed dial"
@@ -286,31 +280,20 @@ export default function CameraView(p: CameraProps) {
           step={30}
           className="dial-shutter"
         />
-        <ReleaseButton onHalf={setHalf} onFire={shoot} disabled={!p.canShoot} label={!ready && p.isFilm ? "Release the shutter (wind on first)" : "Release the shutter"} />
+        <ReleaseButton onHalf={setHalf} onFire={shoot} disabled={!p.canShoot} label="Release the shutter" />
         {p.isFilm ? (
-          <>
-            <AdvanceLever
-              nudge={leverNudge}
-              wound={wound}
-              onWind={() => {
-                if (wound) return;
-                setWound(true);
-                p.onWind();
-              }}
-            />
-            <button
-              type="button"
-              className="cam-btn cam-btn-preview"
-              aria-pressed={previewHeld}
-              onPointerDown={() => setPreviewHeld(true)}
-              onPointerUp={() => setPreviewHeld(false)}
-              onPointerLeave={() => setPreviewHeld(false)}
-              onKeyDown={(e) => (e.key === " " || e.key === "Enter") && setPreviewHeld(true)}
-              onKeyUp={() => setPreviewHeld(false)}
-            >
-              Hold to preview
-            </button>
-          </>
+          <button
+            type="button"
+            className="cam-btn cam-btn-preview"
+            aria-pressed={previewHeld}
+            onPointerDown={() => setPreviewHeld(true)}
+            onPointerUp={() => setPreviewHeld(false)}
+            onPointerLeave={() => setPreviewHeld(false)}
+            onKeyDown={(e) => (e.key === " " || e.key === "Enter") && setPreviewHeld(true)}
+            onKeyUp={() => setPreviewHeld(false)}
+          >
+            Hold to preview
+          </button>
         ) : (
           <ThumbWheel ev={p.evComp} onChange={p.onEvComp} />
         )}
