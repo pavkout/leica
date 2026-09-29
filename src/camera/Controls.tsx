@@ -126,10 +126,12 @@ export function ReleaseButton({ onHalf, onFire, disabled, label = "Release the s
 }
 
 /**
- * The film-advance lever: swing it out (drag right) to wind on. Until it's
- * wound, the shutter won't fire — as on a film M.
+ * The film-advance lever: swing it out (drag right, or tap) to wind on. Until
+ * it's wound, the shutter won't fire, as on a film M. It names itself, and
+ * when it needs winding it shows the arc it swings through and makes a small
+ * swing, so it reads as a lever to move, not a decoration.
  */
-export function AdvanceLever({ wound, onWind }: { wound: boolean; onWind: () => void }) {
+export function AdvanceLever({ wound, onWind, nudge = 0 }: { wound: boolean; onWind: () => void; nudge?: number }) {
   const [angle, setAngle] = useState(0);
   const start = useRef<number | null>(null);
   const full = 110;
@@ -139,42 +141,54 @@ export function AdvanceLever({ wound, onWind }: { wound: boolean; onWind: () => 
     start.current = null;
   };
   return (
-    <button
-      type="button"
-      className={`lever${wound ? " lever-wound" : ""}`}
-      aria-label={wound ? "Film wound: ready to shoot" : "Wind on the film"}
-      aria-pressed={wound}
-      onPointerDown={(e) => {
-        if (wound) return;
-        start.current = e.clientX;
-        try {
-          e.currentTarget.setPointerCapture(e.pointerId);
-        } catch {
-          // Capture refused.
-        }
-      }}
-      onPointerMove={(e) => {
-        if (start.current === null) return;
-        setAngle(Math.min(full, Math.max(0, (e.clientX - start.current) * 1.4)));
-      }}
-      onPointerUp={finish}
-      onPointerCancel={() => {
-        setAngle(0);
-        start.current = null;
-      }}
-      onClick={() => {
-        // A tap winds too (dragging just shows the swing); winding twice is harmless.
-        if (!wound) onWind();
-      }}
-    >
-      {/* The top-plate hub the lever pivots on, the arm, and its plastic finger tip. */}
-      <span className="lever-hub" aria-hidden="true" />
-      <span className="lever-arm" style={{ transform: `rotate(${-angle}deg)` }} aria-hidden="true">
-        <span className="lever-tip" />
+    <div className={`lever-wrap${wound ? "" : " lever-wrap-due"}`}>
+      <span className="lever-name" aria-hidden="true">
+        Film advance
       </span>
+      <button
+        type="button"
+        className={`lever${wound ? " lever-wound" : ""}`}
+        aria-label={wound ? "Film advance lever: wound, ready to shoot" : "Film advance lever: wind on the film before the next shot"}
+        aria-pressed={wound}
+        onPointerDown={(e) => {
+          if (wound) return;
+          start.current = e.clientX;
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          } catch {
+            // Capture refused.
+          }
+        }}
+        onPointerMove={(e) => {
+          if (start.current === null) return;
+          setAngle(Math.min(full, Math.max(0, (e.clientX - start.current) * 1.4)));
+        }}
+        onPointerUp={finish}
+        onPointerCancel={() => {
+          setAngle(0);
+          start.current = null;
+        }}
+        onClick={() => {
+          // A tap winds too (dragging just shows the swing); winding twice is harmless.
+          if (!wound) onWind();
+        }}
+      >
+        {/* The path the lever swings through, shown only when it needs winding. */}
+        {!wound && (
+          <svg className="lever-arc" viewBox="0 0 30 30" width="30" height="30" aria-hidden="true">
+            <path d="M6 26 A 22 22 0 0 0 24 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 2.5" />
+            <path d="M18 7 L25 7 L24 14" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+        )}
+        <span className="lever-hub" aria-hidden="true" />
+        {/* Keyed on the nudge count, so every press of the release replays the hint swing. */}
+        <span key={nudge} className={`lever-arm${!wound && angle === 0 ? " lever-arm-hint" : ""}`} style={angle ? { transform: `rotate(${-angle}deg)` } : undefined} aria-hidden="true">
+          <span className="lever-tip" />
+        </span>
+      </button>
       <span className="lever-label" aria-hidden="true">
-        {wound ? "Wound" : "Wind on →"}
+        {wound ? "Wound · ready" : "Swing to wind on"}
       </span>
-    </button>
+    </div>
   );
 }

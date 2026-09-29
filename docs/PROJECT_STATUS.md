@@ -187,6 +187,10 @@ Known limitations / next design pass:
 **Camera dials and lever** (user question, 2026-09-29):
 - The shutter and ISO dials are smaller: 96–150 px, 22% of the short side (was 112–200 px, 30%).
 - The film advance lever is redrawn as a lever: a knurled hub, a tapered chrome arm and a black finger tip. It reads "Wound", or "Wind on →" in red when it needs winding.
+- The lever now explains itself:
+  - it's always named "Film advance";
+  - when it needs winding, a curved arrow at its tip, "Swing to wind on" in red, and a small two-time swing hint (off under reduced motion);
+  - pressing the release before winding replays the swing hint.
 - No A on the M3's dial is correct: A only appears on bodies with aperture priority.
 
 **Light meter rename + realistic release** (user request, 2026-09-29):

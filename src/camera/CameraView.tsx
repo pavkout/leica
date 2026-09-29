@@ -123,7 +123,10 @@ export default function CameraView(p: CameraProps) {
   const clampedMeter = Math.max(-3, Math.min(3, p.meterStops));
   const ready = p.canShoot && (!p.isFilm || wound);
 
+  // Pressing the release before winding nudges the lever: that's the part to use next.
+  const [leverNudge, setLeverNudge] = useState(0);
   function shoot() {
+    if (p.isFilm && !wound && p.canShoot) setLeverNudge((n) => n + 1);
     if (!ready) return;
     p.onShoot();
     if (p.isFilm) setWound(false);
@@ -287,6 +290,7 @@ export default function CameraView(p: CameraProps) {
         {p.isFilm ? (
           <>
             <AdvanceLever
+              nudge={leverNudge}
               wound={wound}
               onWind={() => {
                 if (wound) return;
