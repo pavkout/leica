@@ -1,37 +1,42 @@
-import { formatMoney } from "../../state/market";
-import type { Comparable, PriceRange } from "../../state/market";
+import { formatMoney, type Comparable, type PriceRange } from "../../state/market";
 
-/** A price range with every comparable it came from, each linked. Or "not enough data". */
+/** What similar items sold for, with every source linked. Or, plainly, that there weren't enough. */
 export default function PriceView({ range, comparables, note }: { range: PriceRange | null; comparables: Comparable[]; note: string }) {
+  const soldOnly = range ? comparables.filter((c) => c.kind === "sold" && c.currency === range.currency).length >= range.count : false;
   return (
     <>
       {range ? (
-        <p className="cl-range">
-          {formatMoney(range.low, range.currency)}–{formatMoney(range.high, range.currency)}{" "}
-          <span className="cl-tag">
-            from {range.count} {comparables.filter((c) => c.kind === "sold" && c.currency === range.currency).length >= range.count ? "sold" : "sold and asking"} prices
-          </span>
-        </p>
+        <>
+          <p className="cx-price">
+            {formatMoney(range.low, range.currency)} to {formatMoney(range.high, range.currency)}
+          </p>
+          <p className="cx-quiet">
+            What {range.count} similar items {soldOnly ? "sold for" : "sold or are listed for"}.
+          </p>
+        </>
       ) : (
-        <p>Not enough cited comparables for a range (needs 3 in one currency). The ones found are listed below.</p>
+        <p>We couldn't find enough similar sales to give a price range (we need at least 3). What we did find is below.</p>
       )}
-      {note && <p className="small">{note}</p>}
+      {note && <p>{note}</p>}
       {comparables.length > 0 && (
-        <ul className="cl-comps">
-          {comparables.map((c, i) => (
-            <li key={i}>
-              <strong>{formatMoney(c.price, c.currency)}</strong>
-              <span className="cl-tag">{c.kind}</span>
-              {c.date && <span className="muted">{c.date}</span>}
-              <a href={c.url} target="_blank" rel="noreferrer noopener">
-                {c.title || c.url}
-              </a>
-              {c.condition && <span className="muted small">{c.condition}</span>}
-            </li>
-          ))}
-        </ul>
+        <details className="cx-sources" open={!range}>
+          <summary>Where these prices come from ({comparables.length})</summary>
+          <ul>
+            {comparables.map((c, i) => (
+              <li key={i}>
+                <span className="cx-src-price">{formatMoney(c.price, c.currency)}</span>
+                <span className="cx-src-kind">{c.kind === "sold" ? "Sold" : "For sale"}</span>
+                {c.date && <span className="cx-quiet">{c.date}</span>}
+                <a href={c.url} target="_blank" rel="noreferrer noopener">
+                  {c.title || c.url}
+                </a>
+                {c.condition && <span className="cx-quiet">Condition: {c.condition}</span>}
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
-      <p className="muted small">Market context from public listings and sales, not an appraisal or a prediction. Check the sources.</p>
+      <p className="cx-quiet">A guide from public sales, not an official valuation.</p>
     </>
   );
 }

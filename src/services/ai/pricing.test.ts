@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MODELS, actualCost, estimate, formatEstimate, formatUsd } from "./pricing";
+import { MODELS, actualCost, estimate, formatEstimate, formatUsd, friendlyEstimate, friendlyUsd } from "./pricing";
 
 describe("AI pricing", () => {
   it("prices tokens and searches", () => {
@@ -22,5 +22,15 @@ describe("AI pricing", () => {
     expect(formatUsd(0.034)).toBe("$0.03");
     expect(formatUsd(0.004)).toBe("<$0.01");
     expect(formatEstimate({ low: 0.012, high: 0.035 })).toBe("$0.01–$0.04");
+  });
+
+  it("says costs in plain words", () => {
+    expect(friendlyUsd(0.002)).toBe("less than 1 cent");
+    expect(friendlyUsd(0.01)).toBe("1 cent");
+    expect(friendlyUsd(0.034)).toBe("3 cents");
+    expect(friendlyUsd(1.2)).toBe("$1.20");
+    expect(friendlyEstimate({ low: 0.012, high: 0.035 })).toBe("1–4 cents");
+    expect(friendlyEstimate({ low: 0.004, high: 0.02 })).toBe("up to 2 cents");
+    expect(friendlyEstimate({ low: 0.8, high: 1.2 })).toBe("$0.80–$1.20");
   });
 });

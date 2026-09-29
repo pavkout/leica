@@ -95,15 +95,15 @@ function sameModel(listed: string, claimed: string): boolean {
 export function serialConflicts(facts: SerialFacts, claim: { model?: string | null; year?: string | number | null }): string[] {
   const out: string[] = [];
   if (facts.model && claim.model && !sameModel(facts.model, claim.model))
-    out.push(`The serial list has this number as ${facts.model}${facts.variant ? ` (${facts.variant})` : ""}, not ${claim.model}.`);
+    out.push(`This doesn't match: the factory list says this number is ${/^[AEFHILMNORSX8]/i.test(facts.model) ? "an" : "a"} ${facts.model}${facts.variant ? ` (${facts.variant})` : ""}, not ${claim.model}.`);
   const claimed = claim.year != null ? yearSpan(String(claim.year)) : null;
   const listed = yearSpan(facts.year);
-  if (claimed && listed && (claimed[1] < listed[0] || claimed[0] > listed[1])) out.push(`The serial list dates this number to ${facts.year}, not ${claim.year}.`);
+  if (claimed && listed && (claimed[1] < listed[0] || claimed[0] > listed[1])) out.push(`This doesn't match: the factory list says this number was made in ${facts.year}, not ${claim.year}.`);
   return out;
 }
 
 /** Batch size as a plain fact. It counts cameras made, not cameras surviving. */
 export function rarityNote(facts: SerialFacts): string | null {
   if (!facts.batchSize || !facts.model) return null;
-  return `Batch of ${fmt(facts.batchSize)} ${facts.model}${facts.variant ? `, ${facts.variant}` : ""}, ${facts.year} (No. ${fmt(facts.batchFrom!)}–${fmt(facts.batchTo!)}).`;
+  return `One of a batch of ${fmt(facts.batchSize)} ${facts.model} cameras${facts.variant ? ` (${facts.variant})` : ""} made in ${facts.year}, numbers ${fmt(facts.batchFrom!)} to ${fmt(facts.batchTo!)}.`;
 }

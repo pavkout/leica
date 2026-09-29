@@ -1,26 +1,28 @@
-import { MODELS, formatEstimate, formatUsd, type ModelId } from "../../services/ai/pricing";
+import { friendlyEstimate, friendlyUsd } from "../../services/ai/pricing";
 import type { AiError } from "../../services/ai/errors";
+import { openCollectorPage } from "../../state/collectorStore";
 
-/** "Sonnet 5 · about $0.01–$0.04" before a run; the actual cost after; any error in plain words. */
-export default function RunCostLine({ model, est, actual, error, onSettings }: { model: ModelId; est: { low: number; high: number }; actual?: number | null; error?: AiError | null; onSettings?: () => void }) {
-  const label = MODELS.find((m) => m.id === model)?.label ?? model;
+interface Props {
+  est: { low: number; high: number };
+  /** The actual cost once a run has finished. */
+  actual?: number | null;
+  error?: AiError | null;
+}
+
+/** "Costs 1–4 cents" before a run, "That cost 3 cents" after, and any problem in plain words with the way out. */
+export default function RunCostLine({ est, actual, error }: Props) {
   return (
     <>
-      <p className="cl-cost">
-        {label} · {actual != null ? `this run cost ${formatUsd(actual)}` : `estimated ${formatEstimate(est)}`}
-      </p>
+      <p className="cx-cost">{actual != null ? `That cost ${friendlyUsd(actual)}.` : `Costs ${friendlyEstimate(est)}.`}</p>
       {error && (
-        <p className="sl-status" role="alert">
-          {error.message}
-          {onSettings && ["no-key", "bad-key", "limit"].includes(error.kind) && (
-            <>
-              {" "}
-              <button type="button" className="btn btn-small" onClick={onSettings}>
-                Open AI &amp; pricing
-              </button>
-            </>
+        <div className="cx-problem" role="alert">
+          <p>{error.message}</p>
+          {["no-key", "bad-key", "limit"].includes(error.kind) && (
+            <button type="button" className="btn btn-small" onClick={() => openCollectorPage("aihelper")}>
+              Open the AI helper
+            </button>
           )}
-        </p>
+        </div>
       )}
     </>
   );

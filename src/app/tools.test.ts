@@ -37,4 +37,10 @@ describe("routes", () => {
     // A tool from another mode doesn't leak across.
     expect(parseRoute("#/learn/studio")).toEqual({ screen: "tool", mode: "learn", tool: DEFAULT_TOOL.learn });
   });
+
+  it("keeps old links to tools that moved to Collectors", () => {
+    expect(parseRoute("#/explore/collection")).toEqual({ screen: "tool", mode: "collect", tool: "collection" });
+    expect(parseRoute("#/explore/serial")).toEqual({ screen: "tool", mode: "collect", tool: "serial" });
+    expect(parseRoute("#/collect")).toEqual({ screen: "tool", mode: "collect", tool: "collection" });
+  });
 });

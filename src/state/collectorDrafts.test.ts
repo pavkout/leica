@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { draftFromListing, draftFromReading } from "./collectorDrafts";
+import { draftFromListing, draftFromReading, itemName } from "./collectorDrafts";
 import type { ListingReport, PhotoReading } from "../services/ai/schemas";
 
 const meta = { at: "2026-09-29T12:00:00Z", model: "claude-sonnet-5", usd: 0.03 };
@@ -9,6 +9,15 @@ const reading: PhotoReading = {
 };
 
 describe("collector drafts", () => {
+  it("names things the way collectors do", () => {
+    expect(itemName("Leitz", "M3")).toBe("Leica M3");
+    expect(itemName("Ernst Leitz Wetzlar", "Summicron 50 f/2")).toBe("Leica Summicron 50 f/2");
+    expect(itemName(null, "Leitz Elmar 50")).toBe("Leica Elmar 50");
+    expect(itemName("Voigtländer", "Nokton 40")).toBe("Voigtländer Nokton 40");
+    expect(itemName("Leica", "Leica M6")).toBe("Leica M6");
+    expect(itemName("Leitz", null)).toBe("");
+  });
+
   it("builds a body draft from a photo, with facts from the list kept apart from the AI reading", () => {
     const d = draftFromReading(reading, "data:image/jpeg;base64,x", meta);
     expect(d).toMatchObject({ kind: "body", name: "Leica M3", serial: "959450", photo: "data:image/jpeg;base64,x" });
@@ -35,7 +44,7 @@ describe("collector drafts", () => {
       price: { comparables: [], range: null, note: "few sales" },
     };
     const d = draftFromListing(r, "https://example.com/itm/1", meta);
-    expect(d.name).toBe("Leitz M3");
+    expect(d.name).toBe("Leica M3");
     expect(d.serialFacts?.model).toBe("M3");
     expect(d.notes).toContain("https://example.com/itm/1");
     expect(d.price).toMatch(/2,400/);

@@ -16,17 +16,17 @@ export class AiError extends Error {
 }
 
 const MESSAGES: Record<AiErrorKind, string> = {
-  "no-key": "Add your Anthropic API key in AI & pricing to use this.",
-  "bad-key": "Anthropic rejected the key. Check it in AI & pricing.",
-  "no-credit": "Your Anthropic account is out of credit. Add credit in the Anthropic Console, then try again.",
-  "rate-limit": "Anthropic asked us to slow down. Try again in a moment.",
-  offline: "You're offline. The AI tools need a connection; everything else still works.",
-  refused: "Claude declined this request.",
-  unreadable: "Couldn't read Claude's answer. Nothing was saved; try again.",
-  blocked: "That site can't be read automatically. Paste the listing text instead.",
-  limit: "This would pass your monthly AI limit. Raise it in AI & pricing to continue.",
-  busy: "Anthropic is busy right now. Try again in a minute.",
-  other: "Something went wrong talking to Anthropic.",
+  "no-key": "The AI helper isn't turned on yet. Turn it on first.",
+  "bad-key": "Your key didn't work. Check it on the AI helper page.",
+  "no-credit": "Your Anthropic account has no credit left. Add credit at console.anthropic.com, then try again.",
+  "rate-limit": "Too many requests at once. Wait a moment, then try again.",
+  offline: "You're offline. Connect to the internet to use this. Everything else still works.",
+  refused: "The AI declined this request.",
+  unreadable: "The answer came back incomplete. Nothing was saved. Please try again.",
+  blocked: "This website can't be read automatically. Copy the text of the listing and paste it in the box below.",
+  limit: "This would go over your monthly spending limit. You can raise the limit on the AI helper page.",
+  busy: "The AI service is busy. Try again in a minute.",
+  other: "Something went wrong. Please try again.",
 };
 
 export function aiError(kind: AiErrorKind, detail?: string, retryAfter?: number): AiError {

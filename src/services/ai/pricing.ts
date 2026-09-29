@@ -9,6 +9,8 @@ export type AiAction = "photo" | "listing" | "value";
 export interface ModelPrice {
   id: ModelId;
   label: string;
+  /** The choice in plain words, for people who don't know the model names. */
+  plain: string;
   /** US dollars per million input / output tokens. */
   inPerM: number;
   outPerM: number;
@@ -21,15 +23,15 @@ export const WEB_SEARCH_PER_1000 = 10;
 export const DEFAULT_MODEL: ModelId = "claude-sonnet-5";
 
 export const MODELS: ModelPrice[] = [
-  { id: "claude-haiku-4-5", label: "Haiku 4.5", inPerM: 1, outPerM: 5, note: "Cheapest. Lower image resolution, so weaker at small engravings." },
-  { id: "claude-sonnet-5", label: "Sonnet 5", inPerM: 2, outPerM: 10, note: "Recommended. Reads engraved serials well at full resolution." },
-  { id: "claude-opus-5-5", label: "Opus 5.5", inPerM: 4, outPerM: 20, note: "Strongest. Worth it for hard or high-value items." },
+  { id: "claude-haiku-4-5", label: "Haiku 4.5", plain: "Cheapest", inPerM: 1, outPerM: 5, note: "Costs least. Can miss small engravings." },
+  { id: "claude-sonnet-5", label: "Sonnet 5", plain: "Recommended", inPerM: 2, outPerM: 10, note: "Reads engraved serial numbers well. The best balance." },
+  { id: "claude-opus-5-5", label: "Opus 5.5", plain: "Most careful", inPerM: 4, outPerM: 20, note: "Costs most. For rare or valuable pieces." },
 ];
 
 export const ACTION_LABEL: Record<AiAction, string> = {
-  photo: "Identify from photos",
+  photo: "Identify a photo",
   listing: "Check a listing",
-  value: "Suggest a value",
+  value: "Find the value",
 };
 
 export function modelPrice(id: ModelId): ModelPrice {
@@ -70,6 +72,25 @@ export function estimate(action: AiAction, model: ModelId): { low: number; high:
 export function formatUsd(n: number): string {
   if (n > 0 && n < 0.01) return "<$0.01";
   return `$${n.toFixed(2)}`;
+}
+
+const cents = (n: number) => `${n} cent${n === 1 ? "" : "s"}`;
+
+/** Plain words for a cost: "less than 1 cent", "3 cents", "$1.20". */
+export function friendlyUsd(n: number): string {
+  if (n < 0.005) return "less than 1 cent";
+  if (n < 1) return cents(Math.round(n * 100));
+  return `$${n.toFixed(2)}`;
+}
+
+/** Plain words for an estimate: "up to 2 cents", "1–4 cents", "$0.80–$1.20". */
+export function friendlyEstimate(e: { low: number; high: number }): string {
+  if (e.high >= 1) return `$${e.low.toFixed(2)}–$${e.high.toFixed(2)}`;
+  const lo = Math.round(e.low * 100);
+  const hi = Math.max(1, Math.round(e.high * 100));
+  if (lo < 1) return `up to ${cents(hi)}`;
+  if (lo === hi) return `about ${cents(hi)}`;
+  return `${lo}–${cents(hi)}`;
 }
 
 export function formatEstimate(e: { low: number; high: number }): string {

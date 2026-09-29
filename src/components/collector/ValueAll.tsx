@@ -1,20 +1,20 @@
 import { useRef, useState } from "react";
 import { valueItem } from "../../services/ai/aiClient";
-import { modelFor, type AiSettings } from "../../services/ai/aiSettings";
+import { modelFor } from "../../services/ai/aiSettings";
 import { describeApiError } from "../../services/ai/errors";
-import { estimate, formatEstimate, formatUsd } from "../../services/ai/pricing";
+import { estimate, friendlyEstimate, friendlyUsd } from "../../services/ai/pricing";
 import { loadSpend, wouldExceed } from "../../services/ai/spendLog";
 import type { CollectionItem, Valuation } from "../../state/collection";
+import { openCollectorPage, useAiSettings } from "../../state/collectorStore";
 
 interface Props {
   items: CollectionItem[];
-  settings: AiSettings;
   onValued: (id: string, v: Valuation) => void;
-  onSettings: () => void;
 }
 
-/** Values every item, one at a time, after showing the total estimate. Stoppable; finished items keep their values. */
-export default function ValueAll({ items, settings, onValued, onSettings }: Props) {
+/** Finds the value of every item, one at a time, after saying what it will cost. Can be stopped; finished ones keep their value. */
+export default function ValueAll({ items, onValued }: Props) {
+  const settings = useAiSettings();
   const [confirming, setConfirming] = useState(false);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(0);
@@ -27,7 +27,7 @@ export default function ValueAll({ items, settings, onValued, onSettings }: Prop
 
   async function runAll() {
     setConfirming(false);
-    if (!settings.key) return onSettings();
+    if (!settings.key) return openCollectorPage("aihelper");
     stop.current = false;
     setRunning(true);
     setDone(0);
@@ -36,11 +36,11 @@ export default function ValueAll({ items, settings, onValued, onSettings }: Prop
     let usd = 0;
     for (const [i, item] of items.entries()) {
       if (stop.current) {
-        setStatus(`Stopped after ${i} of ${items.length}.`);
+        setStatus(`Stopped. ${i} of ${items.length} checked.`);
         break;
       }
       if (wouldExceed(loadSpend(), settings.monthlyLimitUsd, one.high, new Date())) {
-        setStatus(`Stopped at your monthly limit after ${i} of ${items.length}.`);
+        setStatus(`Stopped at your monthly spending limit. ${i} of ${items.length} checked.`);
         break;
       }
       try {
@@ -50,7 +50,7 @@ export default function ValueAll({ items, settings, onValued, onSettings }: Prop
       } catch (e) {
         const err = describeApiError(e);
         if (["bad-key", "no-credit", "offline", "no-key"].includes(err.kind)) {
-          setStatus(`${err.message} Stopped after ${i} of ${items.length}.`);
+          setStatus(`${err.message} ${i} of ${items.length} checked.`);
           break;
         }
         setStatus(`${item.name}: ${err.message}`);
@@ -63,33 +63,39 @@ export default function ValueAll({ items, settings, onValued, onSettings }: Prop
 
   if (running)
     return (
-      <p className="sl-status" role="status">
-        Valuing {Math.min(done + 1, items.length)} of {items.length} · spent {formatUsd(spent)}{" "}
-        <button type="button" className="btn btn-small" onClick={() => (stop.current = true)}>
+      <div className="cx-progress" role="status">
+        <p>
+          Checking {Math.min(done + 1, items.length)} of {items.length}… so far {friendlyUsd(spent)}.
+        </p>
+        <button type="button" className="btn" onClick={() => (stop.current = true)}>
           Stop
         </button>
-      </p>
+      </div>
     );
   if (confirming)
     return (
-      <p className="sl-status" role="alertdialog" aria-label="Value all items">
-        Value all {items.length} items? Estimated {formatEstimate(total)} in total.{" "}
-        <button type="button" className="btn btn-red btn-small" onClick={runAll}>
-          Value all
-        </button>{" "}
-        <button type="button" className="btn btn-small" onClick={() => setConfirming(false)}>
-          Cancel
-        </button>
-      </p>
+      <div className="cx-progress" role="alertdialog" aria-label="Find the value of everything">
+        <p>
+          Check the value of all {items.length} items? This takes about a minute each and costs {friendlyEstimate(total)} in total.
+        </p>
+        <div className="cx-actions">
+          <button type="button" className="btn btn-red" onClick={runAll}>
+            Yes, check them all
+          </button>
+          <button type="button" className="btn" onClick={() => setConfirming(false)}>
+            Cancel
+          </button>
+        </div>
+      </div>
     );
   return (
     <>
-      <button type="button" className="btn btn-small" onClick={() => (settings.key ? setConfirming(true) : onSettings())}>
-        Value all
+      <button type="button" className="btn" onClick={() => (settings.key ? setConfirming(true) : openCollectorPage("aihelper"))}>
+        Find the value of everything
       </button>
       {status && (
-        <p className="sl-status" role="status">
-          {status} {done > 0 && `Spent ${formatUsd(spent)}.`}
+        <p className="cx-quiet" role="status">
+          {status} {done > 0 && `Cost ${friendlyUsd(spent)}.`}
         </p>
       )}
     </>

@@ -3,7 +3,7 @@
 // a tool opens on its own page (#/learn/sunny16) so it can be linked. The
 // existing query links (?recipe, ?try, ?demo, ?kiosk) keep working alongside.
 
-export type ModeId = "simulate" | "learn" | "shoot" | "explore";
+export type ModeId = "simulate" | "learn" | "shoot" | "explore" | "collect";
 
 export interface Mode {
   id: ModeId;
@@ -17,6 +17,7 @@ export const MODES: Mode[] = [
   { id: "learn", label: "Learn", job: "Practise the skills a rangefinder asks for." },
   { id: "shoot", label: "Shoot", job: "Take it out with your own camera." },
   { id: "explore", label: "Explore", job: "The cameras, the lenses and their history." },
+  { id: "collect", label: "Collectors", job: "Keep track of what you own, and check what you might buy." },
 ];
 
 export type ToolId =
@@ -59,7 +60,10 @@ export type ToolId =
   | "today"
   | "coding"
   | "serial"
-  | "famous";
+  | "famous"
+  | "identify"
+  | "listing"
+  | "aihelper";
 
 export interface Tool {
   id: ToolId;
@@ -108,16 +112,23 @@ export const TOOLS: Tool[] = [
   { id: "camera3d", mode: "explore", label: "Virtual camera", blurb: "Turn the rings and dials on a 3D camera.", stages: ["stage-camera3d"] },
   { id: "timeline", mode: "explore", label: "Timeline", blurb: "Cameras and lenses through the years, with sources.", stages: ["stage-museum"] },
   { id: "generations", mode: "explore", label: "Lens generations", blurb: "One name, several designs: compare the versions.", stages: ["stage-generations"] },
-  { id: "collection", mode: "explore", label: "My collection", blurb: "Your cameras and lenses: serials, dates, service, photos. Printable for insurance.", stages: ["stage-collection"] },
   { id: "compat", mode: "explore", label: "Will it fit?", blurb: "Any lens on any camera: mount, adapter, frame lines and Leica's warnings.", stages: ["stage-compat"] },
   { id: "sounds", mode: "explore", label: "Sound library", blurb: "Every shutter mechanism and camera sound, drawn and played.", stages: ["stage-sounds"] },
-  { id: "serial", mode: "explore", label: "Serial numbers", blurb: "Type a serial number: which camera it is, or when your lens was made.", stages: ["stage-serial"] },
   { id: "coding", mode: "explore", label: "Lens coding", blurb: "The 6-bit code on an M lens: look it up, or read it off the lens in your hand.", stages: ["stage-coding"] },
   { id: "kit", mode: "explore", label: "Kit planner", blurb: "Plan the bag for a trip: what's covered, what's missing, which two to take.", stages: ["stage-kit"] },
   { id: "trial", mode: "explore", label: "Try before you buy", blurb: "What another focal length would frame from where you stand.", stages: ["stage-trial"] },
+
+  { id: "collection", mode: "collect", label: "My collection", blurb: "Every camera, lens and accessory you own, in one place. Printable for insurance.", stages: ["stage-collection"] },
+  { id: "identify", mode: "collect", label: "What is this?", blurb: "Take a photo of a camera or lens. We'll tell you what it is and read its serial number.", stages: ["stage-identify"] },
+  { id: "listing", mode: "collect", label: "Before you buy", blurb: "Paste a link to something for sale. We'll check it and compare the price.", stages: ["stage-listing"] },
+  { id: "serial", mode: "collect", label: "Serial numbers", blurb: "Type a serial number: which camera it is, or when your lens was made.", stages: ["stage-serial"] },
+  { id: "aihelper", mode: "collect", label: "AI helper", blurb: "Turn on the photo and price tools, choose how much to spend, and see what you've spent.", stages: ["stage-aihelper"] },
 ];
 
-export const DEFAULT_TOOL: Record<ModeId, ToolId> = { simulate: "studio", learn: "assignment", shoot: "live", explore: "today" };
+export const DEFAULT_TOOL: Record<ModeId, ToolId> = { simulate: "studio", learn: "assignment", shoot: "live", explore: "today", collect: "collection" };
+
+/** Tools that moved to another mode: their old links still open them. */
+const MOVED: Partial<Record<ModeId, ToolId[]>> = { explore: ["collection", "serial"] };
 
 export function findTool(id: string | undefined): Tool | undefined {
   return TOOLS.find((t) => t.id === id);
@@ -145,6 +156,7 @@ export function parseRoute(hash: string): Route {
   const mode = MODES.find((m) => m.id === modePart)?.id;
   if (!mode) return HOME;
   const tool = findTool(toolPart);
+  if (tool && tool.mode !== mode && MOVED[mode]?.includes(tool.id)) return { screen: "tool", mode: tool.mode, tool: tool.id };
   return { screen: "tool", mode, tool: tool && tool.mode === mode ? tool.id : DEFAULT_TOOL[mode] };
 }
 

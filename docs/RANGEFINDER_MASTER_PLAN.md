@@ -884,6 +884,17 @@ Added 2026-09-29 at the user's request. Design: `docs/superpowers/specs/2026-09-
 - The user chooses the model (Haiku 4.5 / Sonnet 5 / Opus 5.5). A pricing table, a cost preview before each run and the actual cost after keep spend visible.
 - Price suggestions cover both listing links and owned items, as cited comparables only.
 
+**Structure (user, 2026-09-29):** Collectors is its own top-level MENU section, next to Simulate, Learn, Shoot and Explore. Its pages:
+- My collection
+- What is this? (photo)
+- Before you buy (listing)
+- Serial numbers
+- AI helper
+
+Old links to My collection and Serial numbers under Explore still open them.
+
+**Audience:** people who are not technical. Each page does one job, with one clearly marked main action per step, plain words (costs in cents; "Sure / Fairly sure / Not sure"), and every disabled button says why.
+
 **UX requirements**
 - The serial auto-fills model, year, variant and batch size from the sourced serial tables, with the source shown. This works offline without a key.
 - Photo → draft collection item. The user confirms before anything is saved, and the app never guesses unreadable serial digits.

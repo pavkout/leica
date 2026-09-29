@@ -63,10 +63,10 @@ export function askingPosition(asking: { price: number; currency: string } | nul
 export function askingNote(asking: { price: number; currency: string } | null, range: PriceRange | null): string | null {
   const pos = askingPosition(asking, range);
   if (!pos || !asking || !range) return null;
-  if (pos === "within") return "The asking price is within the range of the comparables.";
+  if (pos === "within") return "In line with what similar items sold for.";
   const edge = pos === "above" ? range.high : range.low;
   const pct = Math.round((Math.abs(asking.price - edge) / edge) * 100);
-  return pos === "above" ? `The asking price is about ${pct}% above the highest comparable.` : `The asking price is about ${pct}% below the lowest comparable: check why.`;
+  return pos === "above" ? `About ${pct}% more than the highest similar sale.` : `About ${pct}% less than the lowest similar sale. Ask why it's so cheap.`;
 }
 
 export function formatMoney(n: number, currency: string): string {

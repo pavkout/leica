@@ -28,6 +28,31 @@ Last updated: 2026-09-29
   - [x] 3. Photo → item: `collector/PhotoIdentify.tsx`, `state/collectorDrafts.ts`
   - [x] 4. Listing check: `collector/ListingCheck.tsx`, `state/market.ts`
   - [x] 5. Value my collection: `collector/ValuationPanel.tsx`, `collector/ValueAll.tsx`
+- **Collectors section + ease-of-use redesign** (user request, 2026-09-29): code COMPLETE, waiting for the user's review.
+  - A new top-level MENU section, **Collectors**, with 5 pages:
+    - My collection
+    - What is this? (photo)
+    - Before you buy (listing)
+    - Serial numbers (moved from Explore)
+    - AI helper (replaces the old "AI & pricing" panel)
+  - Old `#/explore/collection` and `#/explore/serial` links redirect.
+  - The pages are written for non-technical users:
+    - two big ways to add something (Take a photo, Type it in)
+    - numbered steps where the task really is a sequence
+    - one solid-red main button per step (Collectors pages only; the rest of the app keeps the single pill style)
+    - costs in cents
+    - "Sure / Fairly sure / Not sure" instead of confidence levels
+    - an "at a glance" checklist on listing results
+    - the serial number shown engraved, like a top plate
+    - a sticky Save bar
+    - removing an item asks for confirmation
+    - every disabled button says why
+  - Shared state lives in `state/collectorStore.ts`: AI settings shared across pages, and the draft handoff to My collection. The editor is `collector/ItemEditor.tsx`.
+  - Fixed on the way: text inputs without `type="text"` were missing the app's input style.
+  - Validation:
+    - 615 tests pass (new: routes, plain-cost wording, listing at-a-glance, collector naming).
+    - Typecheck clean; lint has 0 errors; build passes.
+    - A mocked-API walkthrough of all 5 pages at 390 and 320 px: no errors, no sideways overflow.
 - **Validation (2026-09-29):**
   - 609 tests pass (new: serial facts, market rules, pricing, settings, spend log, errors, schemas, drafts, and the AI client against a fake transport; no test calls the real API).
   - Typecheck is clean. Lint has 0 errors; its 5 warnings were already there.

@@ -63,6 +63,9 @@ import ZoneCoach from "./components/ZoneCoach";
 import LightPlanner from "./components/LightPlanner";
 import Compatibility from "./components/Compatibility";
 import Collection from "./components/Collection";
+import IdentifyPage from "./components/collector/IdentifyPage";
+import ListingPage from "./components/collector/ListingPage";
+import AiHelper from "./components/collector/AiHelper";
 import RangefinderCheck from "./components/RangefinderCheck";
 import FilmFinder from "./components/FilmFinder";
 import SoundLibrary from "./components/SoundLibrary";
@@ -1427,6 +1430,9 @@ export default function App() {
       />
     ),
     collection: <Collection />,
+    identify: <IdentifyPage />,
+    listing: <ListingPage />,
+    aihelper: <AiHelper />,
     today: (
       <MuseumToday
         units={units}

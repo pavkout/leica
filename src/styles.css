@@ -7229,53 +7229,772 @@ ul.lel-warn > li::before,
   margin-bottom: 2pt;
 }
 
-/* ── Collector tools (#38) ──────────────────────────────── */
-.co-listed {
-  color: var(--muted);
+/* ── Collectors (#38) ───────────────────────────────────────
+   Written for people who don't care about technology: bigger text, one
+   main action per step (solid red here, so it can't be missed), plain
+   status lines, and the serial number shown like an engraving. */
+.cx {
+  font-size: 17px;
+  line-height: 1.55;
 }
 
-.cl-label {
-  margin: 16px 0 4px;
-  color: var(--muted);
-  font-family: var(--font-engraving);
-  font-stretch: var(--engrave-stretch);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.cx p {
+  margin: 0 0 10px;
 }
 
-.cl-facts,
-.cl-card {
-  margin: 12px 0;
-  padding: 10px 0 10px 12px;
-  box-shadow: inset 2px 0 0 var(--engrave);
+.cx .field > span,
+.cx legend {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
 }
 
-.cl-card.cl-ai {
-  box-shadow: inset 2px 0 0 var(--muted);
+.cx .btn-red {
+  --btn-bg: var(--red);
+  border-color: var(--red);
 }
 
-.cl-facts p,
-.cl-card p {
-  margin: 0 0 4px;
+.cx .btn-red::after {
+  background: #fff;
 }
 
-.cl-facts .cl-label,
-.cl-card .cl-label {
+.cx .btn-red:hover:not(:disabled),
+.cx .btn-red:focus-visible {
+  --btn-bg: var(--red-hover);
+  background: var(--red-hover);
+  border-color: var(--red-hover);
+}
+
+.cx-h {
+  margin: 28px 0 8px;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.cx > .cx-h:first-child,
+.cx-block > .cx-h:first-child,
+.cx-flow .cx-h {
   margin-top: 0;
 }
 
-.cl-models {
-  margin: 8px 0;
-  padding-left: 18px;
+.cx-quiet {
+  color: var(--muted);
+  font-size: 15px;
 }
 
-.cl-models li {
-  margin: 0 0 4px;
+.cx-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0;
 }
 
-.cl-table th[scope="row"] {
-  white-space: nowrap;
+.cx-actions .btn {
+  flex: 0 1 auto;
+}
+
+.cx-link {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.cx-link:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.cx-mono {
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  letter-spacing: 0.04em;
+}
+
+/* Status lines: chrome for done, red for a problem. */
+.cx-ok,
+.cx-problem {
+  margin: 12px 0;
+  padding: 10px 0 10px 14px;
+  font-size: 16px;
+}
+
+.cx-ok {
+  box-shadow: inset 3px 0 0 var(--chrome);
+}
+
+.cx-problem {
+  box-shadow: inset 3px 0 0 var(--red);
+}
+
+.cx-problem p {
+  margin: 0 0 8px;
+}
+
+.cx-warn {
+  padding-left: 12px;
+  box-shadow: inset 3px 0 0 var(--red);
+}
+
+.cx-tip {
+  padding-left: 12px;
+  box-shadow: inset 3px 0 0 var(--line-strong);
+}
+
+.cx-cost {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cx-block {
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--plate-2);
+}
+
+.cx-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 0 16px;
+}
+
+.cx-narrow {
+  max-width: 220px;
+}
+
+/* A choice between a few things: machined keys, the chosen one marked with the red index. */
+.cx-pick {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--plate-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.cx-pick:hover {
+  border-color: #5a5a54;
+}
+
+.cx-pick-on {
+  border-color: var(--chrome);
+  background: var(--plate-3);
+  box-shadow: inset 0 -3px 0 var(--red);
+  font-weight: 600;
+}
+
+.cx-pick:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ── My collection ───────────────────────────── */
+.cx-summary {
+  font-size: 20px;
+}
+
+.cx .cx-footnote {
+  margin-top: 24px;
+}
+
+.cx-ways {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 12px;
+}
+
+.cx-way {
+  display: grid;
+  gap: 4px;
+  min-height: 96px;
+  padding: 18px 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--plate-2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--t-detent) var(--ease-detent);
+}
+
+.cx-way:hover {
+  border-color: var(--chrome);
+}
+
+.cx-way:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.cx-way-main {
+  box-shadow: inset 4px 0 0 var(--red);
+}
+
+.cx-way[aria-expanded="true"] {
+  border-color: var(--chrome);
+}
+
+.cx-way-title {
+  font-size: 21px;
+  font-weight: 600;
+}
+
+.cx-way-text {
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.cx-choose {
+  margin-top: 14px;
+}
+
+.cx-choose p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.cx-keep {
+  margin-top: 28px;
+}
+
+/* ── The editor: one item, one screen ───────── */
+.cx-editor-title {
+  margin: 0 0 8px;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.cx-editor-title:focus {
+  outline: none;
+}
+
+.cx-fieldset {
+  margin: 0 0 8px;
+  padding: 18px 0 8px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  min-width: 0;
+}
+
+.cx-fieldset legend {
+  padding: 0 8px 0 0;
+  font-size: 19px;
+}
+
+.cx-serial input {
+  min-height: 56px;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 26px;
+  letter-spacing: 0.08em;
+}
+
+.cx-photo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.cx-photo img {
+  width: 120px;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+}
+
+.cx-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 20px -16px 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line-strong);
+  background: var(--plate);
+}
+
+.cx-savebar .btn {
+  flex: 0 1 auto;
+}
+
+.cx-savebar p {
+  margin: 0;
+}
+
+.cx-remove {
+  margin-top: 16px;
+  color: var(--muted);
+}
+
+.cx-progress {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--plate-2);
+}
+
+.cx-progress .cx-actions {
+  margin-bottom: 0;
+}
+
+/* ── The serial number, engraved ─────────────── */
+.cx-plate {
+  position: relative;
+  margin: 14px 0;
+  padding: 18px 20px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #1c1c1b, #151514);
+  box-shadow: inset 0 1px 0 var(--hairline-strong), inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+}
+
+.cx-plate::before {
+  content: "";
+  position: absolute;
+  top: 22px;
+  left: 0;
+  width: 3px;
+  height: 24px;
+  background: var(--red);
+}
+
+.cx-plate-no {
+  margin: 0 0 6px !important;
+  color: var(--chrome);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.cx-plate-what {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.cx-source {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ── Step-by-step pages ───────────────────────── */
+.cx-flow {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: cx-step;
+}
+
+.cx-flow > li {
+  position: relative;
+  counter-increment: cx-step;
+  padding: 0 0 28px 52px;
+}
+
+.cx-flow > li::before {
+  content: counter(cx-step);
+  position: absolute;
+  top: -2px;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--plate-2);
+  color: var(--text);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.cx-flow > li::after {
+  content: "";
+  position: absolute;
+  top: 38px;
+  bottom: 6px;
+  left: 17px;
+  width: 1px;
+  background: var(--line-strong);
+}
+
+.cx-flow > li:last-child::after {
+  display: none;
+}
+
+.cx-flow > li.cx-flow-done::before {
+  content: "✓";
+  border-color: var(--chrome);
+  background: var(--chrome);
+  color: #151514;
+}
+
+.cx-file {
+  overflow: hidden;
+}
+
+.cx-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.cx-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.cx-thumbs img {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+}
+
+.cx-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.cx-inline .field {
+  flex: 1 1 240px;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.cx-inline .btn {
+  flex: none;
+}
+
+.cx-answer-lead {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.cx-facts {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 12px 0;
+}
+
+.cx-facts dt {
+  color: var(--muted);
+}
+
+.cx-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .cx-facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .cx-facts dd {
+    margin-bottom: 8px;
+  }
+}
+
+.cx-ai {
+  background: transparent;
+  border-style: dashed;
+}
+
+/* At a glance: three lines a buyer reads first. */
+.cx-glance {
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.cx-glance li {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px;
+}
+
+.cx-glance li + li {
+  border-top: 1px solid var(--line);
+}
+
+.cx-glance-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+.cx-glance-good .cx-glance-mark {
+  background: var(--chrome);
+  color: #151514;
+}
+
+.cx-glance-warn .cx-glance-mark {
+  background: var(--red);
+  color: #fff;
+}
+
+.cx-glance-none .cx-glance-mark {
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+}
+
+.cx-flags {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cx-flags li {
+  margin: 0 0 10px;
+  padding-left: 12px;
+  box-shadow: inset 3px 0 0 var(--red);
+}
+
+/* Prices */
+.cx-price {
+  margin: 0 0 2px !important;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 30px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cx-sources {
+  margin: 12px 0;
+}
+
+.cx-sources summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.cx-sources ul {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cx-sources li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cx-sources a {
+  flex: 1 1 100%;
+  min-width: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.cx-src-price {
+  font-weight: 700;
+}
+
+.cx-src-kind {
+  color: var(--muted);
+}
+
+/* ── AI helper ───────────────────────────────── */
+.cx-status {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.cx-status p {
+  margin: 0;
+}
+
+.cx-status-title {
+  margin-bottom: 4px !important;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.cx-status-dot {
+  width: 16px;
+  height: 16px;
+  margin-top: 8px;
+  border: 2px solid var(--muted);
+  border-radius: 50%;
+}
+
+.cx-status-on .cx-status-dot {
+  border-color: var(--red);
+  background: var(--red);
+}
+
+.cx-steps {
+  margin: 0;
+  padding: 0 0 0 26px;
+}
+
+.cx-steps li {
+  margin: 0 0 18px;
+  padding-left: 6px;
+}
+
+.cx-steps li::marker {
+  font-weight: 700;
+}
+
+.cx-step-title {
+  margin: 0 0 2px !important;
+  font-weight: 600;
+}
+
+.cx-key {
+  margin-top: 8px;
+}
+
+.cx-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 10px;
+}
+
+.cx-choice {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 4px 10px;
+  padding: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--plate);
+  cursor: pointer;
+}
+
+.cx-choice input {
+  grid-row: span 3;
+  width: 20px;
+  height: 20px;
+  margin: 3px 0 0;
+  accent-color: var(--red);
+}
+
+.cx-choice-on {
+  border-color: var(--chrome);
+  box-shadow: inset 0 -3px 0 var(--red);
+}
+
+.cx-choice:focus-within {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.cx-choice-title {
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.cx-choice-text {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.cx-choice-cost {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cx-label-plain {
+  margin: 12px 0 0 !important;
+  font-weight: 600;
+}
+
+.cx-more {
+  margin: 20px 0 0;
+}
+
+.cx-more > summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.cx-more .cx-h {
+  margin-top: 20px;
+  font-size: 18px;
+}
+
+.cl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-table th,
+.cl-table td {
+  padding: 8px 10px 8px 0;
+  border-bottom: 1px solid var(--hairline-strong);
+  text-align: left;
+  vertical-align: top;
+}
+
+.cl-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 @media (max-width: 420px) {
@@ -7289,123 +8008,22 @@ ul.lel-warn > li::before,
   }
 }
 
-.cl-facts-main {
-  font-size: 16px;
-}
-
-.cl-facts-none {
+.cx-gate {
   margin: 8px 0;
-}
-
-.cl-conflict,
-.cl-flag {
-  color: var(--text);
-  box-shadow: inset 2px 0 0 var(--red);
-  padding-left: 8px;
-}
-
-.cl-panel {
-  margin: 12px 0 16px;
-  padding: 14px;
-  border: 1px solid var(--line);
+  padding: 18px;
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   background: var(--plate-2);
 }
 
-.cl-panel h3 {
-  margin: 0 0 8px;
+.cx-gate-title {
+  margin-bottom: 4px !important;
+  font-size: 19px;
+  font-weight: 600;
 }
 
-.cl-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin: 8px 0;
-}
-
-.cl-row .field {
-  flex: 1 1 220px;
-  min-width: 0;
-}
-
-.cl-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-variant-numeric: tabular-nums;
-}
-
-.cl-table th,
-.cl-table td {
-  padding: 6px 8px 6px 0;
-  border-bottom: 1px solid var(--hairline-strong);
-  text-align: left;
-  vertical-align: top;
-}
-
-.cl-table-wrap {
-  overflow-x: auto;
-  max-width: 100%;
-}
-
-.cl-comps {
-  margin: 6px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.cl-comps li {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 10px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--hairline);
-  font-variant-numeric: tabular-nums;
-}
-
-.cl-comps a {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--text);
-}
-
-.cl-tag {
+.co-listed {
   color: var(--muted);
-  font-family: var(--font-engraving);
-  font-stretch: var(--engrave-stretch);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.cl-range {
-  font-size: 20px;
-  font-variant-numeric: tabular-nums;
-}
-
-.cl-cost {
-  color: var(--muted);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-.cl-thumbs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.cl-thumbs img {
-  width: 72px;
-  height: 72px;
-  object-fit: cover;
-  border-radius: var(--radius-key);
-}
-
-.cl-panel textarea {
-  width: 100%;
-  min-height: 90px;
-  box-sizing: border-box;
 }
 
 /* ── Rangefinder check ──────────────────────────────────── */

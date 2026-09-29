@@ -45,6 +45,7 @@ describe("market", () => {
     expect(askingPosition({ price: 2000, currency: "EUR" }, r)).toBe("within");
     expect(askingPosition({ price: 2640, currency: "EUR" }, r)).toBe("above");
     expect(askingPosition({ price: 2000, currency: "USD" }, r)).toBeNull();
-    expect(askingNote({ price: 2640, currency: "EUR" }, r)).toMatch(/20% above/);
+    expect(askingNote({ price: 2640, currency: "EUR" }, r)).toMatch(/20% more/);
+    expect(askingNote({ price: 2000, currency: "EUR" }, r)).toMatch(/In line/);
   });
 });
