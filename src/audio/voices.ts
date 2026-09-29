@@ -11,7 +11,7 @@
 import type { Body } from "../data/gear";
 import type { Provenance } from "../data/provenance";
 
-export type ShutterMechanism = "cloth-focal-plane" | "metal-focal-plane" | "leaf";
+export type ShutterMechanism = "cloth-focal-plane" | "metal-focal-plane" | "leaf" | "electronic";
 
 /** One curtain (or leaf) event: a filtered noise click plus a low thump. */
 export interface ShutterStrike {
@@ -70,6 +70,27 @@ const LEAF: ShutterVoice = {
   recock: null,
 };
 
+/**
+ * Electronic shutter: the sensor reads out with no curtain moving, so there's
+ * no mechanical sound at all; a faint tick stands in for the confirmation
+ * beep, so the press still registers.
+ */
+const ELECTRONIC: ShutterVoice = {
+  mechanism: "electronic",
+  label: "Electronic shutter (silent)",
+  open: { clickHz: 5200, clickQ: 8, clickGain: 0.035, clickDecay: 0.008, thumpHz: 400, thumpGain: 0, thumpDecay: 0.01 },
+  close: { clickHz: 5200, clickQ: 8, clickGain: 0, clickDecay: 0.008, thumpHz: 400, thumpGain: 0, thumpDecay: 0.01 },
+  minGapSec: 0.004,
+  recock: null,
+};
+
+/**
+ * Digital Ms with a speed range past the mechanical shutter (the M11's goes to
+ * 1/16000 s) switch to their electronic shutter there. The mechanical limit is
+ * 1/4000 s on those bodies (published); faster speeds are electronic.
+ */
+export const M_MECHANICAL_FASTEST_SEC = 1 / 4000;
+
 export function shutterMechanism(body: Pick<Body, "family">): ShutterMechanism {
   switch (body.family) {
     case "M film":
@@ -88,8 +109,11 @@ const VOICES: Record<ShutterMechanism, ShutterVoice> = {
   "cloth-focal-plane": CLOTH,
   "metal-focal-plane": METAL,
   leaf: LEAF,
+  electronic: ELECTRONIC,
 };
 
-export function shutterVoiceFor(body: Pick<Body, "family">): ShutterVoice {
+/** The voice for this body, and (given a speed) the silent electronic shutter where a digital M uses it. */
+export function shutterVoiceFor(body: Pick<Body, "family">, shutterSec?: number): ShutterVoice {
+  if (body.family === "M digital" && shutterSec !== undefined && shutterSec < M_MECHANICAL_FASTEST_SEC * 0.999) return ELECTRONIC;
   return VOICES[shutterMechanism(body)] ?? CLOTH;
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { diagnoseFrame } from "../physics/diagnosis";
 import { OUTCOME_TAGS, type ExportableFrame, type Frame, type FrameMeta, type OutcomeTag, framesToCsv, framesToJson } from "../state/rollExport";
 
 export type { Frame, FrameMeta };
@@ -109,6 +110,40 @@ export default function ContactSheet({ frames, capacity, filmName, base, onRewin
               <span>
                 <b>#{open.number}</b> {open.caption}
               </span>
+              {(() => {
+                const d = diagnoseFrame(open.meta);
+                const shown = d.findings.filter((f) => f.level !== "fine");
+                const suggested = d.suggestedTag && d.suggestedTag !== open.outcome ? OUTCOME_TAGS.find((t) => t.id === d.suggestedTag) : undefined;
+                return (
+                  <section className="diagnosis" aria-label="Why it looks like this">
+                    <h3>Why it looks like this</h3>
+                    {shown.length === 0 ? (
+                      <p className="diagnosis-clear">Nothing in the settings spoils this frame: focus, steadiness and exposure all check out.</p>
+                    ) : (
+                      <ul className="diagnosis-list">
+                        {shown.map((f) => (
+                          <li key={f.kind} className={`diagnosis-${f.level}`}>
+                            <span className="diagnosis-title">
+                              {f.title}
+                              {f.level === "risk" && <span className="dna-badge dna-approximate">Risk</span>}
+                            </span>
+                            <span className="diagnosis-detail">{f.detail}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <p className="muted small">
+                      Calculated from the settings saved with the frame, not from the picture itself.
+                      {d.partial && (open.meta.source === "live" ? " A live frame doesn't know where the subject stood, so focus isn't judged." : " Frames saved before this check don't record the subject's distance, so focus isn't judged.")}
+                    </p>
+                    {suggested && (
+                      <button type="button" className="btn btn-small" onClick={() => onUpdateOutcome(open.id, suggested.id)}>
+                        Tag as &ldquo;{suggested.label}&rdquo;
+                      </button>
+                    )}
+                  </section>
+                );
+              })()}
               <div className="field">
                 <span>Outcome</span>
                 <div className="dial" role="radiogroup" aria-label="Outcome tag">

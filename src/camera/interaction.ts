@@ -3,6 +3,7 @@
 // change lands in the next frame; full quality returns shortly after release.
 
 import { useSyncExternalStore } from "react";
+import { vibrate } from "../audio/sounds";
 
 let active = 0;
 let settling: number | undefined;
@@ -40,11 +41,7 @@ export function useInteracting(): boolean {
   );
 }
 
-/** A short tick under the finger where the browser allows vibration (Android); a no-op elsewhere. */
+/** A short tick under the finger where the browser allows vibration (Android); a no-op elsewhere or when haptics are off. */
 export function haptic(ms = 6) {
-  try {
-    navigator.vibrate?.(ms);
-  } catch {
-    // Vibration blocked or unsupported: sound and motion carry the feedback.
-  }
+  vibrate(ms);
 }

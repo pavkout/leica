@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { isMuted, playAdvance, playApertureClick, playDialClick, playMountClick, playRewind, playShutter, setMuted } from "./audio/sounds";
+import { hapticsEnabled, isMuted, playAdvance, playApertureClick, playDialClick, playMountClick, playRewind, playShutter, setHaptics, setMuted } from "./audio/sounds";
 import { shutterVoiceFor } from "./audio/voices";
 import BokehPreview, { type PreviewHandle, type PreviewSide } from "./components/BokehPreview";
 import ContactSheet, { type Frame } from "./components/ContactSheet";
@@ -50,9 +50,15 @@ import ToolBoundary from "./components/app/ToolBoundary";
 import { useRoute } from "./components/app/useRoute";
 import { TOOLS, findTool, toolForStage, toolsFor, type Tool, type ToolId } from "./app/tools";
 import { parseKiosk } from "./state/kiosk";
+import { setSafelight, useSafelight } from "./state/safelight";
 import { describeRecord, parseRecord, type DevelopmentRecord } from "./physics/darkroom";
 import { bodyForLens } from "./data/timeline";
 import PerspectiveLab from "./components/PerspectiveLab";
+import PocketCard from "./components/PocketCard";
+import GuessLens from "./components/GuessLens";
+import DailyAssignment from "./components/DailyAssignment";
+import KitPlanner from "./components/KitPlanner";
+import ShotLog from "./components/ShotLog";
 import RangefinderCalibration from "./components/RangefinderCalibration";
 import { parseTrial } from "./physics/lensTrial";
 import { findRecipe, type Recipe } from "./data/recipes";
@@ -262,6 +268,8 @@ export default function App() {
   const [fullScreenFinder, setFullScreenFinder] = useState(false);
   // Capture.
   const [muted, setMutedState] = useState(isMuted);
+  const [haptics, setHapticsState] = useState(hapticsEnabled);
+  const safelight = useSafelight();
   const [rollFrames, setRollFrames] = useState<Frame[]>([]);
   const [devRecord, setDevRecordState] = useState<DevelopmentRecord | null>(() => parseRecord(getString(DEV_RECORD_KEY)));
   function setDevRecord(r: DevelopmentRecord | null) {
@@ -459,7 +467,7 @@ export default function App() {
 
   /** Adds a captured image (however it was rendered) to the current roll/card, and persists it. */
   /** `settings` records another tool's settings (e.g. the Long Exposure Lab's) instead of the simulator's. */
-  function addFrame(url: string, captionSuffix?: string, settings?: { fNumber: number; shutterSec: number; iso: number; note?: string }) {
+  function addFrame(url: string, captionSuffix?: string, settings?: { fNumber: number; shutterSec: number; iso: number; note?: string }, source: "studio" | "live" | "lab" = "studio") {
     const number = frames.length + 1;
     const n = settings?.fNumber ?? fNumber;
     const t = settings?.shutterSec ?? shutterSec;
@@ -470,7 +478,24 @@ export default function App() {
       url,
       caption: `${body.name} · ${lens.name} · ${formatFNumber(n)} · ${formatShutter(t)} · ${isFilm && !settings ? look.name : `ISO ${i}`}${captionSuffix ? ` · ${captionSuffix}` : ""}`,
       fileName: `rangefinder-${String(number).padStart(2, "0")}.jpg`,
-      meta: { body: body.name, lens: lens.name, focalMm: lens.focalMm, fNumber: n, shutterSec: t, focusMm, iso: i, filmOrSensor: isFilm ? look.name : `ISO ${i}`, evOffset: settings ? 0 : errorStops },
+      meta: {
+        body: body.name,
+        lens: lens.name,
+        focalMm: lens.focalMm,
+        fNumber: n,
+        shutterSec: t,
+        focusMm,
+        iso: i,
+        filmOrSensor: isFilm ? look.name : `ISO ${i}`,
+        evOffset: settings ? 0 : errorStops,
+        // Only the Studio's scene knows where the subject stood.
+        ...(source === "studio" ? { subjectMm: shot.subjectMm } : {}),
+        cocMm: shot.cocMm,
+        // The long exposure lab is a tripod exercise by definition.
+        tripod: source === "lab" || tripod,
+        takenAt: new Date().toISOString(),
+        source,
+      },
       note: settings?.note,
     };
     (isFilm ? setRollFrames : setCardFrames)((list) => [...list, frame]);
@@ -489,15 +514,15 @@ export default function App() {
       // Live: the frame on the screen, as the simulated camera renders it.
       const live = liveRef.current?.capture();
       if (!live) return;
-      playShutter(shutterSec, shutterVoiceFor(body));
+      playShutter(shutterSec, shutterVoiceFor(body, shutterSec));
       setFlash((f) => f + 1);
       irisBlink();
-      addFrame(live, "Live");
+      addFrame(live, "Live", undefined, "live");
       return;
     }
     const seed = Math.floor(Math.random() * 100000);
     const angle = Math.random() * Math.PI;
-    playShutter(shutterSec, shutterVoiceFor(body));
+    playShutter(shutterSec, shutterVoiceFor(body, shutterSec));
     setFlash((f) => f + 1);
     irisBlink();
     const side = previewSide(lens, shot, developFor(lens, fNumber, shot.frameWidthMm, seed, angle), photo);
@@ -508,9 +533,9 @@ export default function App() {
   /** Same roll/card, but the image is a real captured Live View frame, not a simulated render. */
   function captureLiveFrame(url: string) {
     if (rollFull) return;
-    playShutter(shutterSec, shutterVoiceFor(body));
+    playShutter(shutterSec, shutterVoiceFor(body, shutterSec));
     irisBlink();
-    addFrame(url, "Live View");
+    addFrame(url, "Live View", undefined, "live");
   }
 
   async function selectScene(id: string) {
@@ -1249,6 +1274,18 @@ export default function App() {
     finders: <FinderCompare lens={lens} sceneImageUrl={sampleInfo?.image} />,
     calibration: body.rangefinder ? <RangefinderCalibration lens={lens} fNumber={fNumber} cocMm={shot.cocMm} units={units} /> : needsRangefinder("Calibration"),
     sunny16: <Sunny16Trainer apertures={stops} shutters={speeds} iso={iso} />,
+    assignment: <DailyAssignment frames={frames} onShoot={goCamera} />,
+    guess: (
+      <GuessLens
+        body={body}
+        lenses={lenses}
+        onTry={(lensId, n) => {
+          if (lensId !== lens.id) selectLens(lensId);
+          setFNumber(n);
+          goCamera();
+        }}
+      />
+    ),
     portrait: <PortraitTrainer lens={lens} frameWidthMm={shot.frameWidthMm} frameHeightMm={shot.frameHeightMm} units={units} />,
     stability: FLAGS.motionSensors ? <StabilityTrainer focalMm={lens.focalMm} cocMm={shot.cocMm} shutters={speeds} /> : null,
     loading: <FilmLoadingTrainer bodyId={body.id} />,
@@ -1305,6 +1342,12 @@ export default function App() {
       </>
     ),
     darkroom: (
+      <>
+      <div className="tool-bar">
+        <button type="button" className="btn btn-small" aria-pressed={safelight} onClick={() => setSafelight(!safelight)}>
+          {safelight ? "Safelight on" : "Safelight"}
+        </button>
+      </div>
       <Darkroom
         rollFilm={isFilm ? baseLook : null}
         rollFrames={rollFrames.length}
@@ -1320,6 +1363,22 @@ export default function App() {
           setDevRecord({ filmId: id, filmName: baseLook.name, frames: rollFrames.length, choice, recordedAt: new Date().toISOString().slice(0, 10) })
         }
       />
+      </>
+    ),
+    shotlog: (
+      <ShotLog
+        body={body}
+        lens={lens}
+        fNumber={fNumber}
+        shutterSec={shutterSec}
+        filmLabel={isFilm ? look.name : `ISO ${iso}`}
+        focusMm={focusMm}
+        units={units}
+        onOpenMeter={FLAGS.liveView ? openLive : undefined}
+      />
+    ),
+    card: (
+      <PocketCard body={body} lens={lens} filmLabel={isFilm ? look.name : `ISO ${iso}`} iso={iso} stops={stops} speeds={speeds} cocMm={shot.cocMm} units={units} />
     ),
     longexp: (
       <LongExposureLab
@@ -1328,7 +1387,7 @@ export default function App() {
         frameShortMm={shot.frameHeightMm}
         units={units}
         logDisabled={rollFull}
-        onLog={(log) => addFrame(log.url, "Long exposure lab (predicted)", { fNumber: log.fNumber, shutterSec: log.shutterSec, iso: log.iso, note: log.note })}
+        onLog={(log) => addFrame(log.url, "Long exposure lab (predicted)", { fNumber: log.fNumber, shutterSec: log.shutterSec, iso: log.iso, note: log.note }, "lab")}
       />
     ),
 
@@ -1364,6 +1423,7 @@ export default function App() {
         }}
       />
     ),
+    kit: <KitPlanner body={body} lenses={lenses} bagLensIds={savedIds.lens} currentLensId={lens.id} onMount={selectLens} />,
     trial: (
       <LensTrial
         body={body}
@@ -1570,6 +1630,21 @@ export default function App() {
               },
             },
             {
+              id: "haptics",
+              label: "Haptics",
+              value: haptics ? "On" : "Off",
+              onActivate: () => {
+                setHaptics(!haptics);
+                setHapticsState(!haptics);
+              },
+            },
+            {
+              id: "safelight",
+              label: "Red safelight",
+              value: safelight ? "On" : "Off",
+              onActivate: () => setSafelight(!safelight),
+            },
+            {
               id: "camera",
               label: "Camera and lens",
               value: `${body.name} · ${lens.name}`,
@@ -1586,6 +1661,8 @@ export default function App() {
       {playOpen && <Playback frames={frames} onClose={() => setPlayOpen(false)} onSheet={() => (setPlayOpen(false), goTool("roll"))} />}
 
       <IrisTransition />
+      {/* Safelight: the whole screen through a red filter, on top of everything, never in the way. */}
+      {safelight && <div className="safelight" aria-hidden="true" />}
 
       <GearPicker
         open={picker === "body"}

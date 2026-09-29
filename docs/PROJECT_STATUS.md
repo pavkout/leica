@@ -184,6 +184,36 @@ Known limitations / next design pass:
 - The picker's close key shows a focus ring when opened by pointer.
 - Needs a real-phone check of the feel.
 
+**Eight new features (#5–#12 from the ideas list)** (user request, 2026-09-29): all code COMPLETE, user review pending.
+- **#5 Today's assignment** (Learn, now its default page):
+  - one brief a day from 11 (`data/assignments.ts`), the same for everyone;
+  - today's frames are graded rule by rule from their saved settings (`physics/assignment.ts`);
+  - you hand in a passing frame, a streak counts consecutive days, and a roll of handed-in answers is kept as small thumbnails on this device.
+- **#6 Guess the lens** (Learn): a sample photo (or the street, for wides) is rendered through a hidden lens and aperture with the Studio renderer. You guess the focal length (the answer plus its neighbours) and the aperture band, then get a reveal with what to look for, a score, a streak and a best streak. "Shoot with this lens" loads it. Uses `physics/guessLens.ts` and `BokehPreview` `hideTag`.
+- **#7 "Why it looks like this"**: the frame viewer diagnoses each frame from its settings (`physics/diagnosis.ts`):
+  - missed focus, camera shake, diffraction and exposure are problems;
+  - subject movement is only ever a risk;
+  - it offers a suggested tag.
+  Frames now record subject distance, circle of confusion, tripod, time taken and source. Older and live frames skip the focus check and say so. The frame viewer is re-laid out: picture plus a side panel.
+- **#8 Kit planner** (Explore): five trip profiles; tick what you own (bag lenses pre-ticked); see coverage, gaps (>1.8×), overlaps (<1.2×) and lenses without frame lines; a recommended pair from what you own or any lens (`physics/kitPlan.ts`). Weight isn't in the catalogue, so it's not shown.
+- **#9 Shot log** (Shoot):
+  - log each real frame (settings, place, note) per roll, also from the Light meter ("Log this frame to the shot log");
+  - add scans and they attach in frame order;
+  - CSV export.
+  Uses `state/shotLog.ts` and `state/shotLogStore.ts`; stored locally.
+- **#10 Pocket card** (Shoot): two printable faces:
+  - zone focus: hyperfocal distance per stop, and the sharp range at 2/3/5 m;
+  - no-meter exposure at the film's ISO, kept to the hand-held limit, marked "brace" where it can't be;
+  - the hand-held limit itself.
+  The print CSS prints only the card (checked as a PDF). Uses `physics/pocketCard.ts`.
+- **#11 Sound and haptics:**
+  - haptics now have their own Setup switch;
+  - the advance and rewind have vibration patterns timed to their sounds;
+  - digital Ms play a near-silent electronic-shutter voice past their mechanical 1/4000 s.
+- **#12 Red safelight:** a Setup switch plus a Darkroom quick switch; the whole screen goes deep red via a multiply overlay. `#root` now paints its own background so the blend covers everything.
+
+Validation: typecheck clean, lint 0 errors (5 old warnings), 57 files / 516 tests pass, build OK. Desktop and phone screenshots checked.
+
 **Film winds on automatically** (user decision, 2026-09-29): the camera's film-advance lever is removed.
 - After every shot on a film body, the app plays the advance sound once the shutter closes and the frame counter moves on. The 3D camera's lever still strokes in time.
 - Digital bodies never had a lever, so they're unaffected.

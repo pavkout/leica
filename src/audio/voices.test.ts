@@ -37,3 +37,15 @@ describe("shutterVoiceFor", () => {
     expect(SHUTTER_VOICE_PROVENANCE.kind).toBe("illustrative");
   });
 });
+
+describe("electronic shutter", () => {
+  it("is silent past a digital M's mechanical 1/4000 s", () => {
+    expect(shutterVoiceFor({ family: "M digital" }, 1 / 8000).mechanism).toBe("electronic");
+    expect(shutterVoiceFor({ family: "M digital" }, 1 / 4000).mechanism).toBe("metal-focal-plane");
+    expect(shutterVoiceFor({ family: "M digital" }).mechanism).toBe("metal-focal-plane");
+  });
+
+  it("never applies to film bodies", () => {
+    expect(shutterVoiceFor({ family: "M film" }, 1 / 8000).mechanism).toBe("cloth-focal-plane");
+  });
+});

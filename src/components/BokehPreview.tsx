@@ -23,6 +23,8 @@ interface Props {
   quality?: number;
   /** Circle of confusion (mm): when set, everything outside the depth of field is dimmed over the photo. */
   sharpZone?: number;
+  /** Hide the settings tag (a guessing game mustn't show the answer). */
+  hideTag?: boolean;
 }
 
 /** Rendering cap: detail beyond this isn't visible and costs fill rate on phones. */
@@ -38,7 +40,7 @@ interface CanvasHandle {
   canvas: HTMLCanvasElement;
 }
 
-const BokehPreview = forwardRef<PreviewHandle, Props>(function BokehPreview({ a, b, aspect, veil, onTap, quality = 1, sharpZone }, ref) {
+const BokehPreview = forwardRef<PreviewHandle, Props>(function BokehPreview({ a, b, aspect, veil, onTap, quality = 1, sharpZone, hideTag }, ref) {
   const [reticle, setReticle] = useState<{ x: number; y: number; key: number } | null>(null);
   const handleA = useRef<CanvasHandle | null>(null);
   useImperativeHandle(ref, () => ({
@@ -103,9 +105,11 @@ const BokehPreview = forwardRef<PreviewHandle, Props>(function BokehPreview({ a,
       </div>
 
       {veil && <div className="preview-veil">{veil}</div>}
-      <span className="preview-tag preview-tag-a">
-        {b && <b>A</b>} {formatFNumber(a.params.fNumber)} · {a.label}
-      </span>
+      {!hideTag && (
+        <span className="preview-tag preview-tag-a">
+          {b && <b>A</b>} {formatFNumber(a.params.fNumber)} · {a.label}
+        </span>
+      )}
       {b && (
         <>
           <span className="preview-tag preview-tag-b">

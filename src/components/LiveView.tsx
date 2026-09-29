@@ -11,6 +11,7 @@ import { recipeLightMismatch } from "../physics/recipes";
 import LensBarrel from "./LensBarrel";
 import LightMeter from "./LightMeter";
 import Segmented from "./Segmented";
+import { logFrame } from "../state/shotLogStore";
 import type { Region } from "../physics/meter";
 
 interface Props {
@@ -82,6 +83,7 @@ export default function LiveView({
   const targetEv = exposeForEv ?? sceneEv100;
   const [flash, setFlash] = useState(0);
   const [tab, setTab] = useState<"meter" | "light" | "lens">("meter");
+  const [logged, setLogged] = useState(0);
   // Light meter (feature #13): tapped spot, and the element being metered.
   const [meterRegion, setMeterRegion] = useState<Region | null>(null);
   const [spotMark, setSpotMark] = useState<{ x: number; y: number } | null>(null);
@@ -242,6 +244,16 @@ export default function LiveView({
               Expose for the average again
             </button>
           )}
+          <button
+            type="button"
+            className="btn btn-small lv-reset"
+            onClick={() => {
+              logFrame({ body: body.name, lens: lens.name, fNumber, shutterSec, film: filmOrSensorLabel, focusMm });
+              setLogged((n) => n + 1);
+            }}
+          >
+            {logged ? `Logged ${logged} to the shot log · log another` : "Log this frame to the shot log"}
+          </button>
           <p className="muted small">
             {source?.kind === "image"
               ? "No camera: a stand-in photo goes through the simulated camera instead."

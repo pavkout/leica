@@ -6,10 +6,22 @@ import { getString, setString } from "../services/persistence";
 import type { ShutterStrike, ShutterVoice } from "./voices";
 
 const MUTE_KEY = "rangefinder-muted";
+const HAPTICS_KEY = "rangefinder-haptics";
 
 let ctx: AudioContext | null = null;
 let noise: AudioBuffer | null = null;
 let muted = getString(MUTE_KEY) === "1";
+// Haptics have their own switch: some people want the tick under the finger in silence, others neither.
+let hapticsOn = getString(HAPTICS_KEY) !== "0";
+
+export function hapticsEnabled() {
+  return hapticsOn;
+}
+
+export function setHaptics(value: boolean) {
+  hapticsOn = value;
+  setString(HAPTICS_KEY, value ? "1" : "0");
+}
 
 export function isMuted() {
   return muted;
@@ -44,11 +56,6 @@ function allowDetent(kind: string) {
 }
 
 /**
- * Optional haptic pairing on devices that support it. Tied to the same mute
- * flag as sound rather than a second setting the spec doesn't ask for; a
- * missing/denied Vibration API is a silent no-op, same as unsupported audio.
- */
-/**
  * True once the user has actually interacted with the page. Sounds and haptics
  * triggered by code (e.g. the tour starting from `?demo`) stay silent until
  * then — "no sound before user interaction" holds on every path. Browsers
@@ -60,10 +67,15 @@ export function userHasInteracted(nav: { userActivation?: { hasBeenActive: boole
   return nav.userActivation ? nav.userActivation.hasBeenActive : true;
 }
 
-function vibrate(ms: number) {
-  if (muted || typeof navigator === "undefined" || !("vibrate" in navigator) || !userHasInteracted()) return;
+/**
+ * A haptic, where the device supports it (Android; iOS Safari has no Vibration API).
+ * A number is one tick; an array is a pattern (on, off, on…) timed to a sound.
+ * Follows its own setting, not the sound's; a missing or denied API is a silent no-op.
+ */
+export function vibrate(pattern: number | number[]) {
+  if (!hapticsOn || typeof navigator === "undefined" || !("vibrate" in navigator) || !userHasInteracted()) return;
   try {
-    navigator.vibrate(ms);
+    navigator.vibrate(pattern);
   } catch {
     // Restricted contexts (e.g. some cross-origin iframes) can throw; a haptic is never worth failing over.
   }
@@ -207,6 +219,8 @@ function strike(ac: AudioContext, at: number, s: ShutterStrike) {
 
 /** Film advance lever: a ratchet under the thumb, then the lever springs back. */
 export function playAdvance() {
+  // Ratchet ticks under the thumb, then the lever's spring-back: the same rhythm as the sound.
+  vibrate([0, 120, ...Array.from({ length: 9 }, () => [6, 22]).flat(), 0, 60, 14]);
   const ac = audio();
   if (!ac) return;
   const t = ac.currentTime + 0.12;
@@ -218,6 +232,7 @@ export function playAdvance() {
 
 /** Rewinding the roll: fast, slowing clicks from the rewind crank. */
 export function playRewind() {
+  vibrate(Array.from({ length: 20 }, (_, i) => [5, 25 + i * 2]).flat());
   const ac = audio();
   if (!ac) return;
   let t = ac.currentTime + 0.05;

@@ -15,6 +15,15 @@ export interface FrameMeta {
   filmOrSensor: string;
   /** Exposure deviation (stops) of the chosen settings from a metered exposure for the scene; +over, -under. */
   evOffset: number;
+  /** Where the subject stood (the Studio's scene); absent for live and lab frames, and for frames saved before it was recorded. */
+  subjectMm?: number;
+  /** The circle of confusion the frame was judged by. */
+  cocMm?: number;
+  tripod?: boolean;
+  /** When the frame was taken, ISO 8601. */
+  takenAt?: string;
+  /** What made the picture. */
+  source?: "studio" | "live" | "lab";
 }
 
 export interface ExportableFrame {

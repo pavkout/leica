@@ -26,10 +26,12 @@ export type ToolId =
   | "flare"
   | "perspective"
   | "iris"
+  | "assignment"
   | "finder"
   | "finders"
   | "calibration"
   | "sunny16"
+  | "guess"
   | "portrait"
   | "stability"
   | "loading"
@@ -40,10 +42,13 @@ export type ToolId =
   | "roll"
   | "darkroom"
   | "longexp"
+  | "card"
+  | "shotlog"
   | "camera3d"
   | "timeline"
   | "generations"
-  | "trial";
+  | "trial"
+  | "kit";
 
 export interface Tool {
   id: ToolId;
@@ -63,9 +68,11 @@ export const TOOLS: Tool[] = [
   { id: "perspective", mode: "simulate", label: "Perspective", blurb: "Distance changes perspective; focal length only crops.", stages: ["stage-perspective"] },
   { id: "iris", mode: "simulate", label: "Aperture iris", blurb: "The blades behind every out-of-focus highlight.", stages: ["stage-iris"] },
 
+  { id: "assignment", mode: "learn", label: "Today's assignment", blurb: "One brief a day. Shoot it, hand it in, keep the streak.", stages: ["stage-assignment"] },
   { id: "finder", mode: "learn", label: "Rangefinder focus", blurb: "Merge the two images in the patch, then take the shot.", stages: ["stage-finder"] },
   { id: "finders", mode: "learn", label: "Finders compared", blurb: "The same scene through each M body's viewfinder.", stages: ["stage-finder-compare"] },
   { id: "sunny16", mode: "learn", label: "Sunny 16", blurb: "Guess the exposure without a meter.", stages: ["stage-trainer"] },
+  { id: "guess", mode: "learn", label: "Guess the lens", blurb: "Name the focal length and aperture from the picture alone.", stages: ["stage-guess"] },
   { id: "portrait", mode: "learn", label: "Portrait distance", blurb: "Where to stand for a head, a half or a full figure.", stages: ["stage-portrait"] },
   { id: "stability", mode: "learn", label: "Steady hands", blurb: "How slow you can go handheld, measured with your phone.", stages: ["stage-stability"] },
   { id: "loading", mode: "learn", label: "Loading film", blurb: "Load each M body step by step.", stages: ["stage-loading"] },
@@ -77,15 +84,18 @@ export const TOOLS: Tool[] = [
   { id: "recipes", mode: "shoot", label: "Recipes", blurb: "Proven starting points for common situations.", stages: ["stage-recipes"] },
   { id: "roll", mode: "shoot", label: "Roll", blurb: "Your frames, notes and what they teach you.", stages: ["stage-roll", "stage-insights"] },
   { id: "darkroom", mode: "shoot", label: "Darkroom", blurb: "How development changes a black-and-white roll.", stages: ["stage-darkroom"] },
+  { id: "shotlog", mode: "shoot", label: "Shot log", blurb: "Note every frame on your real camera; match the scans when they're back.", stages: ["stage-shotlog"] },
+  { id: "card", mode: "shoot", label: "Pocket card", blurb: "A printable card for your camera bag: zone focus and exposure without a meter.", stages: ["stage-card"] },
   { id: "longexp", mode: "shoot", label: "Long exposure", blurb: "Your camera on a tripod, this screen as the light.", stages: ["stage-longexp"] },
 
   { id: "camera3d", mode: "explore", label: "Virtual camera", blurb: "Turn the rings and dials on a 3D camera.", stages: ["stage-camera3d"] },
   { id: "timeline", mode: "explore", label: "Timeline", blurb: "Cameras and lenses through the years, with sources.", stages: ["stage-museum"] },
   { id: "generations", mode: "explore", label: "Lens generations", blurb: "One name, several designs: compare the versions.", stages: ["stage-generations"] },
+  { id: "kit", mode: "explore", label: "Kit planner", blurb: "Plan the bag for a trip: what's covered, what's missing, which two to take.", stages: ["stage-kit"] },
   { id: "trial", mode: "explore", label: "Try before you buy", blurb: "What another focal length would frame from where you stand.", stages: ["stage-trial"] },
 ];
 
-export const DEFAULT_TOOL: Record<ModeId, ToolId> = { simulate: "studio", learn: "finder", shoot: "live", explore: "camera3d" };
+export const DEFAULT_TOOL: Record<ModeId, ToolId> = { simulate: "studio", learn: "assignment", shoot: "live", explore: "camera3d" };
 
 export function findTool(id: string | undefined): Tool | undefined {
   return TOOLS.find((t) => t.id === id);
