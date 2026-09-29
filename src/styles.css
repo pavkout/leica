@@ -403,25 +403,89 @@ select optgroup {
   color: var(--text);
 }
 
-input[type="text"] {
+/* Text fields: a recessed well cut into the plate. Focus lifts the rim to chrome
+   with a soft halo instead of the global double outline. */
+:where(input:is([type="text"], [type="search"], [type="url"], [type="email"], [type="tel"], [type="password"], [type="number"], [type="date"]), textarea) {
+  appearance: none;
+  -webkit-appearance: none;
   width: 100%;
   min-height: 44px;
   padding: 0 14px;
+  font: inherit;
   font-size: 16px; /* stops iOS zooming on focus */
-  font-family: inherit;
+  line-height: 1.3;
   color: var(--text);
-  background: var(--plate-2);
+  caret-color: var(--red);
+  color-scheme: dark;
+  background: #161615;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-control);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  transition:
+    border-color var(--t-detent) var(--ease-detent),
+    box-shadow var(--t-detent) var(--ease-detent),
+    background-color var(--t-detent) var(--ease-detent);
 }
 
-input[type="text"]:focus-visible {
-  outline: 2px solid var(--chrome-hi);
-  outline-offset: 1px;
+:where(textarea) {
+  display: block;
+  min-height: 96px;
+  padding: 12px 14px;
+  resize: vertical;
 }
 
-input[type="text"]::placeholder {
-  color: var(--muted);
+:where(input:is([type="text"], [type="search"], [type="url"], [type="email"], [type="tel"], [type="password"], [type="number"], [type="date"]), textarea):hover {
+  border-color: #55554f;
+}
+
+input:is([type="text"], [type="search"], [type="url"], [type="email"], [type="tel"], [type="password"], [type="number"], [type="date"]):focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--chrome);
+  background-color: #1a1a19;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.45),
+    0 0 0 3px rgba(242, 240, 235, 0.14);
+}
+
+:where(input:is([type="text"], [type="search"], [type="url"], [type="email"], [type="tel"], [type="password"], [type="number"], [type="date"]), textarea):disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--faint);
+  opacity: 1;
+}
+
+@media (forced-colors: active) {
+  input:focus,
+  textarea:focus {
+    outline: 2px solid CanvasText;
+  }
+}
+
+/* Search: a magnifier on the left, and a clear control drawn in the house style. */
+input[type="search"] {
+  padding-left: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%239a968e' stroke-width='1.5'%3E%3Ccircle cx='7' cy='7' r='5'/%3E%3Cpath d='M11 11l3.5 3.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 14px center;
+}
+
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-left: 8px;
+  cursor: pointer;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='8' fill='%233b3b37'/%3E%3Cpath d='M5.5 5.5l5 5M10.5 5.5l-5 5' stroke='%23ece9e2' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E")
+    no-repeat center;
 }
 
 /* A switch with engraved positions: the set one sits over a red index. */
@@ -5301,15 +5365,9 @@ input[type="radio"] {
 input[type="number"] {
   min-height: 36px;
   padding: 0 10px;
-  font: inherit;
   font-family: var(--font-engraving);
   font-stretch: var(--engrave-stretch);
-  font-size: 16px;
   font-variant-numeric: tabular-nums;
-  color: var(--text);
-  background: var(--plate-2);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
 }
 
 label:has(> input[type="checkbox"]) {
@@ -7042,14 +7100,7 @@ ul.lel-warn > li::before,
 }
 
 .co-edit input[type="date"] {
-  min-height: 44px;
   padding: 0 12px;
-  font: inherit;
-  color: var(--text);
-  color-scheme: dark;
-  background: var(--plate);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
 }
 
 .co-edit-actions {
@@ -7073,7 +7124,7 @@ ul.lel-warn > li::before,
 /* The ledger: each piece a row, its picture on a small stage. */
 .co-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: 1px;
   margin: 20px 0 0;
   padding: 0;
@@ -7176,6 +7227,185 @@ ul.lel-warn > li::before,
   display: block;
   width: 30mm;
   margin-bottom: 2pt;
+}
+
+/* ── Collector tools (#38) ──────────────────────────────── */
+.co-listed {
+  color: var(--muted);
+}
+
+.cl-label {
+  margin: 16px 0 4px;
+  color: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cl-facts,
+.cl-card {
+  margin: 12px 0;
+  padding: 10px 0 10px 12px;
+  box-shadow: inset 2px 0 0 var(--engrave);
+}
+
+.cl-card.cl-ai {
+  box-shadow: inset 2px 0 0 var(--muted);
+}
+
+.cl-facts p,
+.cl-card p {
+  margin: 0 0 4px;
+}
+
+.cl-facts .cl-label,
+.cl-card .cl-label {
+  margin-top: 0;
+}
+
+.cl-models {
+  margin: 8px 0;
+  padding-left: 18px;
+}
+
+.cl-models li {
+  margin: 0 0 4px;
+}
+
+.cl-table th[scope="row"] {
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .cl-table {
+    font-size: 14px;
+  }
+
+  .cl-table th,
+  .cl-table td {
+    padding-right: 6px;
+  }
+}
+
+.cl-facts-main {
+  font-size: 16px;
+}
+
+.cl-facts-none {
+  margin: 8px 0;
+}
+
+.cl-conflict,
+.cl-flag {
+  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--red);
+  padding-left: 8px;
+}
+
+.cl-panel {
+  margin: 12px 0 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--plate-2);
+}
+
+.cl-panel h3 {
+  margin: 0 0 8px;
+}
+
+.cl-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.cl-row .field {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.cl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-table th,
+.cl-table td {
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid var(--hairline-strong);
+  text-align: left;
+  vertical-align: top;
+}
+
+.cl-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.cl-comps {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-comps li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--hairline);
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-comps a {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text);
+}
+
+.cl-tag {
+  color: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cl-range {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-cost {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cl-thumbs img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--radius-key);
+}
+
+.cl-panel textarea {
+  width: 100%;
+  min-height: 90px;
+  box-sizing: border-box;
 }
 
 /* ── Rangefinder check ──────────────────────────────────── */
@@ -7905,8 +8135,7 @@ ul.lel-warn > li::before,
 
 .sn-input:focus-within {
   border-color: var(--chrome);
-  outline: 2px solid var(--chrome-hi);
-  outline-offset: 1px;
+  box-shadow: 0 0 0 3px rgba(242, 240, 235, 0.14);
 }
 
 .sn-no {
@@ -7936,8 +8165,11 @@ ul.lel-warn > li::before,
   opacity: 0.6;
 }
 
-.sn-input input:focus-visible {
+.sn-input input,
+.sn-input input:focus {
   outline: none;
+  box-shadow: none;
+  background: none;
 }
 
 .sn-which select {

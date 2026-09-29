@@ -1,8 +1,17 @@
 import { useState } from "react";
 import { BODIES, LENSES } from "../data/gear";
 import { getString, setString } from "../services/persistence";
-import { collectionCsv, monthsSinceService, newItem, sorted, upsert, type CollectionItem, type ItemKind } from "../state/collection";
+import { collectionCsv, latestValuation, monthsSinceService, newItem, sorted, upsert, type CollectionItem, type ItemKind, type Valuation } from "../state/collection";
+import { formatMoney } from "../state/market";
+import { loadAiSettings, type AiSettings } from "../services/ai/aiSettings";
+import { lookupSerialFacts } from "../state/serialFacts";
 import { scanThumbnail } from "../state/shotLogStore";
+import SerialFactsCard from "./collector/SerialFactsCard";
+import AiSettingsPanel from "./collector/AiSettingsPanel";
+import ListingCheck from "./collector/ListingCheck";
+import PhotoIdentify from "./collector/PhotoIdentify";
+import ValuationPanel from "./collector/ValuationPanel";
+import ValueAll from "./collector/ValueAll";
 import BodyArt from "./gear/BodyArt";
 import GearImage from "./gear/GearImage";
 import LensArt from "./gear/LensArt";
@@ -58,6 +67,8 @@ export default function Collection() {
   const [items, setItems] = useState<CollectionItem[]>(load);
   const [editing, setEditing] = useState<CollectionItem | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [ai, setAi] = useState<AiSettings>(loadAiSettings);
+  const [tool, setTool] = useState<"ai" | "photo" | "listing" | null>(null);
 
   function save(next: CollectionItem[]) {
     setItems(next);
@@ -68,9 +79,29 @@ export default function Collection() {
     setEditing(newItem(kind, ""));
   }
 
+  /** A draft from a photo or a listing: opens in the editor; saved only when the owner saves. */
+  function openDraft(item: CollectionItem) {
+    setTool(null);
+    setEditing(item);
+  }
+
+  /** Valuations cost money, so a saved item keeps its new value at once. */
+  function addValuation(id: string, v: Valuation) {
+    setItems((list) => {
+      const target = list.find((i) => i.id === id);
+      if (!target) return list;
+      const next = upsert(list, { ...target, valuations: [v, ...(target.valuations ?? [])] });
+      if (!setString(KEY, JSON.stringify(next))) setStatus("This device's storage is full: the value is kept for this visit only.");
+      return next;
+    });
+    setEditing((x) => (x && x.id === id ? { ...x, valuations: [v, ...(x.valuations ?? [])] } : x));
+  }
+
   function commit() {
     if (!editing || !editing.name.trim()) return;
-    save(upsert(items, { ...editing, name: editing.name.trim() }));
+    const found = editing.kind !== "accessory" && editing.serial ? lookupSerialFacts(editing.kind, editing.serial) : null;
+    const serialFacts = found?.status === "found" ? found.facts : undefined;
+    save(upsert(items, { ...editing, name: editing.name.trim(), serialFacts }));
     setEditing(null);
   }
 
@@ -95,8 +126,18 @@ export default function Collection() {
         <button type="button" className="btn" onClick={() => start("accessory")}>
           Add an accessory
         </button>
+        <button type="button" className="btn" onClick={() => setTool(tool === "photo" ? null : "photo")} aria-pressed={tool === "photo"}>
+          From photos
+        </button>
+        <button type="button" className="btn" onClick={() => setTool(tool === "listing" ? null : "listing")} aria-pressed={tool === "listing"}>
+          Check a listing
+        </button>
+        <button type="button" className="btn btn-small" onClick={() => setTool(tool === "ai" ? null : "ai")} aria-pressed={tool === "ai"}>
+          AI &amp; pricing
+        </button>
         {items.length > 0 && (
           <>
+            <ValueAll items={items} settings={ai} onValued={addValuation} onSettings={() => setTool("ai")} />
             <button type="button" className="btn btn-small" onClick={() => window.print()}>
               Print the record
             </button>
@@ -111,6 +152,10 @@ export default function Collection() {
           {status}
         </p>
       )}
+
+      {tool === "ai" && <AiSettingsPanel settings={ai} onChange={setAi} onClose={() => setTool(null)} />}
+      {tool === "photo" && <PhotoIdentify settings={ai} onDraft={openDraft} onSettings={() => setTool("ai")} onClose={() => setTool(null)} />}
+      {tool === "listing" && <ListingCheck settings={ai} onDraft={openDraft} onSettings={() => setTool("ai")} onClose={() => setTool(null)} />}
 
       {editing && (
         <div className="co-edit" role="group" aria-label={`${KIND_LABEL[editing.kind]} details`}>
@@ -143,7 +188,34 @@ export default function Collection() {
             {editing.kind === "lens" && field("filter", "Filter thread", "e.g. E39")}
             {editing.kind === "body" && field("serviced", "Last serviced or rangefinder adjusted", "", "date")}
           </div>
+          {editing.kind !== "accessory" && editing.serial && (
+            <SerialFactsCard
+              kind={editing.kind}
+              serial={editing.serial}
+              claim={{ model: editing.kind === "body" ? (BODIES.find((b) => b.id === editing.catalogueId)?.name ?? null) : null }}
+              ai={editing.aiFindings}
+              onUseName={(name, bodyId) => setEditing((x) => (x ? { ...x, name, catalogueId: bodyId ?? x.catalogueId } : x))}
+            />
+          )}
+          {editing.aiFindings && (
+            <div className="cl-card cl-ai">
+              <p className="cl-label">Read by AI from your photo · {editing.aiFindings.at.slice(0, 10)}</p>
+              <p>
+                {[editing.aiFindings.maker, editing.aiFindings.model].filter(Boolean).join(" ") || "Not identified"}{" "}
+                <span className="cl-tag">{editing.aiFindings.confidence.model} confidence</span>
+              </p>
+              {editing.aiFindings.serial && (
+                <p>
+                  Serial read: {editing.aiFindings.serial} <span className="cl-tag">{editing.aiFindings.serialLegible === "partial" ? "partly legible" : `${editing.aiFindings.confidence.serial} confidence`}</span>
+                </p>
+              )}
+              {editing.aiFindings.finish && <p className="small">Finish: {editing.aiFindings.finish}</p>}
+              {editing.aiFindings.engravings && editing.aiFindings.engravings.length > 0 && <p className="small">Engravings: {editing.aiFindings.engravings.join(" · ")}</p>}
+              {editing.aiFindings.condition && <p className="small">Visible condition: {editing.aiFindings.condition}</p>}
+            </div>
+          )}
           {field("notes", "Notes", "Where it came from, its quirks, its story")}
+          <ValuationPanel item={editing} settings={ai} onValued={(v) => (items.some((i) => i.id === editing.id) ? addValuation(editing.id, v) : setEditing((x) => (x ? { ...x, valuations: [v, ...(x.valuations ?? [])] } : x)))} onSettings={() => setTool("ai")} />
           <div className="co-edit-actions">
             <label className="btn btn-small sl-upload">
               {editing.photo ? "Change the photo" : "Add a photo"}
@@ -199,9 +271,19 @@ export default function Collection() {
                     <span className="co-name">{i.name}</span>
                     <span className="co-facts">
                       {i.serial && <span>No. {i.serial}</span>}
+                      {i.serialFacts && <span className="co-listed">{[i.serialFacts.model, i.serialFacts.year].filter(Boolean).join(" · ")}</span>}
                       {i.acquired && <span>Since {i.acquired}</span>}
                       {i.filter && <span>{i.filter}</span>}
                     </span>
+                    {(() => {
+                      const lv = latestValuation(i, today);
+                      return lv?.v.range ? (
+                        <span className="co-listed">
+                          Market {formatMoney(lv.v.range.low, lv.v.range.currency)}–{formatMoney(lv.v.range.high, lv.v.range.currency)} ({lv.v.at.slice(0, 7)}
+                          {lv.stale ? ", old" : ""})
+                        </span>
+                      ) : null;
+                    })()}
                     {months !== null && months >= 36 && <span className="co-service">Last serviced {Math.floor(months / 12)} years ago: worth a check</span>}
                   </span>
                 </button>
@@ -223,6 +305,7 @@ export default function Collection() {
               <th>Acquired</th>
               <th>Paid</th>
               <th>Serviced</th>
+              <th>Market value</th>
               <th>Notes</th>
             </tr>
           </thead>
@@ -237,13 +320,14 @@ export default function Collection() {
                 <td>{i.acquired}</td>
                 <td>{i.price}</td>
                 <td>{i.serviced}</td>
+                <td>{i.valuations?.[0]?.range ? `${formatMoney(i.valuations[0].range.low, i.valuations[0].range.currency)}–${formatMoney(i.valuations[0].range.high, i.valuations[0].range.currency)} (${i.valuations[0].at.slice(0, 10)}, ${i.valuations[0].comparables.length} sources)` : ""}</td>
                 <td>{i.notes}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="hint">Everything here is your own record, kept on this device only. Export the CSV or print it to keep a copy elsewhere.</p>
+      <p className="hint">Everything here is your own record, kept on this device only. Export the CSV or print it to keep a copy elsewhere. The AI tools send only what you give them (photos, a link, an item's details) to Anthropic, with your own key.</p>
     </section>
   );
 }

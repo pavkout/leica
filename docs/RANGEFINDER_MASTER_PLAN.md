@@ -133,7 +133,7 @@ Development phases are separate roadmap milestones: Phase 0, Phase 1, Phase 2, P
 
 A Priority 1 feature is not automatically part of Phase 1. A Priority 2 feature is not automatically part of Phase 2. Feature completion must be determined from `PROJECT_STATUS.md` and the explicit milestone sections of this Master Plan.
 
-## Feature implementation briefs (1–37)
+## Feature implementation briefs (1–38)
 
 ### 1. Live Leica View  — Priority 1
 **Goal:** Turn the phone into a live shooting companion that overlays the selected Leica body/lens behavior on the real camera feed. The goal is not to pretend the phone is optically identical to the Leica; it is to help the photographer make a better decision before exposing film or pressing the shutter.
@@ -563,7 +563,7 @@ A Priority 1 feature is not automatically part of Phase 1. A Priority 2 feature 
 **UX requirements**
 - Family view groups generations/versions with year range, optical revision, MFD, filter size, blade data, rendering notes and compatibility.
 - Comparison can lock composition or lock photographer position.
-- Collector badge is informational only; do not assign investment-value scores.
+- Collector badge is informational only. Market context is allowed only as cited comparables (see #38); never assign investment-value scores or predictions.
 
 **Engineering requirements**
 - Data model needs lensFamilyId and revisionId, with aliases for colloquial names.
@@ -873,6 +873,36 @@ Added 2026-09-28 at the user's request. This supersedes the four-mode dial navig
 - Film and digital bodies present their own controls (lever and finder vs ISO dial, LCD and PLAY).
 - Landscape phone: the image fills the height and the controls sit under the thumbs. No control is covered, and there's no page scrolling in camera view.
 - Live DOF never blocks input. When depth is unavailable, the app says so and keeps everything else live.
+
+### 38. Collector tools  — Priority 1
+Added 2026-09-29 at the user's request. Design: `docs/superpowers/specs/2026-09-29-collector-tools-design.md`.
+
+**Goal:** Serve collectors. Add items fast by serial or photo. Check a public listing (what it is, whether the serial is consistent, buyer red flags, a fair price). Value owned items. Sourced facts come first, and AI is labelled as AI.
+
+**Decisions (user, 2026-09-29)**
+- Cloud AI (Anthropic Claude) is acceptable. Users bring their own API key; a paid mode is a later, separate project.
+- The user chooses the model (Haiku 4.5 / Sonnet 5 / Opus 5.5). A pricing table, a cost preview before each run and the actual cost after keep spend visible.
+- Price suggestions cover both listing links and owned items, as cited comparables only.
+
+**UX requirements**
+- The serial auto-fills model, year, variant and batch size from the sourced serial tables, with the source shown. This works offline without a key.
+- Photo → draft collection item. The user confirms before anything is saved, and the app never guesses unreadable serial digits.
+- Listing check: identification, serial consistency, buyer red flags, and a price range with cited comparables (sold vs asking labelled). "Not enough data" with fewer than 3 comparables.
+- Valuations are saved with date and sources, with history kept; an old valuation is marked stale.
+
+**Engineering requirements**
+- Client-side only: the browser calls the Anthropic API with the user's key, and listings and research use Claude's server-side web fetch/search tools.
+- One adapter (`aiClient`) is the only code that calls Claude; the SDK is lazy-loaded.
+- Sourced `serialFacts` and AI `aiFindings` are stored separately and never merged; conflicts are shown.
+- Photos are downscaled with EXIF stripped before upload; the key is stored on the device only and can be deleted.
+- AI output is validated against schemas and rendered as text only.
+
+**Acceptance criteria**
+- With no key, every non-AI collection feature still works, and AI buttons explain what is needed.
+- Every price shown has a source link; no scores or predictions appear anywhere.
+- Every AI run records its actual cost; a monthly limit, if set, is respected.
+- A sourced fact is never overwritten by an AI reading; conflicts are visible.
+- Tests never call the real API.
 
 ## First production milestone I want you to implement after Phase 0
 

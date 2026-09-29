@@ -20,7 +20,31 @@ Last updated: 2026-09-29
 
 ## Current task
 
-**UI/UX redesign pass: "operate a Leica, not a website"** (user request, 2026-09-28): code COMPLETE, waiting for the user's review on a phone. Notes are under *Last completed*.
+**#38 — Collector tools** (user request, 2026-09-29; Priority 1; brief added to the Master Plan at the user's request; design: `docs/superpowers/specs/2026-09-29-collector-tools-design.md`; plan: `docs/superpowers/plans/2026-09-29-collector-tools.md`) — **PARTIAL: code complete for all 5 slices; the real-API smoke test (the user's own key) and a real-phone pass are pending.**
+- The user's decisions: cloud AI (Anthropic Claude) with the user's own API key (a paid mode comes later); the model is chosen by the user, with a pricing table and cost shown per run; price suggestions for listings and owned items, as cited comparables only.
+- Slices:
+  - [x] 1. Serial auto-fill (offline): `state/serialFacts.ts`, `collector/SerialFactsCard.tsx`
+  - [x] 2. AI foundation (key, model, pricing, spend log): `services/ai/*`, `collector/AiSettingsPanel.tsx`
+  - [x] 3. Photo → item: `collector/PhotoIdentify.tsx`, `state/collectorDrafts.ts`
+  - [x] 4. Listing check: `collector/ListingCheck.tsx`, `state/market.ts`
+  - [x] 5. Value my collection: `collector/ValuationPanel.tsx`, `collector/ValueAll.tsx`
+- **Validation (2026-09-29):**
+  - 609 tests pass (new: serial facts, market rules, pricing, settings, spend log, errors, schemas, drafts, and the AI client against a fake transport; no test calls the real API).
+  - Typecheck is clean. Lint has 0 errors; its 5 warnings were already there.
+  - The build passes. `@anthropic-ai/sdk` sits in its own lazy 199 KB chunk.
+  - A Playwright/Chrome walkthrough of all 5 slices at 390 and 320 px, with the API mocked, found no page errors and no sideways overflow.
+- **Fixed on the way:**
+  - `.co-list` overflowed by 14 px at 320 px once the collection had items; the grid minimum is now `min(300px, 100%)`.
+- **Known limitations:**
+  - Not yet run against the real Anthropic API. Output schemas, web tool versions and `pause_turn` handling follow the SDK types and docs but need the user's key to confirm.
+  - Cost estimates are typical-case ranges; the actual cost is computed from reported usage.
+  - The prices table is dated 2026-09-29 (`services/ai/pricing.ts`).
+  - Lens serials give a year only; the lens tables have no batches, so there's no rarity note.
+  - Some marketplaces block automated fetching; the app then asks for pasted text.
+  - The key is stored in plain browser storage, which the UI says.
+  - The paid mode is out of scope, as agreed.
+
+Before that: **UI/UX redesign pass: "operate a Leica, not a website"** (user request, 2026-09-28): code COMPLETE, waiting for the user's review on a phone. Notes are under *Last completed*.
 
 Before that: **#37 — The camera is the interface ("hold a Leica")** (user request, 2026-09-28; Priority 1; spec added to the Master Plan at the user's request) — IN PROGRESS.
 - **Slice 1:** the camera body, controls, instant feedback, MENU and PLAY. COMPLETE.
