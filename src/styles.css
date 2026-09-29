@@ -4503,12 +4503,17 @@ html.kiosk body {
   overflow: hidden;
 }
 
+/* Each part: a small caption saying what it is, the value under it, and a
+   chevron on the parts you can tap to change. */
 .rig-part {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: center;
+  column-gap: 8px;
   min-width: 0;
-  min-height: 40px;
-  padding: 0 12px;
+  min-height: 48px;
+  padding: 5px 12px;
+  color: var(--text);
   border: 0;
   border-right: 1px solid var(--line);
   background: none;
@@ -4533,6 +4538,50 @@ html.kiosk body {
   line-height: 1.25;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.rig-cap {
+  grid-column: 1 / -1;
+  display: block;
+  color: var(--muted);
+  font-family: var(--font);
+  font-stretch: 100%;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.rig-chev {
+  align-self: center;
+  color: var(--muted);
+  transition: color var(--t-detent) var(--ease-detent);
+}
+
+.rig-part:hover:not(:disabled) .rig-chev,
+.rig-part:focus-visible .rig-chev {
+  color: var(--red);
+}
+
+.rig-val {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+/* Phones get the short lens name ("Summilux 21/1.4"); wider screens the full one. */
+.rig-short {
+  display: none;
+}
+
+@media (max-width: 719px) {
+  .rig-full {
+    display: none;
+  }
+
+  .rig-short {
+    display: block;
+  }
 }
 
 .rig-part:first-child {
@@ -4951,6 +5000,28 @@ html.kiosk body {
 @media (max-width: 419px) {
   .rig-window .rig-val:last-child {
     display: none;
+  }
+}
+
+/* The smallest phones: tighter spacing so the lens name still fits. */
+@media (max-width: 359px) {
+  .rig-part {
+    column-gap: 4px;
+    padding: 5px 8px;
+  }
+
+  .rig-window {
+    gap: 8px;
+    padding: 0 8px;
+  }
+
+  .plate-back {
+    padding: 0 4px;
+  }
+
+  .plate-menu {
+    padding: 0 8px;
+    letter-spacing: 0.04em;
   }
 }
 

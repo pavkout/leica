@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDistance, lensEngraving, parseDistanceInput, scaleLabel, sentenceEnd } from "./format";
+import { formatDistance, lensEngraving, lensShortName, parseDistanceInput, scaleLabel, sentenceEnd } from "./format";
 
 describe("parseDistanceInput", () => {
   it("parses a metric value as metres", () => {
@@ -31,6 +31,17 @@ describe("formatDistance / parseDistanceInput agree on units", () => {
   it("a value that formats as '2.00 m' parses back to 2000mm", () => {
     expect(formatDistance(2000, "metric")).toBe("2.00 m");
     expect(parseDistanceInput("2.00", "metric")).toBeCloseTo(2000, 6);
+  });
+});
+
+describe("lensShortName", () => {
+  it("writes a lens the way collectors do", () => {
+    expect(lensShortName("Summilux-M 21 f/1.4 ASPH.")).toBe("Summilux 21/1.4");
+    expect(lensShortName("Summicron 50 f/2 (rigid)")).toBe("Summicron 50/2");
+    expect(lensShortName("APO-Summicron-M 50 f/2 ASPH.")).toBe("APO-Summicron 50/2");
+    expect(lensShortName("Summicron-TL 23 f/2 ASPH.")).toBe("Summicron-TL 23/2");
+    expect(lensShortName("Noctilux-M 50 f/0.95 ASPH.")).not.toBe(lensShortName("Noctilux-M 50 f/1.0"));
+    expect(lensShortName("Something else")).toBe("Something else");
   });
 });
 

@@ -125,7 +125,7 @@ import {
   type PhotoScene,
 } from "./preview/photoScene";
 import { estimateDepth } from "./preview/depthEstimator";
-import { formatDistance, formatFNumber, formatLength, type Units } from "./utils/format";
+import { formatDistance, formatFNumber, formatLength, lensShortName, type Units } from "./utils/format";
 
 const BACKGROUND_PRESETS: Record<Units, { mm: number; label: string }[]> = {
   metric: [
@@ -191,6 +191,15 @@ function lensGroup(body: Body, l: Lens) {
 /** M bodies: the ones with a coupled rangefinder. */
 function isRangefinder(body: Body) {
   return body.rangefinder !== undefined;
+}
+
+/** The small "change" mark on the rig's camera and lens. */
+function RigChevron() {
+  return (
+    <svg className="rig-chev" viewBox="0 0 10 6" width="10" height="6" aria-hidden="true">
+      <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 function LensOptions({ body, lenses }: { body: Body; lenses: Lens[] }) {
@@ -1633,16 +1642,41 @@ export default function App() {
         </button>
 
         <div className="rig" role="group" aria-label="Camera on the simulator">
-          <button type="button" className="rig-part" onClick={() => setPicker("body")} aria-label={`Camera: ${body.name}, change`}>
+          <button type="button" className="rig-part" onClick={() => setPicker("body")} aria-label={`Camera: ${body.name}. Change camera`} title="Change the camera">
+            <span className="rig-cap">Camera</span>
             <span className="rig-name">{body.name}</span>
+            <RigChevron />
           </button>
-          <button type="button" className="rig-part rig-lens" onClick={() => setPicker("lens")} disabled={lenses.length === 1} aria-label={`Lens: ${lens.name}, change`}>
-            <span className="rig-name">{lens.name}</span>
+          <button
+            type="button"
+            className="rig-part rig-lens"
+            onClick={() => setPicker("lens")}
+            disabled={lenses.length === 1}
+            aria-label={`Lens: ${lens.name}.${lenses.length === 1 ? "" : " Change lens"}`}
+            title={lenses.length === 1 ? "This camera's lens is built in" : "Change the lens"}
+          >
+            <span className="rig-cap">Lens</span>
+            <span className="rig-name rig-full">{lens.name}</span>
+            <span className="rig-name rig-short">{lensShortName(lens.name)}</span>
+            {lenses.length > 1 && <RigChevron />}
           </button>
-          <span className="rig-window" aria-label={`${formatFNumber(fNumber)}, ${formatShutter(shutterSec)}, ${isFilm ? look.name : `ISO ${iso}`}`}>
-            <span className="rig-val">{formatFNumber(fNumber)}</span>
-            <span className="rig-val">{formatShutter(shutterSec)}</span>
-            <span className="rig-val">{isFilm ? `${iso}` : `ISO ${iso}`}</span>
+          <span
+            className="rig-window"
+            role="group"
+            aria-label={`Settings: aperture ${formatFNumber(fNumber)}, shutter ${formatShutter(shutterSec)}, ${isFilm ? `film ${look.name}, ISO ${iso}` : `ISO ${iso}`}`}
+          >
+            <span className="rig-val" aria-hidden="true">
+              <span className="rig-cap">Aperture</span>
+              {formatFNumber(fNumber)}
+            </span>
+            <span className="rig-val" aria-hidden="true">
+              <span className="rig-cap">Shutter</span>
+              {formatShutter(shutterSec)}
+            </span>
+            <span className="rig-val" aria-hidden="true">
+              <span className="rig-cap">{isFilm ? "Film ISO" : "ISO"}</span>
+              {iso}
+            </span>
           </span>
         </div>
 

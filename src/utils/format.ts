@@ -77,6 +77,19 @@ export function lensEngraving(name: string): string {
   return `${family} 1:${aperture}/${focal}${asph}`;
 }
 
+/**
+ * A lens name short enough for a phone's top bar, the way collectors write
+ * it: "Summilux-M 21 f/1.4 ASPH." → "Summilux 21/1.4". The "-M" goes (every
+ * M lens has it); other mount suffixes (-TL, -S) stay. The full name stays in
+ * the picker and the accessible label. Names that don't follow the pattern
+ * are returned unchanged.
+ */
+export function lensShortName(name: string): string {
+  const m = /^(.+?) (\d+) f\/([\d.]+)/.exec(name);
+  if (!m) return name;
+  return `${m[1].replace(/-M$/, "")} ${m[2]}/${m[3]}`;
+}
+
 /** Ends a sentence on a name without doubling the stop: "… ASPH." stays "… ASPH.", "… f/2" becomes "… f/2.". */
 export function sentenceEnd(text: string): string {
   return text.endsWith(".") ? text : `${text}.`;
