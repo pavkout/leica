@@ -44,11 +44,22 @@ export type ToolId =
   | "longexp"
   | "card"
   | "shotlog"
+  | "zone"
+  | "light"
+  | "rfcheck"
+  | "filmfinder"
   | "camera3d"
   | "timeline"
   | "generations"
   | "trial"
-  | "kit";
+  | "kit"
+  | "compat"
+  | "collection"
+  | "sounds"
+  | "today"
+  | "coding"
+  | "serial"
+  | "famous";
 
 export interface Tool {
   id: ToolId;
@@ -77,25 +88,36 @@ export const TOOLS: Tool[] = [
   { id: "stability", mode: "learn", label: "Steady hands", blurb: "How slow you can go handheld, measured with your phone.", stages: ["stage-stability"] },
   { id: "loading", mode: "learn", label: "Loading film", blurb: "Load each M body step by step.", stages: ["stage-loading"] },
   { id: "anatomy", mode: "learn", label: "Inside the camera", blurb: "Take the camera apart and slow the shutter down.", stages: ["stage-anatomy"] },
+  { id: "rfcheck", mode: "learn", label: "Check your rangefinder", blurb: "Print a target, photograph it, and see if your camera front- or back-focuses.", stages: ["stage-rfcheck"] },
   { id: "calibration", mode: "learn", label: "Calibration", blurb: "What a misaligned rangefinder does to focus.", stages: ["stage-calibration"] },
 
   { id: "live", mode: "shoot", label: "Light meter", blurb: "Point your phone at the scene; get the settings for the camera in your hands.", stages: ["stage-live"] },
   { id: "intent", mode: "shoot", label: "Shooting intent", blurb: "Say what you want; get settings that do it.", stages: ["stage-intent"] },
+  { id: "filmfinder", mode: "shoot", label: "Film finder", blurb: "Which film for what you'll shoot, the light and the look you want.", stages: ["stage-film"] },
   { id: "recipes", mode: "shoot", label: "Recipes", blurb: "Proven starting points for common situations.", stages: ["stage-recipes"] },
   { id: "roll", mode: "shoot", label: "Roll", blurb: "Your frames, notes and what they teach you.", stages: ["stage-roll", "stage-insights"] },
   { id: "darkroom", mode: "shoot", label: "Darkroom", blurb: "How development changes a black-and-white roll.", stages: ["stage-darkroom"] },
+  { id: "light", mode: "shoot", label: "Light planner", blurb: "When the light is good today, and what to set for it.", stages: ["stage-light"] },
+  { id: "zone", mode: "shoot", label: "Zone coach", blurb: "Big, glanceable zone focus for a walk: what to set and what's sharp.", stages: ["stage-zone"] },
   { id: "shotlog", mode: "shoot", label: "Shot log", blurb: "Note every frame on your real camera; match the scans when they're back.", stages: ["stage-shotlog"] },
   { id: "card", mode: "shoot", label: "Pocket card", blurb: "A printable card for your camera bag: zone focus and exposure without a meter.", stages: ["stage-card"] },
   { id: "longexp", mode: "shoot", label: "Long exposure", blurb: "Your camera on a tripod, this screen as the light.", stages: ["stage-longexp"] },
 
+  { id: "today", mode: "explore", label: "Today in the museum", blurb: "One camera or lens a day, with its history.", stages: ["stage-today"] },
+  { id: "famous", mode: "explore", label: "Famous frames", blurb: "Pictures made with a Leica, the gear behind them, and the lens to try.", stages: ["stage-famous"] },
   { id: "camera3d", mode: "explore", label: "Virtual camera", blurb: "Turn the rings and dials on a 3D camera.", stages: ["stage-camera3d"] },
   { id: "timeline", mode: "explore", label: "Timeline", blurb: "Cameras and lenses through the years, with sources.", stages: ["stage-museum"] },
   { id: "generations", mode: "explore", label: "Lens generations", blurb: "One name, several designs: compare the versions.", stages: ["stage-generations"] },
+  { id: "collection", mode: "explore", label: "My collection", blurb: "Your cameras and lenses: serials, dates, service, photos. Printable for insurance.", stages: ["stage-collection"] },
+  { id: "compat", mode: "explore", label: "Will it fit?", blurb: "Any lens on any camera: mount, adapter, frame lines and Leica's warnings.", stages: ["stage-compat"] },
+  { id: "sounds", mode: "explore", label: "Sound library", blurb: "Every shutter mechanism and camera sound, drawn and played.", stages: ["stage-sounds"] },
+  { id: "serial", mode: "explore", label: "Serial numbers", blurb: "When was your lens made? Look up the serial on its front ring.", stages: ["stage-serial"] },
+  { id: "coding", mode: "explore", label: "Lens coding", blurb: "The 6-bit code on an M lens: look it up, or read it off the lens in your hand.", stages: ["stage-coding"] },
   { id: "kit", mode: "explore", label: "Kit planner", blurb: "Plan the bag for a trip: what's covered, what's missing, which two to take.", stages: ["stage-kit"] },
   { id: "trial", mode: "explore", label: "Try before you buy", blurb: "What another focal length would frame from where you stand.", stages: ["stage-trial"] },
 ];
 
-export const DEFAULT_TOOL: Record<ModeId, ToolId> = { simulate: "studio", learn: "assignment", shoot: "live", explore: "camera3d" };
+export const DEFAULT_TOOL: Record<ModeId, ToolId> = { simulate: "studio", learn: "assignment", shoot: "live", explore: "today" };
 
 export function findTool(id: string | undefined): Tool | undefined {
   return TOOLS.find((t) => t.id === id);

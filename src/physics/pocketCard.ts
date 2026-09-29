@@ -46,6 +46,34 @@ function nearestSpeed(speeds: number[], t: number) {
   return speeds.reduce((best, s) => (Math.abs(Math.log2(s / t)) < Math.abs(Math.log2(best / t)) ? s : best));
 }
 
+/**
+ * Settings for a scene brightness: the smallest standard aperture that still
+ * gives a hand-holdable speed, else the widest the lens has, and whether that
+ * needs support. Shared by the pocket card and the light planner.
+ */
+export function lightSetting(ev100: number, opts: { stops: number[]; speeds: number[]; iso: number; slowestHandheldSec: number }): { fNumber: number; shutterSec: number; needsSupport: boolean } {
+  const { stops, speeds, iso, slowestHandheldSec } = opts;
+  const has = (n: number) => stops.some((s) => Math.abs(s - n) < 0.05);
+  const fastest = Math.min(...speeds);
+  const usable = LIGHT_APERTURES.filter(has);
+  let pick = usable[usable.length - 1] ?? stops[0];
+  for (const n of usable) {
+    const t = correctShutter(ev100, n, iso);
+    if (t >= fastest && t <= slowestHandheldSec * 1.001) {
+      pick = n;
+      break;
+    }
+  }
+  const shutterSec = nearestSpeed(speeds, correctShutter(ev100, pick, iso));
+  return { fNumber: pick, shutterSec, needsSupport: shutterSec > slowestHandheldSec * 1.001 };
+}
+
+/** 1/focal length, rounded to the next faster speed the camera has. */
+export function handheldLimit(focalMm: number, speeds: number[]): number {
+  const fastest = Math.min(...speeds);
+  return speeds.filter((s) => s <= (1 / focalMm) * 1.001).reduce((a, b) => Math.max(a, b), fastest);
+}
+
 export function pocketCard(opts: { focalMm: number; stops: number[]; speeds: number[]; iso: number; cocMm: number }): PocketCard {
   const { focalMm, stops, speeds, iso, cocMm } = opts;
   const has = (n: number) => stops.some((s) => Math.abs(s - n) < 0.05);
@@ -63,25 +91,9 @@ export function pocketCard(opts: { focalMm: number; stops: number[]; speeds: num
     };
   });
 
-  const fastest = Math.min(...speeds);
-  // 1/focal length, rounded to the next faster speed the camera has.
-  const limit = 1 / focalMm;
-  const slowestHandheldSec = speeds.filter((s) => s <= limit * 1.001).reduce((a, b) => Math.max(a, b), fastest);
+  const slowestHandheldSec = handheldLimit(focalMm, speeds);
 
-  const light = LIGHT_CONDITIONS.map((c) => {
-    // Prefer a small aperture in bright light, stepping open until the speed can be held by hand.
-    const usable = LIGHT_APERTURES.filter(has);
-    let pick = usable[usable.length - 1] ?? stops[0];
-    for (const n of usable) {
-      const t = correctShutter(c.ev100, n, iso);
-      if (t >= fastest && t <= slowestHandheldSec * 1.001) {
-        pick = n;
-        break;
-      }
-    }
-    const shutterSec = nearestSpeed(speeds, correctShutter(c.ev100, pick, iso));
-    return { id: c.id, label: c.label, ev100: c.ev100, fNumber: pick, shutterSec, needsSupport: shutterSec > slowestHandheldSec * 1.001 };
-  });
+  const light = LIGHT_CONDITIONS.map((c) => ({ id: c.id, label: c.label, ev100: c.ev100, ...lightSetting(c.ev100, { stops, speeds, iso, slowestHandheldSec }) }));
 
   return { zones, light, slowestHandheldSec };
 }

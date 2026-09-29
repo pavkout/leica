@@ -184,6 +184,26 @@ Known limitations / next design pass:
 - The picker's close key shows a focus ring when opened by pointer.
 - Needs a real-phone check of the feel.
 
+**Eleven more features (second ideas list)** (user request, 2026-09-29): all code COMPLETE, user review pending. Data for #1, #2, #3 and #9 was researched online, and every entry cites its source.
+- **Serial numbers** (Explore): lens serial → year for 1933–2011, from Leica Rumors / Leica Blog Russia and Camera-wiki (Puts, Pont). The two sources agree on every row they share. Overlaps and gaps are kept as published and reported as such. Bodies are not covered. Code: `data/lensSerials.ts`.
+- **Lens coding** (Explore): 39 six-bit codes from two community tables that agree entry for entry (noted as community data, not Leica's), plus Leica's official 2015 retrofit list.
+  - Look up: the dots drawn on the bayonet.
+  - Read a lens in your hand: tap the fields to identify the lens.
+  - Advice for uncoded lenses.
+  Code: `data/lensCodes.ts`. Catalogue lenses match only on an exact, unambiguous name.
+- **Will it fit?** (Explore): any lens on any body: mount, adapter, frame lines, 0.7 m rangefinder coupling, and Leica's M10-R manual warnings (collapsible lens, pre-ASPH Summilux 35, 135 mm focusing, heavy lens) on M10/M11 bodies, each linked to its source. A mount animation and an "every body" matrix. Code: `physics/compatibility.ts`.
+- **My collection** (Explore): the owner's own record: serials, dates, price, filter thread, service date, notes and a photo. It shows a service reminder after 3 years, exports CSV and prints a one-page record. Code: `state/collection.ts`.
+- **Check your rangefinder** (Learn): a printable A4 target (true size, one page), steps to shoot it at 45° wide open, and an upload. A row-contrast analysis (`physics/focusCheck.ts`) says on target / front / back focus and draws the profile over the photo; tap to move the mark. Checked on a synthetic front-focused photo.
+- **Light planner** (Shoot): NOAA sun position (`physics/sun.ts`, tested against Amsterdam's published midsummer times to within 4 minutes). The day is drawn as a 24-hour dial with night, blue hour, golden hour and day, plus a current-time hand. Nine cities or your location; settings per phase at the film's ISO. Golden and blue hour EVs are marked approximate.
+- **Zone coach** (Shoot): big engraved figures (set the distance, sharp range) for hyperfocal or 2/3/5 m, with an aperture scale. Full screen keeps the phone awake (Wake Lock where supported, and says so when it isn't).
+- **Film finder** (Shoot): three questions (type, light, look) give the top three of the app's stocks with reasons, a sample photo developed in each look, and a load button for film bodies. It matches on the app's approximate film looks and says so. Code: `physics/filmFinder.ts`.
+- **Famous frames** (Explore): four pictures described in words, with no reproductions: Cartier-Bresson (Gare Saint-Lazare), Eisenstaedt (V-J Day), Frank (The Americans), Korda (Guerrillero Heroico). Each gives only the gear its sources state, "Settings: not recorded", and a clearly labelled catalogue stand-in to try. Nick Ut's photograph was excluded: the camera is disputed (the AP says it may have been a Pentax), and the image is sensitive.
+- **Sound library** (Explore): each shutter mechanism is drawn, with its bodies, playable at several speeds, plus the other mechanical sounds; all labelled as synthesised.
+- **Today in the museum** (Explore, now the default page): one catalogue piece with a sourced history note per day, staged, with "Shoot with it today".
+- **Print:** only the visible tool's printable part prints (pocket card, collection record or target), each on one page; checked as PDFs.
+
+Validation: typecheck clean; lint 0 errors (the same 5 warnings); 65 files / 551 tests pass; build OK. Desktop and phone screenshots checked.
+
 **Eight new features (#5–#12 from the ideas list)** (user request, 2026-09-29): all code COMPLETE, user review pending.
 - **#5 Today's assignment** (Learn, now its default page):
   - one brief a day from 11 (`data/assignments.ts`), the same for everyone;

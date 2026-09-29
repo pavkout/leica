@@ -5745,8 +5745,42 @@ ul.lel-warn > li::before,
 
 /* Print only the card: two faces at credit-card-ish width, black on white. */
 @media print {
+  /* No printer margin: the rangefinder target is true A4; the card and the record add their own. */
   @page {
-    margin: 12mm;
+    margin: 0;
+  }
+
+  /* Only the printable part of the visible tool takes up space, so nothing spills onto blank pages. */
+  .camera-host,
+  .topbar,
+  .tool-nav,
+  .tool-head,
+  .footer,
+  .tool-bar,
+  .stage-card > :not(.pc-sheet),
+  .stage-collection > :not(.co-print),
+  .stage-rfcheck > :not(.rfc-print) {
+    display: none !important;
+  }
+
+  .tool-view:not([hidden]) .pc-sheet,
+  .tool-view:not([hidden]) .co-print {
+    padding: 12mm;
+  }
+
+  html,
+  body,
+  #root,
+  .app,
+  .pages,
+  .shell,
+  .tool-stage,
+  .tool-view,
+  .panel {
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
   }
 
   body,
@@ -5758,9 +5792,38 @@ ul.lel-warn > li::before,
     visibility: hidden;
   }
 
-  .pc-sheet,
-  .pc-sheet * {
+  .tool-view:not([hidden]) .pc-sheet,
+  .tool-view:not([hidden]) .pc-sheet *,
+  .tool-view:not([hidden]) .co-print,
+  .tool-view:not([hidden]) .co-print *,
+  .tool-view:not([hidden]) .rfc-print,
+  .tool-view:not([hidden]) .rfc-print * {
     visibility: visible;
+  }
+
+  /* The target prints at true size on A4: one page, no margin. */
+  .tool-view:not([hidden]) .rfc-print {
+    display: block !important;
+    position: absolute !important;
+    left: 0;
+    top: 0;
+    width: 210mm;
+  }
+
+  .tool-view:not([hidden]) .rfc-print svg {
+    display: block;
+    width: 210mm;
+    height: 296mm;
+  }
+
+  .tool-view:not([hidden]) .co-print {
+    display: block !important;
+    position: absolute !important;
+    left: 0;
+    top: 0;
+    width: 100%;
+    color: #000;
+    font-size: 10pt;
   }
 
   /* Everything else is invisible but still laid out; take it out of positioning so the card anchors to the page. */
@@ -5768,7 +5831,7 @@ ul.lel-warn > li::before,
     position: static !important;
   }
 
-  .pc-sheet {
+  .tool-view:not([hidden]) .pc-sheet {
     position: absolute !important;
     left: 0;
     top: 0;
@@ -6448,4 +6511,1362 @@ ul.lel-warn > li::before,
   .sl-remove {
     justify-self: start;
   }
+}
+
+/* ── Zone coach: engraved figures readable in the sun ───── */
+.zc-readout {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 24px;
+}
+
+.zc-label {
+  color: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.zc-big {
+  margin-bottom: 14px;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: clamp(72px, 18vw, 160px);
+  font-weight: 300;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+
+.zc-range {
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: clamp(34px, 7vw, 56px);
+  font-weight: 300;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.zc-range span {
+  color: var(--muted);
+  font-size: 0.55em;
+}
+
+.zc-meta {
+  margin-top: 10px;
+  color: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 16px;
+}
+
+.zc-controls {
+  display: grid;
+  gap: 4px;
+}
+
+.zc-go {
+  flex: none;
+  margin-top: 8px;
+}
+
+.zc-full {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  overflow-y: auto;
+  background: #000;
+}
+
+.zc-full .zc-big {
+  font-size: clamp(88px, 24vw, 220px);
+}
+
+.zc-close {
+  position: fixed;
+}
+
+.zc-awake {
+  color: var(--faint);
+  font-size: 12px;
+}
+
+/* ── Light planner: the day as a watch dial ─────────────── */
+.lp-places {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.lp-places .field {
+  flex: 1 1 220px;
+  margin: 0;
+}
+
+.lp-places .btn {
+  flex: none;
+}
+
+.lp-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 20px;
+}
+
+@media (min-width: 860px) {
+  .lp-main {
+    grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+    gap: 40px;
+    align-items: start;
+  }
+}
+
+.lp-dial {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.lp-dial svg {
+  width: min(100%, 360px);
+  height: auto;
+}
+
+.lp-bezel {
+  fill: #0d0d0c;
+  stroke: #2a2a27;
+  stroke-width: 1.5;
+}
+
+.lp-arc {
+  fill: none;
+  stroke-width: 22;
+}
+
+.lp-arc-night {
+  stroke: #1c1f2a;
+}
+
+.lp-arc-blue {
+  stroke: #2f4d86;
+}
+
+.lp-arc-golden {
+  stroke: #d99a3d;
+}
+
+.lp-arc-day {
+  stroke: #ece9e2;
+}
+
+.lp-tick {
+  stroke: #6f6c66;
+  stroke-width: 1;
+}
+
+.lp-hour {
+  fill: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 12px;
+}
+
+.lp-hand {
+  stroke: var(--red);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.lp-pin {
+  fill: var(--red);
+}
+
+.lp-times {
+  display: flex;
+  gap: 24px;
+  color: var(--muted);
+}
+
+.lp-times b {
+  color: var(--text);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 22px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-day {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lp-day p {
+  flex: 1;
+  font-size: 17px;
+  text-align: center;
+}
+
+.lp-day .btn {
+  flex: none;
+  width: 40px;
+  padding: 0;
+  font-size: 18px;
+}
+
+.lp-next {
+  margin: 14px 0;
+  padding: 8px 0 8px 12px;
+  box-shadow: inset 2px 0 0 #d99a3d;
+}
+
+.lp-next b {
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.lp-phases {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.lp-phase {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.lp-phase-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.lp-phase-name i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.lp-phase-golden i {
+  background: #d99a3d;
+}
+
+.lp-phase-day i {
+  background: #ece9e2;
+}
+
+.lp-phase-blue i {
+  background: #2f4d86;
+}
+
+.lp-phase-night i {
+  background: #1c1f2a;
+  box-shadow: inset 0 0 0 1px #4a4a45;
+}
+
+.lp-phase-when {
+  grid-column: 1;
+  color: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-phase-set {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lp-phase .muted {
+  grid-column: 1 / -1;
+}
+
+/* ── Will it fit? ───────────────────────────────────────── */
+.cp-pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.cp-pick .field {
+  margin: 0;
+}
+
+.cp-result {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  margin: 24px 0 8px;
+}
+
+@media (max-width: 560px) {
+  .cp-result {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cp-mount {
+  width: 100%;
+  height: auto;
+}
+
+.cp-body {
+  fill: #1c1c1b;
+  stroke: #3b3b37;
+}
+
+.cp-flange {
+  fill: #8d8c87;
+}
+
+.cp-barrel {
+  fill: #232322;
+  stroke: #4a4944;
+}
+
+.cp-rear {
+  fill: #bdbbb5;
+}
+
+.cp-adapter {
+  fill: #6f6c66;
+}
+
+/* The lens meets the mount: turning home when it fits, stopping short when it doesn't. */
+.cp-lens {
+  animation: cp-mount 520ms var(--ease-detent) both;
+}
+
+.cp-mount-no .cp-lens {
+  animation-name: cp-refuse;
+}
+
+@keyframes cp-mount {
+  from {
+    transform: translateX(-30px);
+    opacity: 0.4;
+  }
+  70% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes cp-refuse {
+  from {
+    transform: translateX(-30px);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateX(-14px);
+    opacity: 1;
+  }
+}
+
+.cp-mount-no .cp-rear {
+  fill: var(--red);
+}
+
+.cp-verdict {
+  font-size: clamp(28px, 4vw, 40px);
+  font-stretch: var(--display-stretch);
+  font-weight: 300;
+  line-height: 1.1;
+}
+
+.cp-verdict-no {
+  color: #e8574d;
+}
+
+.cp-use {
+  margin-top: 12px;
+}
+
+.cp-notes {
+  display: grid;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.cp-note {
+  display: grid;
+  gap: 3px;
+  padding: 12px 0 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.cp-note-ok {
+  box-shadow: inset 2px 0 0 var(--engrave);
+}
+
+.cp-note-info {
+  box-shadow: inset 2px 0 0 #6f6c66;
+}
+
+.cp-note-caution,
+.cp-note-stop {
+  box-shadow: inset 2px 0 0 var(--red);
+}
+
+.cp-note-title {
+  font-weight: 600;
+}
+
+.cp-note-detail {
+  color: #c9c5bc;
+  line-height: 1.45;
+}
+
+.cp-source {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.cp-h {
+  margin: 28px 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cp-matrix {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.cp-cell {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: var(--plate);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cp-cell-on {
+  background: var(--plate-3);
+  box-shadow: inset 0 -2px 0 var(--red);
+}
+
+.cp-cell-name {
+  font-weight: 600;
+}
+
+.cp-cell-v {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cp-cell-fits .cp-cell-v {
+  color: var(--engrave);
+}
+
+.cp-cell-no {
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-lens {
+    animation: none;
+  }
+}
+
+/* ── My collection ──────────────────────────────────────── */
+.co-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.co-actions .btn {
+  flex: none;
+}
+
+.co-edit {
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--plate-2);
+}
+
+.co-edit h3 {
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-stretch: var(--display-stretch);
+  font-weight: 400;
+}
+
+.co-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0 14px;
+}
+
+.co-edit input[type="date"] {
+  min-height: 44px;
+  padding: 0 12px;
+  font: inherit;
+  color: var(--text);
+  color-scheme: dark;
+  background: var(--plate);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+}
+
+.co-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.co-remove {
+  margin-left: auto;
+  border-color: transparent;
+  background: transparent;
+  color: #e8574d;
+}
+
+.co-empty {
+  margin-top: 20px;
+}
+
+/* The ledger: each piece a row, its picture on a small stage. */
+.co-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.co-item {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  border: 0;
+  background: var(--plate);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--t-detent) var(--ease-detent);
+}
+
+@media (hover: hover) {
+  .co-item:hover {
+    background: var(--plate-2);
+  }
+}
+
+.co-pic {
+  display: block;
+  width: 110px;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 2px;
+  background: radial-gradient(90% 90% at 50% 40%, #2a2a27, #141413);
+}
+
+.co-pic svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.co-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.co-kind {
+  color: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.co-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.co-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  color: #c9c5bc;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.co-service {
+  margin-top: 4px;
+  color: #d99a3d;
+  font-size: 12px;
+}
+
+.co-print {
+  display: none;
+}
+
+.co-print table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.co-print th,
+.co-print td {
+  padding: 4pt 6pt;
+  border-bottom: 0.3mm solid #999;
+  text-align: left;
+  vertical-align: top;
+}
+
+.co-print img {
+  display: block;
+  width: 30mm;
+  margin-bottom: 2pt;
+}
+
+/* ── Rangefinder check ──────────────────────────────────── */
+.rfc-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.rfc-steps li {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-strong);
+  counter-increment: step;
+}
+
+.rfc-steps h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.rfc-steps h3::before {
+  content: counter(step);
+  margin-right: 10px;
+  color: #d9a441;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+}
+
+.rfc-upload {
+  position: relative;
+  overflow: hidden;
+}
+
+.rfc-upload input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.rfc-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 28px;
+}
+
+@media (min-width: 900px) {
+  .rfc-result {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.rfc-photo {
+  position: relative;
+  cursor: crosshair;
+}
+
+.rfc-photo img {
+  display: block;
+  width: 100%;
+  border-radius: 2px;
+}
+
+.rfc-profile {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.55));
+  pointer-events: none;
+}
+
+.rfc-profile polyline {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.rfc-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.rfc-line b {
+  position: absolute;
+  left: 8px;
+  transform: translateY(-120%);
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.7);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.rfc-mark {
+  border-top: 1.5px dashed #fff;
+}
+
+.rfc-peak {
+  border-top: 2px solid var(--red);
+}
+
+.rfc-peak b {
+  left: auto;
+  right: 24%;
+}
+
+.rfc-verdict {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+}
+
+.rfc-word {
+  font-size: clamp(30px, 4vw, 44px);
+  font-stretch: var(--display-stretch);
+  font-weight: 300;
+  line-height: 1;
+}
+
+.rfc-word-front,
+.rfc-word-back {
+  color: #e8574d;
+}
+
+.rfc-print {
+  display: none;
+}
+
+/* ── Film finder ────────────────────────────────────────── */
+.ff-questions {
+  display: grid;
+  gap: 4px;
+}
+
+.ff-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 16px;
+}
+
+@media (min-width: 900px) {
+  .ff-result {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    align-items: start;
+  }
+}
+
+.ff-picks {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.ff-pick {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 4px 12px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--t-detent) var(--ease-detent);
+}
+
+.ff-pick-on {
+  background: var(--plate-2);
+  box-shadow: inset 2px 0 0 var(--red);
+}
+
+.ff-art {
+  width: 88px;
+  height: auto;
+}
+
+.ff-pick-body {
+  display: grid;
+  gap: 3px;
+}
+
+.ff-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.ff-reasons {
+  color: #c9c5bc;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ff-sample {
+  display: grid;
+  gap: 10px;
+}
+
+.ff-desc {
+  color: #c9c5bc;
+}
+
+.ff-load {
+  justify-self: start;
+  flex: none;
+}
+
+/* ── Sound library ──────────────────────────────────────── */
+.snd-muted {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 0 10px 12px;
+  box-shadow: inset 2px 0 0 var(--red);
+}
+
+.snd-mechs {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.snd-mech {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 20px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+@media (max-width: 560px) {
+  .snd-mech {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.snd-draw {
+  width: 150px;
+  height: auto;
+}
+
+.snd-gate {
+  fill: #070707;
+  stroke: #4a4944;
+}
+
+.snd-curtain {
+  fill: #2a2a28;
+  stroke: #6f6c66;
+}
+
+.snd-curtain-2 {
+  fill: #1f1f1d;
+}
+
+.snd-arrow {
+  stroke: var(--red);
+  stroke-width: 1.5;
+}
+
+.snd-blade {
+  fill: #5c5b56;
+  stroke: #8d8c87;
+  stroke-width: 0.5;
+}
+
+.snd-leaf {
+  fill: #2a2a28;
+  stroke: #8d8c87;
+  stroke-width: 0.6;
+}
+
+.snd-row {
+  stroke: #6f6c66;
+  stroke-dasharray: 2 2;
+}
+
+.snd-body {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.snd-body h3 {
+  margin: 0;
+  font-size: 18px;
+  font-stretch: var(--display-stretch);
+  font-weight: 400;
+}
+
+.snd-bodies {
+  color: #c9c5bc;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 14px;
+}
+
+.snd-play {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.snd-on {
+  background: var(--plate-3) !important;
+  box-shadow: inset 0 -2px 0 var(--red) !important;
+}
+
+.snd-h {
+  margin: 28px 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.snd-others {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.snd-other {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--plate-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.snd-other:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.snd-other-label {
+  font-weight: 600;
+}
+
+/* ── Today in the museum ────────────────────────────────── */
+.mt-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+
+@media (min-width: 900px) {
+  .mt-grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 40px;
+    align-items: center;
+  }
+}
+
+.mt-stage {
+  margin: 0;
+  padding: 32px;
+  background: radial-gradient(70% 70% at 50% 45%, #2a2a27, #121211);
+}
+
+.mt-stage svg,
+.mt-stage img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.mt-card {
+  display: grid;
+  gap: 8px;
+}
+
+.mt-date {
+  color: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.mt-year {
+  color: #d9a441;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 40px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.mt-title {
+  font-size: clamp(30px, 4vw, 44px);
+  font-stretch: var(--display-stretch);
+  font-weight: 300;
+  line-height: 1.05;
+}
+
+.mt-specs {
+  margin: 8px 0 4px;
+}
+
+.mt-note {
+  max-width: 62ch;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.mt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.mt-actions .btn {
+  flex: none;
+}
+
+/* ── Lens coding ────────────────────────────────────────── */
+.lc-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 20px;
+}
+
+@media (min-width: 860px) {
+  .lc-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    align-items: start;
+  }
+}
+
+.lc-show {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.lc-flange {
+  width: min(100%, 420px);
+  height: auto;
+}
+
+.lc-ring {
+  fill: none;
+  stroke: #8d8c87;
+  stroke-width: 44;
+  opacity: 0.35;
+}
+
+.lc-ring-inner {
+  fill: none;
+  stroke: #1a1a19;
+  stroke-width: 2;
+}
+
+.lc-field {
+  stroke: #6f6c66;
+  stroke-width: 1;
+}
+
+.lc-field-1 {
+  fill: #0a0a0a;
+}
+
+.lc-field-0 {
+  fill: #f2f0eb;
+}
+
+.lc-field-tap {
+  cursor: pointer;
+}
+
+.lc-field-tap:focus-visible {
+  outline: none;
+  stroke: var(--red);
+  stroke-width: 2.5;
+}
+
+.lc-note {
+  fill: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 12px;
+}
+
+.lc-code {
+  display: flex;
+  gap: 16px;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 28px;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.lc-code span + span {
+  color: var(--muted);
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.lc-retro {
+  color: var(--engrave);
+}
+
+.lc-found {
+  font-size: 20px;
+  font-stretch: var(--display-stretch);
+}
+
+.lc-uncoded {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.lc-uncoded h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ── Serial numbers: a page from a ledger ───────────────── */
+.sn-field input {
+  max-width: 420px;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 22px;
+  letter-spacing: 0.06em;
+}
+
+.sn-result {
+  min-height: 90px;
+  margin: 10px 0 18px;
+}
+
+.sn-year {
+  color: #d9a441;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: clamp(64px, 12vw, 120px);
+  font-weight: 300;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+
+.sn-ledger {
+  width: min(100%, 520px);
+  border-collapse: collapse;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sn-ledger th,
+.sn-ledger td {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.sn-ledger thead th {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.sn-ledger tbody th {
+  font-weight: 500;
+}
+
+.sn-hit th,
+.sn-hit td {
+  color: #fff;
+  background: var(--plate-2);
+}
+
+.sn-hit th {
+  box-shadow: inset 2px 0 0 var(--red);
+  padding-left: 10px;
+}
+
+/* ── Famous frames: museum labels, no reproductions ─────── */
+.fm-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fm-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px 32px;
+  padding: 28px 0;
+  border-top: 1px solid var(--line);
+}
+
+.fm-item:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+@media (min-width: 860px) {
+  .fm-item {
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+}
+
+.fm-year {
+  color: #d9a441;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: clamp(48px, 7vw, 76px);
+  font-weight: 300;
+  line-height: 0.95;
+}
+
+.fm-label {
+  display: grid;
+  gap: 8px;
+  max-width: 68ch;
+}
+
+.fm-title {
+  font-size: clamp(26px, 3.4vw, 36px);
+  font-stretch: var(--display-stretch);
+  font-weight: 300;
+  line-height: 1.1;
+}
+
+.fm-by {
+  color: var(--muted);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fm-scene {
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.fm-gear {
+  margin: 6px 0;
+}
+
+.fm-sources {
+  font-size: 12px;
+}
+
+.fm-try {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  margin-top: 6px;
 }

@@ -6,6 +6,7 @@
 import content from "../content/timeline.json";
 import { BODIES, LENSES, isAdapted, lensesForBody, type Body, type BodyFamily, type Lens, type Mount } from "./gear";
 import { LENS_FAMILIES } from "./lensFamilies";
+import { dayNumber } from "../physics/assignment";
 
 export interface NoteProvenance {
   kind: "reference";
@@ -189,4 +190,11 @@ export function timelineProblems(c: TimelineContent = TIMELINE_CONTENT): string[
     if (n.text.length > 280) out.push(`${n.id}: keep notes to a concise original summary`);
   }
   return out;
+}
+
+/** Today's piece: the catalogue's cameras and lenses with a sourced history note, one a day, the same for everyone. */
+export function pieceFor(day: string, items: TimelineItem[] = timelineItems()): TimelineItem | null {
+  const withStory = items.filter((i) => i.notes.length > 0 && (i.body || i.lens));
+  if (!withStory.length) return null;
+  return withStory[((dayNumber(day) % withStory.length) + withStory.length) % withStory.length];
 }

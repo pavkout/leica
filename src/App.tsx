@@ -52,13 +52,24 @@ import { TOOLS, findTool, toolForStage, toolsFor, type Tool, type ToolId } from 
 import { parseKiosk } from "./state/kiosk";
 import { setSafelight, useSafelight } from "./state/safelight";
 import { describeRecord, parseRecord, type DevelopmentRecord } from "./physics/darkroom";
-import { bodyForLens } from "./data/timeline";
+import { bodyForLens, type TimelineItem } from "./data/timeline";
 import PerspectiveLab from "./components/PerspectiveLab";
 import PocketCard from "./components/PocketCard";
 import GuessLens from "./components/GuessLens";
 import DailyAssignment from "./components/DailyAssignment";
 import KitPlanner from "./components/KitPlanner";
 import ShotLog from "./components/ShotLog";
+import ZoneCoach from "./components/ZoneCoach";
+import LightPlanner from "./components/LightPlanner";
+import Compatibility from "./components/Compatibility";
+import Collection from "./components/Collection";
+import RangefinderCheck from "./components/RangefinderCheck";
+import FilmFinder from "./components/FilmFinder";
+import SoundLibrary from "./components/SoundLibrary";
+import MuseumToday from "./components/MuseumToday";
+import LensCoding from "./components/LensCoding";
+import SerialLookup from "./components/SerialLookup";
+import FamousFrames from "./components/FamousFrames";
 import RangefinderCalibration from "./components/RangefinderCalibration";
 import { parseTrial } from "./physics/lensTrial";
 import { findRecipe, type Recipe } from "./data/recipes";
@@ -1192,6 +1203,18 @@ export default function App() {
     </section>
   );
 
+  /** From the museum: put that camera (or a body for that lens) on the simulator and go and shoot with it. */
+  const simulateItem = (item: TimelineItem) => {
+    if (item.body) selectBody(item.body.id);
+    else if (item.lens) {
+      const target = bodyForLens(item.lens, body);
+      if (!target) return;
+      if (target.id !== body.id) selectBody(target.id);
+      selectLens(item.lens.id);
+    }
+    navigate({ ...route, screen: "camera" });
+  };
+
   const views: Partial<Record<ToolId, ReactNode>> = {
     // Studio: understand the shot. The picture, what's sharp in it, and why, with the lens right there;
     // camera settings folded away below (the camera itself is where you shoot).
@@ -1365,6 +1388,8 @@ export default function App() {
       />
       </>
     ),
+    light: <LightPlanner lens={lens} stops={stops} speeds={speeds} iso={iso} filmLabel={isFilm ? look.name : "the sensor"} />,
+    zone: <ZoneCoach lens={lens} stops={stops} fNumber={fNumber} onAperture={setFNumber} cocMm={shot.cocMm} units={units} />,
     shotlog: (
       <ShotLog
         body={body}
@@ -1396,17 +1421,7 @@ export default function App() {
       <MuseumTimeline
         body={body}
         units={units}
-        onSimulate={(item) => {
-          if (item.body) selectBody(item.body.id);
-          else if (item.lens) {
-            const target = bodyForLens(item.lens, body);
-            if (!target) return;
-            if (target.id !== body.id) selectBody(target.id);
-            selectLens(item.lens.id);
-          }
-          // The camera is the simulator: go and shoot with it.
-          navigate({ ...route, screen: "camera" });
-        }}
+        onSimulate={simulateItem}
       />
     ),
     generations: (
@@ -1420,6 +1435,50 @@ export default function App() {
           selectLens(lensId);
           const l = lenses.find((x) => x.id === lensId);
           if (l && Number.isFinite(focusMm) && focusMm < l.minFocusMm) setFocusMm(l.minFocusMm);
+        }}
+      />
+    ),
+    collection: <Collection />,
+    today: (
+      <MuseumToday
+        units={units}
+        onOpenTimeline={() => goTool("timeline")}
+        onSimulate={simulateItem}
+      />
+    ),
+    coding: <LensCoding lens={lens} />,
+    serial: <SerialLookup />,
+    famous: (
+      <FamousFrames
+        onTry={(f) => {
+          if (f.standIn.bodyId !== body.id) selectBody(f.standIn.bodyId);
+          selectLens(f.standIn.lensId);
+          goCamera();
+        }}
+      />
+    ),
+    sounds: <SoundLibrary onMutedChange={setMutedState} />,
+    filmfinder: (
+      <FilmFinder
+        body={body}
+        lens={lens}
+        fNumber={fNumber}
+        loadLocked={rollFrames.length > 0}
+        onLoad={(id) => {
+          selectFilm(id);
+          goCamera();
+        }}
+      />
+    ),
+    rfcheck: <RangefinderCheck onLearnMore={() => goTool("calibration")} />,
+    compat: (
+      <Compatibility
+        body={body}
+        lens={lens}
+        onUse={(bId, lId) => {
+          if (bId !== body.id) selectBody(bId);
+          selectLens(lId);
+          goCamera();
         }}
       />
     ),
