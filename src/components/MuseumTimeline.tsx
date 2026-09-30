@@ -15,7 +15,7 @@ interface Props {
 
 const ALL_ITEMS = timelineItems();
 const DECADES = decades(ALL_ITEMS);
-const CARD_W = 92;
+const CARD_W = 136;
 /** Chronological order, evenly spaced, in two alternating rows: compact however dense the years get. */
 const STEP = CARD_W / 2 + 6;
 const LANE_H = 34;
@@ -118,7 +118,7 @@ export default function MuseumTimeline({ body, units, onSimulate }: Props) {
                   aria-label={`${it.year} ${it.title}${it.kind === "lens" ? " (lens)" : it.kind === "milestone" ? " (not in the catalogue)" : ""}`}
                   onClick={() => setSelectedId(it.id)}
                 >
-                  <span className="museum-year">{it.year}</span> {it.kind === "lens" ? shortLens(it.title) : it.title}
+                  <span className="museum-year">{it.year}</span> {it.kind === "lens" ? shortLens(it.title) : shortTitle(it.title)}
                 </button>
               </div>
             ))}
@@ -137,6 +137,11 @@ export default function MuseumTimeline({ body, units, onSimulate }: Props) {
 }
 
 /** "APO-Summicron-M 50 f/2 ASPH." → "50 f/2" for the strip; the full name is in the detail card. */
+/** The strip's label: descriptive brackets ("S3 (medium format)") go, model names ("M (Typ 240)") stay. */
+function shortTitle(title: string) {
+  return title.replace(/ \((?!Typ )[^)]*\)$/, "");
+}
+
 function shortLens(name: string) {
   return name.match(/\d+ f\/[\d.]+/)?.[0] ?? name;
 }
@@ -163,7 +168,7 @@ function Detail({ item, units, current, onSimulate }: { item: TimelineItem; unit
           </div>
         )}
       </div>
-      <div className="museum-body">
+      <div className="museum-detail-body">
         <h3>
           {item.title} <span className="muted">· {item.year}</span>
         </h3>

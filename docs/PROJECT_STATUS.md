@@ -193,6 +193,10 @@ The Master Plan's remaining briefs, in the plan's priority order. Recorded here,
 6. [x] #36 — Long Exposure Lab (P3) — COMPLETE (MVP + later enhancements)
 7. [x] #21 — Exploded camera view (P4) — PARTIAL (illustrative 2D; authored 3D assets open)
 8. [x] #23 — Leica timeline / interactive museum (P4)
+   - 2026-09-30 (user report): spacing and strip fixes.
+     - The detail sheet's title, specs, note and button now have even space between them. Its class is now `museum-detail-body`, so it can't collide with the strip's `museum-body` camera items.
+     - Strip cards are 136 px wide, so no label is cut off, and descriptive brackets are dropped from strip labels only ("S3", not "S3 (medium format)"). A browser check found no overlaps or clipping, with or without lens milestones.
+     - Studio: space added between the shutter row and the scene thumbnails.
 9. [x] #34 — Darkroom mode (P4)
 10. [x] #20 — Virtual Leica Store / kiosk mode (P4)
 

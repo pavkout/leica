@@ -3829,7 +3829,7 @@ input[type="range"]:disabled {
 
 .museum-slot {
   position: absolute;
-  width: 92px;
+  width: 136px;
 }
 
 .museum-item {
@@ -3914,7 +3914,7 @@ input[type="range"]:disabled {
 }
 
 /* Title, specs, notes and the action stack with even space, never flush. */
-.museum-body {
+.museum-detail-body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -3922,12 +3922,12 @@ input[type="range"]:disabled {
   min-width: 0;
 }
 
-.museum-body > .gen-specs {
+.museum-detail-body > .gen-specs {
   align-self: stretch;
   margin: 0;
 }
 
-.museum-body h3 {
+.museum-detail-body h3 {
   margin: 0;
   font-size: clamp(24px, 3vw, 32px);
   font-stretch: var(--display-stretch);
