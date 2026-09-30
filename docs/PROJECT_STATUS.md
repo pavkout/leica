@@ -20,6 +20,27 @@ Last updated: 2026-09-30
 
 ## Current task
 
+**Private sign-in for publishing on Vercel** (user request, 2026-09-30; outside the Master Plan's phases: a deployment need, not a product feature). **IN PROGRESS**: code written; validation is pending because shell commands were blocked while it was written.
+- The owner wants to publish online, with only them able to use the app. It's a single user with no database; a proper account system may come later.
+- **Server side, not in the browser:** a login inside a static site would ship the credentials, or a way past them, in the JavaScript. So the check runs on the host. `middleware.ts` (Vercel Routing Middleware, via `@vercel/functions`' `next()`) calls `src/auth/gate.ts` before every request.
+  - Without a session, pages redirect with 303 to `/login?next=…` and every other file gets a 401, so no app code is served.
+  - `/login` is plain HTML (`src/auth/loginPage.ts`) and carries the app's `#/…` route through the sign-in.
+  - `/logout` clears the cookie. In production builds the menu's settings list has a "Sign out" entry.
+- **Credentials:** `AUTH_USERNAME` and `AUTH_PASSWORD` are Vercel environment variables, never in the repository. If either is missing, the site stays locked.
+- **Session:** `__Host-rf_session` = `v1.<expiry>.<HMAC-SHA256>`, keyed from the credentials (changing the password signs every device out). HttpOnly, Secure, SameSite=Lax. It lasts 30 days and is renewed once past halfway.
+- **Safety details:**
+  - Constant-time comparisons.
+  - A 600 ms pause after a wrong password.
+  - After sign-in, redirects go only to same-site paths; the hash route is whitelisted.
+  - `noindex` and `no-store` on the gate's responses.
+- Tests: `src/auth/gate.test.ts`. Setup steps: README → "Publishing on Vercel".
+- **Known limitations:**
+  - There is no lockout or rate limit beyond the pause (there's no store to count attempts), so use a long passphrase.
+  - `npm run dev` has no gate.
+  - An offline kiosk device keeps serving what its service worker cached.
+
+**Previous task:**
+
 **#39 — Museum mode** (user request, 2026-09-29; brief added to the Master Plan at the user's request; design: `docs/superpowers/specs/2026-09-29-museum-mode-design.md`) — **code COMPLETE, awaiting the user's review** (and a real iPad/TV run of display mode).
 - MENU → **Museum** → "Enter the museum" or "Display mode". `?museum=display` starts in display mode.
 - Five rooms, Night gallery look:

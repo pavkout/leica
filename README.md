@@ -33,6 +33,19 @@ npm run lint        # eslint
 npm run build       # static build in dist/ (relative base, works on GitHub Pages)
 ```
 
+## Publishing on Vercel (private, single sign-in)
+
+The deployed app is private. `middleware.ts` runs on Vercel before every request (the code is in `src/auth/`). Without a valid session, pages redirect to `/login` and every other file gets a 401, so none of the app is served until you sign in. Signing in sets an HttpOnly, Secure cookie that lasts 30 days and renews itself while you use the app. **MENU → Settings → Sign out** (or `/logout`) ends the session.
+
+The username and password are **not in the code**. Set them in Vercel: Project → Settings → Environment Variables:
+
+| Name | Value |
+| --- | --- |
+| `AUTH_USERNAME` | your username |
+| `AUTH_PASSWORD` | a long password (a passphrase is best: there's no lockout, only a short pause after each wrong attempt) |
+
+Add them for Production and Preview, then redeploy. If either is missing, the site stays locked and the login page says so. Changing the password signs out every device. Vercel builds straight from the repository, so GitHub Secrets aren't needed. `npm run dev` has no gate.
+
 ## A 2-minute walkthrough
 
 1. **Pick your gear.** Camera & lens panel → tap the camera, choose the **M11**; tap the lens, choose a 50 mm Summilux. Notice the star icon on any card — tap it to pin it to "My Gear" for next time.

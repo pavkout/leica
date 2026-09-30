@@ -1801,6 +1801,8 @@ export default function App() {
               },
             },
             { id: "tour", label: "60-second tour", value: "Start", onActivate: startDemo },
+            // The sign-in gate runs on the host (middleware.ts), so there's nothing to sign out of in development.
+            ...(import.meta.env.PROD ? [{ id: "signout", label: "Sign out", value: "Leave this device signed out", onActivate: () => location.assign("/logout") }] : []),
           ]}
         />
       )}
