@@ -9,3 +9,4 @@ dist
 gear-images/bodies/*
 gear-images/lenses/*
 !gear-images/*/.gitkeep
+.superpowers/

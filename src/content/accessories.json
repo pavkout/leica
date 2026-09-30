@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "updated": "2026-09-29",
+  "about": "Accessories for the museum (feature #39). Concise original summaries; every story paragraph cites its source and the date it was read. Facts are limited to what the cited sources state; a year or spec a source doesn't give is left out.",
+  "items": [
+    {
+      "id": "visoflex",
+      "name": "Visoflex reflex housing",
+      "kind": "reflex",
+      "year": 1951,
+      "line": "Turns a rangefinder into a reflex camera · ground-glass focusing",
+      "facts": [
+        { "label": "What it is", "value": "Mirror box, ground glass and viewfinder" },
+        { "label": "Visoflex I", "value": "1951" },
+        { "label": "Visoflex II", "value": "1960" },
+        { "label": "Visoflex III", "value": "1964, M cameras only" }
+      ],
+      "story": [
+        {
+          "text": "A reflex housing made by Leitz to add ground-glass focusing to its rangefinder cameras, updating the PLOOT housing of the 1930s. It fits between camera and lens, so long lenses and close-ups can be focused through the lens.",
+          "source": "Camera-wiki, \"Visoflex\"",
+          "url": "https://camera-wiki.org/wiki/Visoflex",
+          "checked": "2026-09-29"
+        },
+        {
+          "text": "The Visoflex I first served screw-mount Leicas and was then made for the M bayonet after the M3 arrived. The Visoflex II was made for both mounts; the Visoflex III for M cameras only.",
+          "source": "Camera-wiki, \"Visoflex\"",
+          "url": "https://camera-wiki.org/wiki/Visoflex",
+          "checked": "2026-09-29"
+        }
+      ]
+    },
+    {
+      "id": "sbooi",
+      "name": "SBOOI 50 mm bright-line finder",
+      "kind": "finder",
+      "year": 1951,
+      "line": "An optical finder for screw-mount Leicas · 50 mm frame",
+      "facts": [
+        { "label": "What it is", "value": "Shoe-mounted optical viewfinder" },
+        { "label": "Made for", "value": "LTM / M39 screw-mount rangefinders" },
+        { "label": "Versions", "value": "Marked \"5 cm\" (SBOOI), later \"50mm\" (12105)" },
+        { "label": "Size", "value": "25 × 22 × 18 mm, 25 g" }
+      ],
+      "story": [
+        {
+          "text": "An optical viewfinder Leica made for its screw-mount rangefinders, showing a bright frame for the 50 mm lens. The first version is engraved \"5 cm\"; a later one \"50mm\", with grooves on the sides for grip.",
+          "source": "Kamerastore, \"Leica 5cm / 50mm Brightline Finder (SBOOI / 12015)\"",
+          "url": "https://kamerastore.com/en-us/products/leica-5cm-50mm-brightline-finder-sbooi-12015-t127084",
+          "checked": "2026-09-29"
+        }
+      ]
+    },
+    {
+      "id": "leicavit",
+      "name": "Leicavit",
+      "kind": "other",
+      "year": 1957,
+      "line": "A trigger winder in the base plate · up to two frames a second",
+      "facts": [
+        { "label": "What it is", "value": "Rapid winder in place of the base plate" },
+        { "label": "Speed", "value": "Up to 2 frames per second" },
+        { "label": "Fits (Leicavit M)", "value": "M-A, MP, M6, M6 TTL, M7, M4-P, M4-2" },
+        { "label": "Made", "value": "1957–1966; again 2003–2020; back in 2025" }
+      ],
+      "story": [
+        {
+          "text": "Introduced alongside the original Leica MP, the Leicavit advances the film and re-cocks the shutter in one pull of a trigger under the camera, without taking the camera from the eye.",
+          "source": "Red Dot Forum, \"Leica Reintroduces the Leicavit M\"",
+          "url": "https://www.reddotforum.com/content/2025/08/leica-reintroduces-the-leicavit-m/",
+          "checked": "2026-09-29"
+        },
+        {
+          "text": "The first production ended in 1966. Leica revived it in 2003 and made it until December 2020, then brought it back in 2025 as a regular product in three finishes.",
+          "source": "Red Dot Forum, \"Leica Reintroduces the Leicavit M\"",
+          "url": "https://www.reddotforum.com/content/2025/08/leica-reintroduces-the-leicavit-m/",
+          "checked": "2026-09-29"
+        }
+      ]
+    },
+    {
+      "id": "leicameter-mr",
+      "name": "Leicameter MR",
+      "kind": "meter",
+      "year": null,
+      "line": "A clip-on light meter that couples to the shutter dial",
+      "facts": [
+        { "label": "What it is", "value": "Shoe-mounted light meter for M cameras" },
+        { "label": "Cell", "value": "CdS (earlier Leicameters used other cells)" },
+        { "label": "Couples to", "value": "The shutter-speed dial" },
+        { "label": "Fits", "value": "M1, M2, M3 and the M4 models" },
+        { "label": "Battery", "value": "1.35 V PX625" }
+      ],
+      "story": [
+        {
+          "text": "A light meter that sits in the accessory shoe and turns with the shutter-speed dial, so setting the speed on one sets it on the other: the feel of a built-in meter on cameras that had none.",
+          "source": "Kamerastore, \"Leica Leicameter MR (14210)\"",
+          "url": "https://kamerastore.com/en-us/products/leica-leicameter-mr",
+          "checked": "2026-09-29"
+        }
+      ]
+    },
+    {
+      "id": "motor-m",
+      "name": "Leica Motor M",
+      "kind": "motor",
+      "year": null,
+      "line": "A battery motor drive for film M bodies · 1.5 or 3 frames a second",
+      "facts": [
+        { "label": "What it is", "value": "Battery-powered motor drive" },
+        { "label": "Speed", "value": "1.5 or 3 frames per second" },
+        { "label": "Fits", "value": "MP, M7, M6 TTL, M6, M4-2, M4-P" },
+        { "label": "Weight", "value": "225 g" }
+      ],
+      "story": [
+        {
+          "text": "A motor that fits under a film M body and winds on after every frame, at one and a half or three frames a second. It has its own tripod thread.",
+          "source": "Kamerastore, \"Leica Motor M (14408)\"",
+          "url": "https://kamerastore.com/en-us/products/leica-motor-m-14408-leica-m",
+          "checked": "2026-09-29"
+        }
+      ]
+    },
+    {
+      "id": "visoflex-020",
+      "name": "Visoflex (Typ 020)",
+      "kind": "finder",
+      "year": null,
+      "line": "An electronic viewfinder for digital M bodies",
+      "facts": [
+        { "label": "What it is", "value": "Electronic viewfinder, through-the-lens view" },
+        { "label": "Fits", "value": "Digital M bodies" },
+        { "label": "Size", "value": "47 × 41 × 36 mm, 53 g" }
+      ],
+      "story": [
+        {
+          "text": "The Visoflex name returned for the digital age: an electronic viewfinder that clips onto a digital M and shows exactly what the lens sees, the job the mirror housing once did.",
+          "source": "Kamerastore, \"Leica Visoflex (Typ 020)\"",
+          "url": "https://kamerastore.com/en-us/products/leica-visoflex-typ-020-18767",
+          "checked": "2026-09-29"
+        }
+      ]
+    }
+  ]
+}

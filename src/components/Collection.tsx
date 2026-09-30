@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BODIES, LENSES } from "../data/gear";
-import { getString, setString } from "../services/persistence";
+import { setString } from "../services/persistence";
+import { COLLECTION_KEY, loadCollection } from "../state/collectionStorage";
 import { collectionCsv, latestValuation, monthsSinceService, newItem, sorted, upsert, type CollectionItem, type ItemKind, type Valuation } from "../state/collection";
 import { openCollectorPage, takeDraft, usePendingDraft } from "../state/collectorStore";
 import { formatMoney } from "../state/market";
@@ -11,16 +12,8 @@ import BodyArt from "./gear/BodyArt";
 import GearImage from "./gear/GearImage";
 import LensArt from "./gear/LensArt";
 
-const KEY = "rangefinder-collection";
-
-function load(): CollectionItem[] {
-  try {
-    const list = JSON.parse(getString(KEY) ?? "[]") as CollectionItem[];
-    return Array.isArray(list) ? list : [];
-  } catch {
-    return [];
-  }
-}
+const KEY = COLLECTION_KEY;
+const load = loadCollection;
 
 function download(name: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: "text/csv" }));

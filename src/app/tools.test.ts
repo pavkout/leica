@@ -38,6 +38,12 @@ describe("routes", () => {
     expect(parseRoute("#/learn/studio")).toEqual({ screen: "tool", mode: "learn", tool: DEFAULT_TOOL.learn });
   });
 
+  it("opens the museum, wherever inside it the link points", () => {
+    expect(parseRoute("#/museum").screen).toBe("museum");
+    expect(parseRoute("#/museum/cameras/m3/story").screen).toBe("museum");
+    expect(routeHash({ ...HOME, screen: "museum" })).toBe("#/museum");
+  });
+
   it("keeps old links to tools that moved to Collectors", () => {
     expect(parseRoute("#/explore/collection")).toEqual({ screen: "tool", mode: "collect", tool: "collection" });
     expect(parseRoute("#/explore/serial")).toEqual({ screen: "tool", mode: "collect", tool: "serial" });

@@ -20,7 +20,39 @@ Last updated: 2026-09-29
 
 ## Current task
 
-**#38 — Collector tools** (user request, 2026-09-29; Priority 1; brief added to the Master Plan at the user's request; design: `docs/superpowers/specs/2026-09-29-collector-tools-design.md`; plan: `docs/superpowers/plans/2026-09-29-collector-tools.md`) — **PARTIAL: code complete for all 5 slices; the real-API smoke test (the user's own key) and a real-phone pass are pending.**
+**#39 — Museum mode** (user request, 2026-09-29; brief added to the Master Plan at the user's request; design: `docs/superpowers/specs/2026-09-29-museum-mode-design.md`) — **code COMPLETE, awaiting the user's review** (and a real iPad/TV run of display mode).
+- MENU → **Museum** → "Enter the museum" or "Display mode". `?museum=display` starts in display mode.
+- Five rooms, Night gallery look:
+  - Cameras (24)
+  - Lenses (46)
+  - Inside the camera (7 parts, the part lit in chrome)
+  - Accessories (6, researched and cited)
+  - Your collection
+- Each piece fills the screen under a spotlight, with its name set huge behind it. Changing pieces moves the piece and its name together.
+- **Explore** opens the story:
+  - key facts engraved on a spec plate
+  - sourced history
+  - "Hear the shutter"
+  - "Try it in the simulator"
+- **Display mode:**
+  - a 9-second loop, alternating rooms
+  - touch to explore; back to the loop after 60 s idle
+  - wake lock, and full screen from a tap
+  - hidden exit: hold the top-left corner for 3 s, or press Esc
+- Code:
+  - `src/museum/`: `exhibits.ts`, `deck.ts` and `accessories.ts` (pure, tested), `ui/*` (lazy chunk)
+  - `content/accessories.json`: every item cited
+  - `mechanics/anatomyView.ts`: projection code shared with the anatomy tool
+- Validation:
+  - 628 tests pass.
+  - Typecheck clean; lint has 0 errors; build passes.
+  - Browser walkthroughs at 1440, 1024, 390, 320 and 844 × 390 (landscape): no overflow, no errors.
+- Known limitations:
+  - Product art is the app's drawings: no licensed product photos exist yet (`gear-images` is empty). Photos would drop in automatically.
+  - Accessory sources are partly dealer pages (Kamerastore), because camera-wiki's reference pages and the Leica Wiki block automated reading. Years a source didn't give are left out.
+  - Full screen isn't available in iPhone Safari; there the museum fills the window.
+
+Before that: **#38 — Collector tools** (user request, 2026-09-29; Priority 1; brief added to the Master Plan at the user's request; design: `docs/superpowers/specs/2026-09-29-collector-tools-design.md`; plan: `docs/superpowers/plans/2026-09-29-collector-tools.md`) — **PARTIAL: code complete for all 5 slices; the real-API smoke test (the user's own key) and a real-phone pass are pending.**
 - The user's decisions: cloud AI (Anthropic Claude) with the user's own API key (a paid mode comes later); the model is chosen by the user, with a pricing table and cost shown per run; price suggestions for listings and owned items, as cited comparables only.
 - Slices:
   - [x] 1. Serial auto-fill (offline): `state/serialFacts.ts`, `collector/SerialFactsCard.tsx`

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { hapticsEnabled, isMuted, playAdvance, playApertureClick, playDialClick, playMountClick, playRewind, playShutter, setHaptics, setMuted } from "./audio/sounds";
 import { shutterVoiceFor } from "./audio/voices";
 import BokehPreview, { type PreviewHandle, type PreviewSide } from "./components/BokehPreview";
@@ -66,6 +66,10 @@ import Collection from "./components/Collection";
 import IdentifyPage from "./components/collector/IdentifyPage";
 import ListingPage from "./components/collector/ListingPage";
 import AiHelper from "./components/collector/AiHelper";
+import { requestFullscreen } from "./museum/fullscreen";
+
+// The museum (#39) is its own full-screen world, loaded only when it's opened.
+const Museum = lazy(() => import("./museum/ui/Museum"));
 import RangefinderCheck from "./components/RangefinderCheck";
 import FilmFinder from "./components/FilmFinder";
 import SoundLibrary from "./components/SoundLibrary";
@@ -453,6 +457,10 @@ export default function App() {
     if (t) navigate({ screen: "tool", mode: t.mode, tool: t.id });
   };
   const goCamera = () => navigate({ ...route, screen: "camera" });
+  // `?museum=display`: a shop or event screen opens straight into the museum's display loop.
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("museum") === "display" && !location.hash.startsWith("#/museum")) location.hash = "#/museum/display";
+  }, []);
   const [playOpen, setPlayOpen] = useState(false);
   const cameraPreviewRef = useRef<PreviewHandle>(null);
   useEffect(() => {
@@ -1527,7 +1535,7 @@ export default function App() {
     <div className="app">
       {/* Home: the camera (#37). Kept mounted while you're in MENU pages, hidden (so it stops rendering). */}
       {!testAll && (
-        <div className="camera-host" hidden={onTools}>
+        <div className="camera-host" hidden={onTools || route.screen === "museum"}>
           <CameraView
             body={body}
             lens={lens}
@@ -1713,12 +1721,43 @@ export default function App() {
 
       </div>
 
+      {route.screen === "museum" && (
+        <Suspense fallback={<div className="museum-loading" aria-label="Opening the museum" />}>
+          <Museum
+            onExit={() => navigate({ ...route, screen: "menu" })}
+            onSimulate={({ bodyId, lensId }) => {
+              if (bodyId) selectBody(bodyId);
+              if (lensId) {
+                const l = findLens(lensId);
+                const target = bodyId ? findBody(bodyId) : bodyForLens(l, body);
+                if (!target) return;
+                if (!bodyId && target.id !== body.id) selectBody(target.id);
+                selectLens(lensId);
+              }
+              navigate({ ...route, screen: "camera" });
+            }}
+          />
+        </Suspense>
+      )}
+
       {route.screen === "menu" && (
         <CameraMenu
           tools={(m) => toolsFor(m, toolAvailable)}
           initialSection={route.mode}
           onOpenTool={goTool}
           onClose={goCamera}
+          museum={[
+            { id: "museum-enter", label: "Enter the museum", value: "Cameras, lenses, how they work, accessories and your collection, full screen.", onActivate: () => navigate({ ...route, screen: "museum" }) },
+            {
+              id: "museum-display",
+              label: "Display mode",
+              value: "Runs on its own on an iPad or TV: a slow loop of pieces, touch to explore. Hold the top-left corner to leave.",
+              onActivate: () => {
+                requestFullscreen();
+                location.hash = "#/museum/display";
+              },
+            },
+          ]}
           settings={[
             { id: "units", label: "Distance units", value: units === "metric" ? "Metres" : "Feet", onActivate: () => setUnits(units === "metric" ? "imperial" : "metric") },
             {

@@ -133,7 +133,7 @@ Development phases are separate roadmap milestones: Phase 0, Phase 1, Phase 2, P
 
 A Priority 1 feature is not automatically part of Phase 1. A Priority 2 feature is not automatically part of Phase 2. Feature completion must be determined from `PROJECT_STATUS.md` and the explicit milestone sections of this Master Plan.
 
-## Feature implementation briefs (1–38)
+## Feature implementation briefs (1–39)
 
 ### 1. Live Leica View  — Priority 1
 **Goal:** Turn the phone into a live shooting companion that overlays the selected Leica body/lens behavior on the real camera feed. The goal is not to pretend the phone is optically identical to the Leica; it is to help the photographer make a better decision before exposing film or pressing the shutter.
@@ -914,6 +914,33 @@ Old links to My collection and Serial numbers under Explore still open them.
 - Every AI run records its actual cost; a monthly limit, if set, is respected.
 - A sourced fact is never overwritten by an AI reading; conflicts are visible.
 - Tests never call the real API.
+
+### 39. Museum mode  — Priority 2
+Added 2026-09-29 at the user's request. Design: `docs/superpowers/specs/2026-09-29-museum-mode-design.md`.
+
+**Goal:** Present cameras, lenses, how they work, accessories and the owner's collection full screen, like an Apple Store demo unit. It should be premium, in Leica's style, and make people say "wow".
+
+**Decisions (user, 2026-09-29)**
+- Two uses in one presentation:
+  - explore it yourself, from MENU → Museum
+  - an unattended display: an attract loop, touch to explore, back to the loop when left idle
+- Structure: rooms (Cameras, Lenses, Inside the camera, Accessories, Your collection) → exhibits one at a time → each exhibit's story.
+- Look: the Night gallery. Black room, warm spotlight, chrome; red only as the index and the main action.
+
+**Requirements**
+- Every fact comes from the catalogue or a cited source. Accessories live in their own cited dataset, and an unsourced year or spec is left out.
+- The museum is lazy-loaded; its code isn't in the main bundle.
+- Display mode:
+  - keeps the screen awake
+  - asks for full screen when started from a tap
+  - exits via a hidden 3-second corner hold, or Escape
+- `?museum=display` starts in display mode.
+- Swipe, arrow keys and buttons all move between pieces. Reduced motion is honoured.
+
+**Acceptance criteria**
+- Works at phone, landscape phone, iPad and desktop sizes, with no overflow.
+- "Try it in the simulator" puts that camera or lens on the camera.
+- Your collection stays out of the unattended loop.
 
 ## First production milestone I want you to implement after Phase 0
 

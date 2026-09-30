@@ -14,27 +14,35 @@ interface Props {
   settings: MenuSetting[];
   onOpenTool: (tool: ToolId) => void;
   onClose: () => void;
+  /** The Museum section's entries (#39): enter it, or start the unattended display. */
+  museum?: MenuSetting[];
   /** Section to open on (the last one used). */
-  initialSection?: ModeId | "setup";
+  initialSection?: ModeId | "setup" | "museum";
   footer?: ReactNode;
 }
 
-type Section = ModeId | "setup";
+type Section = ModeId | "setup" | "museum";
 
 /**
  * MENU, in the manner of a Leica rear screen: black, a list of sections on
  * the left, the chosen section's entries on the right, the selection in red.
  * Arrow keys move, Enter opens, Escape (or MENU) returns to the camera.
  */
-export default function CameraMenu({ tools, settings, onOpenTool, onClose, initialSection = "simulate", footer }: Props) {
+export default function CameraMenu({ tools, settings, museum, onOpenTool, onClose, initialSection = "simulate", footer }: Props) {
   const [section, setSection] = useState<Section>(initialSection);
   const [row, setRow] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
-  const sections: { id: Section; label: string }[] = [...MODES.map((m) => ({ id: m.id as Section, label: m.label })), { id: "setup", label: "Setup" }];
+  const sections: { id: Section; label: string }[] = [
+    ...MODES.map((m) => ({ id: m.id as Section, label: m.label })),
+    ...(museum?.length ? [{ id: "museum" as Section, label: "Museum" }] : []),
+    { id: "setup", label: "Setup" },
+  ];
   const entries: { id: string; label: string; detail: string; go: () => void }[] =
     section === "setup"
       ? settings.map((s) => ({ id: s.id, label: s.label, detail: s.value, go: s.onActivate }))
-      : tools(section).map((t) => ({ id: t.id, label: t.label, detail: t.blurb, go: () => onOpenTool(t.id) }));
+      : section === "museum"
+        ? (museum ?? []).map((s) => ({ id: s.id, label: s.label, detail: s.value, go: s.onActivate }))
+        : tools(section).map((t) => ({ id: t.id, label: t.label, detail: t.blurb, go: () => onOpenTool(t.id) }));
 
   useEffect(() => setRow(0), [section]);
   // Escape (like pressing MENU again) returns to the camera wherever focus is.

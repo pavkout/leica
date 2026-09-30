@@ -9562,3 +9562,11 @@ label.btn-small {
 .lp-day .btn::after {
   display: none;
 }
+
+/* The museum (#39) loads on demand; until it arrives, the gallery is already dark. */
+.museum-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  background: #0a0a0a;
+}

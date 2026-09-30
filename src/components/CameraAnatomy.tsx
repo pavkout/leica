@@ -10,47 +10,13 @@ import {
   releaseDuration,
   shutterAt,
   WIND_SHARE,
-  type Box,
   type PartId,
 } from "../mechanics/anatomy";
+import { ANATOMY_VIEWBOX, faces } from "../mechanics/anatomyView";
 
 const SPEEDS = [1, 1 / 15, 1 / 60, 1 / 250, 1 / 1000];
-/** Oblique projection: depth recedes up and to the right. */
-const KX = 0.45 * Math.cos(Math.PI / 5);
-const KY = 0.45 * Math.sin(Math.PI / 5);
-const proj = (x: number, y: number, z: number): [number, number] => [x - z * KX, -(y - z * KY)];
-const pts = (p: [number, number][]) => p.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
 const PLAY_MS = 5000;
-
-function faces(b: Box) {
-  const [x0, y0, z0] = b.min;
-  const [x1, y1, z1] = b.max;
-  return {
-    front: pts([proj(x0, y0, z1), proj(x1, y0, z1), proj(x1, y1, z1), proj(x0, y1, z1)]),
-    top: pts([proj(x0, y1, z1), proj(x1, y1, z1), proj(x1, y1, z0), proj(x0, y1, z0)]),
-    right: pts([proj(x1, y0, z1), proj(x1, y0, z0), proj(x1, y1, z0), proj(x1, y1, z1)]),
-    label: proj((x0 + x1) / 2, y1, (z0 + z1) / 2),
-  };
-}
-
-// Fixed view box covering both the assembled and fully exploded layouts, so nothing rescales while animating.
-const VIEW = (() => {
-  const xs: number[] = [];
-  const ys: number[] = [];
-  for (const t of [0, 1])
-    for (const p of PARTS) {
-      const b = boxAt(p, t);
-      for (const x of [b.min[0], b.max[0]]) for (const y of [b.min[1], b.max[1]]) for (const z of [b.min[2], b.max[2]]) {
-        const [sx, sy] = proj(x, y, z);
-        xs.push(sx);
-        ys.push(sy);
-      }
-    }
-  const pad = 8;
-  const minX = Math.min(...xs) - pad;
-  const minY = Math.min(...ys) - pad;
-  return `${minX.toFixed(0)} ${minY.toFixed(0)} ${(Math.max(...xs) - minX + pad).toFixed(0)} ${(Math.max(...ys) - minY + pad).toFixed(0)}`;
-})();
+const VIEW = ANATOMY_VIEWBOX;
 
 function prefersReducedMotion() {
   return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;

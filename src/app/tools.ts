@@ -138,7 +138,8 @@ export function toolsFor(mode: ModeId, available: (t: Tool) => boolean = () => t
   return TOOLS.filter((t) => t.mode === mode && available(t));
 }
 
-export type Screen = "camera" | "menu" | "tool";
+/** "museum" is the full-screen museum (#39); it keeps its own place inside `#/museum/…`. */
+export type Screen = "camera" | "menu" | "tool" | "museum";
 
 export interface Route {
   screen: Screen;
@@ -153,6 +154,7 @@ export const HOME: Route = { screen: "camera", mode: "simulate", tool: "studio" 
 export function parseRoute(hash: string): Route {
   const [modePart, toolPart] = hash.replace(/^#\/?/, "").split("/");
   if (modePart === "menu") return { ...HOME, screen: "menu" };
+  if (modePart === "museum") return { ...HOME, screen: "museum" };
   const mode = MODES.find((m) => m.id === modePart)?.id;
   if (!mode) return HOME;
   const tool = findTool(toolPart);
@@ -163,6 +165,7 @@ export function parseRoute(hash: string): Route {
 export function routeHash(r: Route): string {
   if (r.screen === "camera") return "#/camera";
   if (r.screen === "menu") return "#/menu";
+  if (r.screen === "museum") return "#/museum";
   return `#/${r.mode}/${r.tool}`;
 }
 
