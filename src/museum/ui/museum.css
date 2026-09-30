@@ -247,8 +247,8 @@
   z-index: 2;
   display: grid;
   place-items: center;
-  width: min(50vw, 700px);
-  transform: translateY(2vh);
+  width: min(44vw, 620px);
+  transform: translateY(0);
 }
 
 .mu-svg,
@@ -283,6 +283,110 @@
   border-radius: 50%;
   background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0) 68%);
   filter: blur(4px);
+}
+
+/* ── The plinth ─────────────────────────────────
+   A gallery stand: a matte black block, its top a red felt panel set in a
+   black rim, lit from above. Drawn, not photographed, and carrying no mark. */
+.mu-show {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.mu-piece {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 100%;
+}
+
+.mu-show-plinth .mu-piece {
+  width: 62%;
+  /* The drawings keep a little air under the object: stand it on the leather. */
+  margin-bottom: -10%;
+}
+
+.mu-show-plinth .mu-plate {
+  width: 100%;
+}
+
+.mu-show-plinth .mu-piece:has(.mu-plate) {
+  margin-bottom: -6.5%;
+}
+
+/* The lens drawings are framed with more floor under them. */
+.mu-show-lens .mu-piece {
+  width: 56%;
+  margin-bottom: -14.5%;
+}
+
+.mu-show-plinth .mu-svg,
+.mu-show-plinth .mu-photo {
+  max-height: none;
+  filter: drop-shadow(0 10px 8px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 1px rgba(255, 255, 255, 0.08));
+}
+
+.mu-plinth {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+/* The 3D stand: one render, reused. The piece stands at the render's seat line. */
+.mu-plinth-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  animation: mu-fade-in 500ms ease-out both;
+}
+
+.mu-plinth-pending {
+  aspect-ratio: 4 / 1;
+}
+
+.mu-show-3d .mu-piece {
+  margin-bottom: calc(-1 * (var(--mu-seat, 6%) + 3.8%));
+}
+
+.mu-show-3d.mu-show-lens .mu-piece {
+  margin-bottom: calc(-1 * (var(--mu-seat, 6%) + 8.3%));
+}
+
+.mu-show-3d .mu-piece:has(.mu-plate) {
+  margin-bottom: calc(-1 * var(--mu-seat, 6%));
+}
+
+.mu-plinth-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* The mark on the stand's front, low on the left as on the real stand. */
+.mu-plinth-logo {
+  position: absolute;
+  left: 8%;
+  top: var(--mu-mark-y, 80%);
+  width: 6.5%;
+  height: auto;
+  transform: translateY(-50%);
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.08));
+}
+
+.mu-plinth-shadow {
+  position: absolute;
+  left: -8%;
+  right: -8%;
+  bottom: -8%;
+  z-index: -1;
+  height: 24%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0) 68%);
+  filter: blur(6px);
 }
 
 /* Parts: the camera opened up; everything graphite except the part on show, in chrome. */
@@ -404,6 +508,156 @@
   gap: 12px;
 }
 
+/* Wide screens: the caption holds the left, the piece stands right of centre. */
+@media (min-width: 900px) and (min-aspect-ratio: 4/3) {
+  .mu-stage-room .mu-art,
+  .mu-stage-display .mu-art {
+    margin-left: 26vw;
+  }
+
+  /* The light follows the piece. */
+  .mu-stage-room .mu-spot,
+  .mu-stage-display .mu-spot {
+    background:
+      radial-gradient(ellipse 26% 26% at 60% 44%, rgba(255, 240, 222, 0.17), transparent 72%),
+      radial-gradient(ellipse 54% 54% at 60% 44%, rgba(255, 240, 222, 0.07), transparent 76%),
+      linear-gradient(180deg, rgba(255, 244, 230, 0.06), transparent 38%);
+  }
+
+  .mu-stage-room .mu-spot::before,
+  .mu-stage-display .mu-spot::before {
+    left: 60%;
+  }
+}
+
+/* ── The info stand: a label beside the piece ──────
+   Clear acrylic over a black band with the mark; a paper label inside. The
+   words are live text on the paper, sized to the label's own width. */
+.mu-caption-label {
+  right: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.mu-info {
+  position: relative;
+  width: clamp(240px, 20vw, 330px);
+}
+
+/* A reflection across the acrylic: the light catching the glass over the paper. */
+.mu-info-3d::after {
+  content: "";
+  position: absolute;
+  inset: 3% 4% 32%;
+  pointer-events: none;
+  background: linear-gradient(242deg, transparent 28%, rgba(255, 255, 255, 0.09) 36%, rgba(255, 255, 255, 0.02) 44%, transparent 52%);
+}
+
+.mu-stage-display .mu-info {
+  width: clamp(260px, 22vw, 380px);
+}
+
+.mu-info-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mu-info-3d .mu-info-img {
+  animation: mu-fade-in 500ms ease-out both;
+}
+
+.mu-info-paper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 90px 80px;
+  overflow: hidden;
+  color: #161615;
+  box-sizing: border-box;
+  transform-origin: 0 0;
+  backface-visibility: hidden;
+}
+
+.mu .mu-info-paper p {
+  margin: 0;
+}
+
+.mu-info-kicker {
+  margin-bottom: 30px !important;
+  color: #74716b;
+  font-size: 44px;
+}
+
+.mu-info-year {
+  margin-bottom: 18px !important;
+  color: #3b3a37;
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 58px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+}
+
+.mu-info-title {
+  margin: 0 0 40px;
+  color: #141413;
+  font-size: 104px;
+  font-stretch: 112%;
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.mu-info-line {
+  color: #57544f;
+  font-size: 48px;
+  line-height: 1.4;
+}
+
+/* The drawn label, while the render runs or without WebGL. */
+.mu-info-block {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mu-info-clear {
+  flex: 0 0 69%;
+  border: 1px solid rgba(216, 230, 226, 0.4);
+  border-bottom: 0;
+  background: linear-gradient(160deg, rgba(223, 233, 230, 0.14), rgba(223, 233, 230, 0.04));
+}
+
+.mu-info-band {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  padding-left: 10%;
+  background: linear-gradient(180deg, #232324, #161617);
+}
+
+.mu-info-band img {
+  width: 15%;
+}
+
+.mu-info-drawn .mu-info-paper {
+  background: #efece5;
+}
+
+/* The glass sheen follows the angled block roughly; keep it subtle. */
+
+.mu-info-pending {
+  opacity: 0.001;
+}
+
 /* ── Room controls ─────────────────────────────── */
 .mu-swipe {
   position: absolute;
@@ -438,21 +692,27 @@
   cursor: default;
 }
 
+/* A gallery pager, bottom right, clear of the label and the piece. */
+.mu-arrow {
+  top: auto;
+  bottom: max(44px, 8vh);
+  margin-top: 0;
+}
+
 .mu-arrow-prev {
-  left: max(20px, 3vw);
+  right: calc(max(28px, 5vw) + 72px);
 }
 
 .mu-arrow-next {
-  right: max(20px, 3vw);
+  right: max(28px, 5vw);
 }
 
 .mu-next-room {
   position: absolute;
-  top: 44%;
-  right: max(20px, 3vw);
+  bottom: max(44px, 8vh);
+  right: max(28px, 5vw);
   z-index: 4;
   min-height: 48px;
-  margin-top: -24px;
   padding: 0 22px;
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 999px;
@@ -489,22 +749,22 @@
 @keyframes mu-art-next {
   from {
     opacity: 0;
-    transform: translate(9vw, 2vh) scale(0.96);
+    transform: translate(9vw, 0) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translate(0, 2vh);
+    transform: translate(0, 0);
   }
 }
 
 @keyframes mu-art-prev {
   from {
     opacity: 0;
-    transform: translate(-9vw, 2vh) scale(0.96);
+    transform: translate(-9vw, 0) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translate(0, 2vh);
+    transform: translate(0, 0);
   }
 }
 
@@ -724,13 +984,13 @@
 }
 
 .mu-stage-display .mu-art {
-  width: min(66vw, 900px);
+  width: min(48vw, 680px);
 }
 
 @keyframes mu-drift {
   from {
     opacity: 0;
-    transform: translateY(2vh) scale(0.98);
+    transform: translateY(0) scale(0.98);
   }
   12% {
     opacity: 1;
@@ -740,7 +1000,7 @@
   }
   to {
     opacity: 0;
-    transform: translateY(1vh) scale(1.045);
+    transform: translateY(-1vh) scale(1.045);
   }
 }
 
@@ -1126,33 +1386,61 @@
     margin-bottom: 18px;
   }
 
-  /* Swipe does the moving on a phone; the arrows sit small beside the caption's actions. */
+  /* Swipe does the moving on a phone; the arrows sit small at the sides of the piece. */
   .mu-arrow {
-    top: auto;
-    bottom: max(30px, env(safe-area-inset-bottom));
-    width: 48px;
-    height: 48px;
-    margin-top: 0;
+    top: 34%;
+    width: 40px;
+    height: 40px;
+    margin-top: -20px;
   }
 
   .mu-arrow-prev {
-    left: auto;
-    right: 76px;
+    left: 6px;
   }
 
   .mu-arrow-next {
-    right: 20px;
+    right: 6px;
   }
 
   .mu-next-room {
-    top: auto;
-    bottom: 96px;
-    right: 20px;
+    top: 12%;
+    right: 16px;
     margin-top: 0;
   }
 
-  .mu-caption .mu-actions {
-    padding-right: 120px;
+  .mu-caption-label {
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 14px;
+    right: 20px;
+  }
+
+  .mu-info,
+  .mu-stage-display .mu-info {
+    flex: none;
+    width: 50vw;
+  }
+
+  .mu-caption-label .mu-actions {
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mu-caption-label .mu-actions > * {
+    justify-content: center;
+    min-height: 46px;
+    padding-left: 14px;
+    padding-right: 14px;
+    font-size: 14px;
+  }
+
+  .mu-caption-label .mu-cta {
+    padding-right: 34px;
+  }
+
+  .mu-caption-label .mu-cta::after {
+    right: 14px;
   }
 
   .mu-facts > div {
@@ -1214,6 +1502,22 @@
     font-size: clamp(28px, 4.4vw, 44px);
   }
 
+  /* The label is sized by the screen's height here, with the buttons beside it. */
+  .mu-caption-label {
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 14px;
+  }
+
+  .mu-info,
+  .mu-stage-display .mu-info {
+    width: min(30vw, 38vh);
+  }
+
+  .mu-caption-label .mu-actions {
+    flex-direction: column;
+  }
+
   .mu-arrow {
     top: auto;
     bottom: max(20px, env(safe-area-inset-bottom));
@@ -1232,7 +1536,7 @@
   }
 
   .mu-watermark {
-    font-size: 26vw;
+    font-size: min(26vw, calc(118vw / var(--mu-wm, 6)));
   }
 
   @keyframes mu-art-next {

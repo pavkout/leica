@@ -39,6 +39,31 @@ Last updated: 2026-09-29
   - touch to explore; back to the loop after 60 s idle
   - wake lock, and full screen from a tap
   - hidden exit: hold the top-left corner for 3 s, or press Esc
+- **Plinth** (user request, 2026-09-30): cameras, lenses, accessories, and collection pieces without a photo stand on a gallery plinth, drawn in CSS (`ui/Showpiece.tsx`): a matte black block with a red felt top set in a black rim. It follows the look of the official Leica display stand, but deliberately doesn't use its photo or logo: trademark (the app stays "leica.rt", not affiliated) and the photo's unknown rights. On wide screens the piece stands right of centre, with the spotlight following it.
+  - 2026-09-30: made realistic from the user's reference photos. It's an SVG with lighting filters:
+    - a mottled graphite base
+    - a stepped black frame tier
+    - pebbled red leather
+  - **Logo:** the user chose to show the Leica red dot on the stand's front, as on the real stand. This reverses the earlier "no Leica logo" choice for the stand only; the app is still "leica.rt" with the "not affiliated" footer.
+    - The app doesn't draw a lookalike. The artwork is `public/brand/stand-logo.svg`, downloaded 2026-09-30 at the user's request from Wikimedia Commons, "File:Leica_Camera_logo.svg" (https://commons.wikimedia.org/wiki/File:Leica_Camera_logo.svg). Commons marks it public domain (below the threshold of originality) with a trademark warning. Without the file, the stand shows no mark (`src/museum/standLogo.ts`).
+    - The base now uses the same black as the frame tier (the grey mottle was removed at the user's request).
+  - **3D stand** (user request, 2026-09-30: "more real and symmetric"): `src/museum/stand3d.ts` builds a real three.js model with a centred camera, so it's symmetric by construction.
+    - Parts: black block; frame tier with the same step on every side; pebbled leather (a bump map); the logo as a plane on the front.
+    - Light: warm spot, soft fill, floor shadow.
+    - It's rendered **once per visit** to an image, then its WebGL context is released. Every piece reuses the image, so there's no live 3D per exhibit, which matters on iPads and TVs left running.
+    - Pieces stand at the render's seat line.
+    - Without WebGL, the drawn SVG stand (`standGeometry.ts`) is used.
+    - Cost: opening the museum now also loads the shared three.js chunk (688 KB, 177 KB gzipped), the same chunk the Virtual camera uses.
+  - Later refinements (user): the step is 40% smaller, the top frame 30% lower, and all corners are sharp (edge highlights keep the black block legible).
+  - **Info stand** (user request, 2026-09-30), modelled on Leica's own acrylic info stand: `src/museum/infoStand3d.ts` + `ui/InfoLabel.tsx`.
+    - A clear acrylic block (glossy, polished edges, a reflection sheen), a black band with the logo, and an off-white paper inside.
+    - Rendered once, like the display stand. The room, year, name and one-line description are **live text** placed on the paper's projected position, so they're crisp, accessible and per-exhibit.
+    - Replaces the plain-text caption in rooms and display mode, which also fixes long names (e.g. "APO-Summicron-M 75 f/2 ASPH.") running into the display stand.
+    - Layout: the room pager moved to the bottom right on desktop. On phones the buttons sit beside the label and the arrows at the sides of the piece; landscape phones size the label by screen height.
+    - Without WebGL, a drawn CSS label of the same proportions is used.
+    - Refined (user): a gentle three-quarter view from the left (14° yaw, 13° pitch) with a deeper block, so the side and top show; the paper runs almost edge to edge (no dark border); about 25% larger. The live text is mapped onto the angled paper with a homography (`src/museum/quad.ts`, tested) as a CSS `matrix3d`.
+    - From 900 px wide, the piece stands right of the label, so they never overlap.
+    - **Trademark note:** the Leica logo is a registered trademark of Leica Camera AG. Showing it suits private use, or public use with Leica's permission.
 - Code:
   - `src/museum/`: `exhibits.ts`, `deck.ts` and `accessories.ts` (pure, tested), `ui/*` (lazy chunk)
   - `content/accessories.json`: every item cited

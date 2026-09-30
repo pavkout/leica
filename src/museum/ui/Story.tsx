@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { CollectionItem } from "../../state/collection";
 import type { Exhibit } from "../exhibits";
-import ExhibitArt from "./ExhibitArt";
+import Showpiece from "./Showpiece";
 import { hearShutter } from "./sound";
 
 interface Props {
@@ -29,7 +29,7 @@ export default function Story({ exhibit, roomTitle, collection, onClose, onSimul
       <div className="mu-story-grid">
         <div className="mu-story-art">
           <div className="mu-spot mu-spot-small" aria-hidden="true" />
-          <ExhibitArt exhibit={exhibit} collection={collection} />
+          <Showpiece exhibit={exhibit} collection={collection} />
         </div>
         <div className="mu-story-text">
           <p className="mu-kicker">{roomTitle}</p>

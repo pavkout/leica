@@ -5,7 +5,8 @@ import { loadCollection } from "../../state/collectionStorage";
 import { attractSequence, museumHash, parseMuseumPath, step } from "../deck";
 import { buildRooms, findExhibit, type Exhibit, type Room, type RoomId } from "../exhibits";
 import { leaveFullscreen, requestFullscreen } from "../fullscreen";
-import ExhibitArt from "./ExhibitArt";
+import InfoLabel from "./InfoLabel";
+import Showpiece from "./Showpiece";
 import { hearShutter } from "./sound";
 import Story from "./Story";
 import "./museum.css";
@@ -32,9 +33,6 @@ function watermark(e: Exhibit): string {
   const lens = /^(.+?) (\d+) f\//.exec(t);
   return lens ? `${lens[1].replace(/-M$/, "")} ${lens[2]}` : t;
 }
-
-/** Names like "Summicron-M" shouldn't break at their hyphen. */
-const nobreak = (t: string) => t.replace(/-/g, "\u2011");
 
 /** The watermark, sized so a long name still fits across the screen. */
 function Watermark({ e }: { e: Exhibit }) {
@@ -235,14 +233,10 @@ export default function Museum({ onExit, onSimulate }: Props) {
             <div className="mu-spot" aria-hidden="true" />
             <Watermark e={e} />
             <div className="mu-art">
-              <ExhibitArt exhibit={e} collection={collection} />
-              <div className="mu-floor" aria-hidden="true" />
+              <Showpiece exhibit={e} collection={collection} />
             </div>
-            <div className="mu-caption">
-              <p className="mu-kicker">{room?.title}</p>
-              <h1 className="mu-title">{nobreak(e.title)}</h1>
-              {e.year && <p className="mu-year">{e.year}</p>}
-              <p className="mu-line">{e.line}</p>
+            <div className="mu-caption mu-caption-label">
+              <InfoLabel exhibit={e} roomTitle={room?.title} />
             </div>
           </div>
         ) : (
@@ -306,8 +300,7 @@ export default function Museum({ onExit, onSimulate }: Props) {
             <div className="mu-spot" />
             {preview && (
               <div key={preview.id} className={`mu-art${motion ? " mu-fade" : ""}`}>
-                <ExhibitArt exhibit={preview} collection={collection} />
-                <div className="mu-floor" />
+                <Showpiece exhibit={preview} collection={collection} />
               </div>
             )}
           </div>
@@ -350,13 +343,10 @@ export default function Museum({ onExit, onSimulate }: Props) {
           <div className="mu-spot" aria-hidden="true" />
           <Watermark e={e} />
           <div className="mu-art">
-            <ExhibitArt exhibit={e} collection={collection} />
-            <div className="mu-floor" aria-hidden="true" />
+            <Showpiece exhibit={e} collection={collection} />
           </div>
-          <div className="mu-caption" aria-live="polite">
-            {e.year && <p className="mu-year">{e.year}</p>}
-            <h1 className="mu-title">{nobreak(e.title)}</h1>
-            <p className="mu-line">{e.line}</p>
+          <div className="mu-caption mu-caption-label" aria-live="polite">
+            <InfoLabel exhibit={e} />
             <div className="mu-actions">
               <button type="button" className="mu-cta" onClick={() => setView({ ...view, story: true })}>
                 Explore
