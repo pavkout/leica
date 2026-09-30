@@ -14,6 +14,7 @@ import { actualCost, type AiAction, type ModelId } from "./pricing";
 import { LISTING_SCHEMA, PHOTO_SCHEMA, PRICE_SCHEMA, parseListingReport, parsePhotoReading, parsePriceSuggestion, type ListingReport, type PhotoReading, type PriceSuggestion } from "./schemas";
 import { LISTING_SYSTEM, PHOTO_PROMPT, PHOTO_SYSTEM, VALUE_SYSTEM, listingPrompt, valuePrompt } from "./prompts";
 import { recordSpend } from "./spendLog";
+import { getLang, languageOf } from "../../i18n";
 
 /** Sends one Messages API request. Swappable for tests (and, later, a server). */
 export type Transport = (key: string, params: MessageCreateParamsNonStreaming) => Promise<Message>;
@@ -124,7 +125,7 @@ export async function identifyPhoto(key: string | null, model: ModelId, images: 
     {
       model,
       max_tokens: 4000,
-      system: PHOTO_SYSTEM,
+      system: inReadersLanguage(PHOTO_SYSTEM),
       messages: [{ role: "user", content }],
       output_config: { ...effortFor(model), format: { type: "json_schema", schema: PHOTO_SCHEMA } },
     },
@@ -133,6 +134,18 @@ export async function identifyPhoto(key: string | null, model: ModelId, images: 
   const reading = parsePhotoReading(firstJsonText(res));
   if (!reading) throw aiError("unreadable");
   return { reading, cost };
+}
+
+/**
+ * The reader's language for the answer's own words (condition, warning
+ * signs, tips). Names, engravings, serials and quoted listing text stay as
+ * they are, so they can still be checked against the lists. English readers
+ * get the system prompt unchanged.
+ */
+export function inReadersLanguage(system: string): string {
+  const lang = getLang();
+  if (lang === "en") return system;
+  return `${system}\n\nWrite every free-text field meant for the user in ${languageOf(lang).english}. Keep model and lens names, engravings, serial numbers, prices, URLs and quoted listing text exactly as they are.`;
 }
 
 const MAX_ROUNDS = 5;
@@ -159,7 +172,7 @@ async function research(
   const messages: MessageParam[] = [{ role: "user", content: prompt }];
   let nudged = false;
   for (let round = 0; round < MAX_ROUNDS; round++) {
-    const res = await send(key, action, { model, max_tokens: 16000, system, tools, tool_choice: { type: "auto" }, messages, output_config: effortFor(model) }, cost);
+    const res = await send(key, action, { model, max_tokens: 16000, system: inReadersLanguage(system), tools, tool_choice: { type: "auto" }, messages, output_config: effortFor(model) }, cost);
     const report = res.content.find((b) => b.type === "tool_use" && b.name === "report");
     if (report && report.type === "tool_use") return { input: report.input, cost };
     if (res.stop_reason === "pause_turn") {

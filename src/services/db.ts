@@ -16,8 +16,12 @@ import type { Frame } from "../state/rollExport";
 export type FrameMedium = "film" | "digital";
 
 const DB_NAME = "rangefinder";
-const DB_VERSION = 1;
+// v2 adds the Passport (#41) and Photography Lab (#43) stores.
+const DB_VERSION = 2;
 const STORE_NAMES: Record<FrameMedium, string> = { film: "filmFrames", digital: "digitalFrames" };
+/** Record stores beside the frames: name → key path. */
+const RECORD_STORES = { passports: "itemId", labWork: "id" } as const;
+export type RecordStore = keyof typeof RECORD_STORES;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -30,6 +34,9 @@ function openDb(): Promise<IDBDatabase> {
       for (const name of Object.values(STORE_NAMES)) {
         if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: "id" });
       }
+      for (const [name, keyPath] of Object.entries(RECORD_STORES)) {
+        if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath });
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error ?? new Error("Failed to open the database"));
@@ -38,10 +45,14 @@ function openDb(): Promise<IDBDatabase> {
 }
 
 function withStore<T>(medium: FrameMedium, mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
+  return withNamedStore(STORE_NAMES[medium], mode, run);
+}
+
+function withNamedStore<T>(name: string, mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
   return openDb().then(
     (db) =>
       new Promise<T>((resolve, reject) => {
-        const store = db.transaction(STORE_NAMES[medium], mode).objectStore(STORE_NAMES[medium]);
+        const store = db.transaction(name, mode).objectStore(name);
         const req = run(store);
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error ?? new Error("IndexedDB request failed"));
@@ -95,6 +106,33 @@ export async function updateFrameNote(medium: FrameMedium, id: number, note: str
 export async function clearFrames(medium: FrameMedium): Promise<boolean> {
   try {
     await withStore(medium, "readwrite", (store) => store.clear());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Every record in a store (passports, lab work); empty when storage is unavailable. */
+export async function loadRecords<T>(store: RecordStore): Promise<T[]> {
+  try {
+    return await withNamedStore<T[]>(store, "readonly", (s) => s.getAll() as IDBRequest<T[]>);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveRecord<T>(store: RecordStore, record: T): Promise<boolean> {
+  try {
+    await withNamedStore(store, "readwrite", (s) => s.put(record));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteRecord(store: RecordStore, key: string): Promise<boolean> {
+  try {
+    await withNamedStore(store, "readwrite", (s) => s.delete(key));
     return true;
   } catch {
     return false;

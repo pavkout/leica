@@ -1,3 +1,4 @@
+import { t, tn } from "../../i18n";
 // What a Claude run costs, in US dollars, from Anthropic's published list
 // prices. One table, one "as of" date: when Anthropic changes prices, change
 // the numbers here. Estimates are ranges from typical token counts per action;
@@ -74,11 +75,11 @@ export function formatUsd(n: number): string {
   return `$${n.toFixed(2)}`;
 }
 
-const cents = (n: number) => `${n} cent${n === 1 ? "" : "s"}`;
+const cents = (n: number) => tn("ai.cents", n);
 
 /** Plain words for a cost: "less than 1 cent", "3 cents", "$1.20". */
 export function friendlyUsd(n: number): string {
-  if (n < 0.005) return "less than 1 cent";
+  if (n < 0.005) return t("ai.lessThanCent");
   if (n < 1) return cents(Math.round(n * 100));
   return `$${n.toFixed(2)}`;
 }
@@ -88,9 +89,9 @@ export function friendlyEstimate(e: { low: number; high: number }): string {
   if (e.high >= 1) return `$${e.low.toFixed(2)}–$${e.high.toFixed(2)}`;
   const lo = Math.round(e.low * 100);
   const hi = Math.max(1, Math.round(e.high * 100));
-  if (lo < 1) return `up to ${cents(hi)}`;
-  if (lo === hi) return `about ${cents(hi)}`;
-  return `${lo}–${cents(hi)}`;
+  if (lo < 1) return t("ai.upTo", { cost: cents(hi) });
+  if (lo === hi) return t("ai.about", { cost: cents(hi) });
+  return t("ai.range", { lo, cost: cents(hi) });
 }
 
 export function formatEstimate(e: { low: number; high: number }): string {

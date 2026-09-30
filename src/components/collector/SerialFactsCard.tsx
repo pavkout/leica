@@ -1,5 +1,6 @@
 import { lookupSerialFacts, rarityNote, serialConflicts } from "../../state/serialFacts";
 import type { AiFindings } from "../../state/collection";
+import { t } from "../../i18n";
 
 interface Props {
   kind: "body" | "lens";
@@ -19,11 +20,11 @@ interface Props {
 export default function SerialFactsCard({ kind, serial, claim, ai, onUseName }: Props) {
   const r = lookupSerialFacts(kind, serial);
   if (r.status === "invalid")
-    return serial.trim() ? <p className="cx-quiet">Type the number exactly as engraved, digits only (4 to 8 of them).</p> : null;
+    return serial.trim() ? <p className="cx-quiet">{t("col.serial.invalid")}</p> : null;
   if (r.status === "unknown")
     return (
       <p className="cx-quiet" role="status">
-        {r.reason} So we can't tell you more from the number alone.
+        {r.reason} {t("col.serial.cantTell")}
       </p>
     );
 
@@ -32,23 +33,22 @@ export default function SerialFactsCard({ kind, serial, claim, ai, onUseName }: 
   const conflicts = [...new Set([...serialConflicts(f, claim ?? {}), ...(ai ? serialConflicts(f, { model: ai.model }) : [])])];
   const n = serial.replace(/\D/g, "");
   return (
-    <div className="cx-plate" role="status" aria-label="What the serial number says">
+    <div className="cx-plate" role="status" aria-label={t("col.serial.says")}>
       <p className="cx-plate-no" aria-hidden="true">
         No. {Number(n).toLocaleString("en-GB").replace(/,/g, " ")}
       </p>
       <p className="cx-plate-what">
         {f.model ? (
           <>
-            Leica {f.model}
-            {f.variant && `, ${f.variant}`}, made in {f.year}
+            {t("col.serial.body", { model: `${f.model}${f.variant ? `, ${f.variant}` : ""}`, year: f.year })}
           </>
         ) : (
-          <>This lens was made in {f.year.includes("/") ? `${f.year.replace("/", " or ")}` : f.year}</>
+          <>{t("col.serial.lens", { year: f.year.includes("/") ? f.year.replace("/", t("col.or")) : f.year })}</>
         )}
       </p>
       {rarity && (
         <p>
-          {rarity} This counts how many were made, not how many still exist.
+          {rarity} {t("col.serial.rarityNote")}
         </p>
       )}
       {f.notes.map((note) => (
@@ -60,10 +60,10 @@ export default function SerialFactsCard({ kind, serial, claim, ai, onUseName }: 
           {c}
         </p>
       ))}
-      <p className="cx-source">From the factory serial list: {f.source}</p>
+      <p className="cx-source">{t("col.serial.source", { source: f.source })}</p>
       {f.model && onUseName && (
         <button type="button" className="btn btn-small" onClick={() => onUseName(`Leica ${f.model}${f.variant ? ` (${f.variant})` : ""}`, f.bodyId)}>
-          Use this as the name
+          {t("col.serial.useName")}
         </button>
       )}
     </div>

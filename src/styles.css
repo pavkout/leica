@@ -9584,3 +9584,774 @@ label.btn-small {
   z-index: 12000;
   background: #0a0a0a;
 }
+
+/* ── Camera passport (#41) ─────────────────────────────────── */
+.pp-list {
+  display: grid;
+  gap: 10px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pp-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 76px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--plate-2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pp-row:hover {
+  border-color: var(--chrome);
+}
+
+.pp-row:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.pp-thumb {
+  flex: none;
+  width: 72px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+}
+
+.pp-thumb-blank {
+  background: var(--plate-3);
+}
+
+.pp-row-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pp-row-name {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.pp-row-serial {
+  color: var(--chrome);
+  font-size: 15px;
+}
+
+.pp-row-state {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.pp-due {
+  color: var(--red-hover);
+}
+
+.pp-cert {
+  margin-top: 12px;
+}
+
+.pp-cert-label {
+  margin: 0 0 10px !important;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pp-cert-photo {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  max-height: 280px;
+  margin: 0 0 12px;
+  object-fit: contain;
+  border-radius: var(--radius-control);
+}
+
+.pp-fp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 12px 0 0 !important;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.pp-fp .cx-mono {
+  color: var(--text);
+  font-size: 17px;
+}
+
+.pp-fp-big {
+  font-size: clamp(22px, 7vw, 32px) !important;
+  overflow-wrap: anywhere;
+}
+
+.pp-more {
+  margin: 10px 0 0;
+  font-size: 16px;
+}
+
+.pp-more summary {
+  min-height: 44px;
+  padding: 10px 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.pp-more ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  color: var(--muted);
+}
+
+.pp-more li {
+  margin-bottom: 8px;
+}
+
+.pp-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pp-h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.pp-timeline {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pp-event {
+  position: relative;
+  padding: 0 0 18px 22px;
+  border-left: 1px solid var(--line-strong);
+}
+
+.pp-event::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: -5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--chrome);
+}
+
+.pp-event-transfer::before,
+.pp-event-acquired::before {
+  background: var(--red);
+}
+
+.pp-event p {
+  margin: 0 0 4px;
+}
+
+.pp-event-date {
+  color: var(--muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-event-title {
+  font-size: 17px;
+}
+
+.pp-event-type {
+  font-weight: 600;
+}
+
+.pp-locked {
+  color: var(--faint);
+  font-size: 14px;
+}
+
+.pp-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.pp-photos img {
+  width: 104px;
+  height: 78px;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+}
+
+.pp-photo-edit {
+  display: grid;
+  justify-items: start;
+}
+
+/* A file picker that looks like the button it is. */
+.pp-file {
+  position: relative;
+  overflow: hidden;
+}
+
+.pp-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.pp-print {
+  display: none;
+}
+
+/* ── Camera health check (#42) ─────────────────────────────── */
+.hc-how {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.hc-how li {
+  margin-bottom: 6px;
+}
+
+.hc-calibrate {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--plate-2);
+}
+
+.hc-calibrate p {
+  margin: 0;
+}
+
+.hc-listen {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--plate-3);
+  box-shadow: inset 4px 0 0 var(--red);
+}
+
+.hc-listen p {
+  margin: 0;
+}
+
+.hc-meter {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--plate);
+  overflow: hidden;
+}
+
+.hc-meter span {
+  display: block;
+  height: 100%;
+  background: var(--chrome);
+  transform-origin: left;
+  transition: transform 60ms linear;
+}
+
+.hc-speeds {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.hc-speed {
+  display: grid;
+  gap: 2px;
+  min-height: 64px;
+  padding: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--plate-2);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.hc-speed:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.hc-speed:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.hc-speed-set {
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 22px;
+}
+
+.hc-speed-got {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.hc-speed.hc-good {
+  border-color: var(--chrome);
+}
+
+.hc-speed.hc-attention,
+.hc-speed.hc-service {
+  border-color: var(--red);
+}
+
+.hc-checks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hc-check {
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.hc-check p {
+  margin: 0 0 4px;
+}
+
+.hc-check-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.hc-check .cx-actions {
+  margin-bottom: 0;
+}
+
+.hc-table {
+  width: 100%;
+  margin: 8px 0 12px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.hc-table th,
+.hc-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.hc-table th {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.hc-table .hc-attention td:last-child,
+.hc-table .hc-service td:last-child {
+  color: var(--red-hover);
+}
+
+@media print {
+  .stage-passport > :not(.pp),
+  .stage-passport .pp > :not(.pp-print),
+  .stage-health .cx-flow > li:not(:last-child),
+  .stage-health .hc-report .cx-actions {
+    display: none !important;
+  }
+
+  .tool-view:not([hidden]) .pp-print,
+  .tool-view:not([hidden]) .hc-report {
+    display: block !important;
+    position: absolute !important;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 12mm;
+    color: #000 !important;
+    font-size: 11pt;
+  }
+
+  .tool-view:not([hidden]) .pp-print,
+  .tool-view:not([hidden]) .pp-print *,
+  .tool-view:not([hidden]) .hc-report,
+  .tool-view:not([hidden]) .hc-report * {
+    visibility: visible;
+    color: #000 !important;
+    box-shadow: none !important;
+  }
+
+  .pp-print table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .pp-print td,
+  .hc-table td,
+  .hc-table th {
+    padding: 4pt 6pt;
+    border-bottom: 0.3mm solid #999;
+    text-align: left;
+    vertical-align: top;
+  }
+}
+
+/* ── Photography Lab (#43) ─────────────────────────────────── */
+.lab-progress {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 16px !important;
+}
+
+.lab-progress-n {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.lab-bar {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--plate-3);
+  overflow: hidden;
+}
+
+.lab-bar span {
+  display: block;
+  height: 100%;
+  background: var(--red);
+  transform-origin: left;
+}
+
+.lab-levels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.lab-level {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--plate-2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lab-level:disabled {
+  color: var(--faint);
+  cursor: default;
+}
+
+.lab-level-on {
+  border-color: var(--chrome);
+  background: var(--plate-3);
+  box-shadow: inset 0 -3px 0 var(--red);
+}
+
+.lab-level:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.lab-level-n {
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.lab-level-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.lab-lock {
+  font-size: 13px;
+}
+
+.lab-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lab-card {
+  width: 100%;
+}
+
+.lab-card-photo {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+}
+
+.lab-done {
+  color: var(--chrome);
+}
+
+.lab-brief {
+  font-size: 19px;
+}
+
+.lab-rules,
+.lab-predict {
+  margin: 4px 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.lab-rules li,
+.lab-predict li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.lab-pass span {
+  color: var(--chrome);
+}
+
+.lab-fail {
+  color: var(--red-hover);
+}
+
+.lab-predict-h {
+  margin-bottom: 0 !important;
+  font-weight: 600;
+}
+
+.lab-photo {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  margin: 12px 0;
+  border-radius: var(--radius-control);
+}
+
+/* ── Photo walks (#44) ─────────────────────────────────────── */
+.wk-kit {
+  color: var(--chrome);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: 15px;
+  letter-spacing: 0.03em;
+}
+
+.wk-history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wk-history li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.wk-history-title {
+  font-weight: 600;
+}
+
+.wk-meet {
+  display: block;
+}
+
+.wk-set {
+  margin: 16px 0;
+}
+
+.wk-place {
+  max-width: 320px;
+}
+
+.wk-prompts {
+  margin: 4px 0 16px;
+  padding-left: 22px;
+}
+
+.wk-prompts li {
+  padding: 4px 0;
+}
+
+.wk-dash {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.wk-big {
+  display: grid;
+  gap: 2px;
+  padding: 12px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--plate-2);
+  text-align: center;
+}
+
+.wk-big-n {
+  color: var(--chrome);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: clamp(20px, 6vw, 30px);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.wk-big-l {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.wk-checklist {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wk-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--plate-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 17px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wk-check:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.wk-check-on {
+  border-color: var(--chrome);
+  color: var(--muted);
+}
+
+.wk-box {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--chrome);
+  border-radius: 4px;
+  color: var(--text);
+}
+
+.wk-check-on .wk-box {
+  border-color: var(--red);
+  background: var(--red);
+}
+
+/* ── Which Leica for me? (#45) ─────────────────────────────── */
+.mt-result {
+  margin-top: 24px;
+}
+
+.mt-card {
+  margin: 12px 0;
+}
+
+.mt-art {
+  width: min(320px, 100%);
+  margin: 0 0 8px;
+}
+
+.mt-art-lens {
+  width: min(160px, 60%);
+}
+
+.mt-art svg,
+.mt-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.mt-reasons {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 16px;
+}
+
+.mt-reasons li {
+  padding: 4px 0;
+}
+
+.mt-alts {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.mt-alts li {
+  margin-bottom: 8px;
+}
+
+@media print {
+  .stage-matcher > :not(.mt-result),
+  .stage-matcher .mt-result .cx-actions {
+    display: none !important;
+  }
+
+  .tool-view:not([hidden]) .mt-result {
+    display: block !important;
+    position: absolute !important;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 12mm;
+  }
+
+  .tool-view:not([hidden]) .mt-result,
+  .tool-view:not([hidden]) .mt-result * {
+    visibility: visible;
+    color: #000 !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
+}

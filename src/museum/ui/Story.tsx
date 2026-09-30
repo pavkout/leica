@@ -3,6 +3,7 @@ import type { CollectionItem } from "../../state/collection";
 import type { Exhibit } from "../exhibits";
 import Showpiece from "./Showpiece";
 import { hearShutter } from "./sound";
+import { t } from "../../i18n";
 
 interface Props {
   exhibit: Exhibit;
@@ -20,8 +21,8 @@ export default function Story({ exhibit, roomTitle, collection, onClose, onSimul
   }, [exhibit.id]);
 
   return (
-    <div className="mu-story" role="dialog" aria-modal="true" aria-label={`${exhibit.title}: the story`} ref={ref} tabIndex={-1}>
-      <button type="button" className="mu-round mu-story-close" onClick={onClose} aria-label="Back to the exhibit">
+    <div className="mu-story" role="dialog" aria-modal="true" aria-label={t("mu.story", { title: exhibit.title })} ref={ref} tabIndex={-1}>
+      <button type="button" className="mu-round mu-story-close" onClick={onClose} aria-label={t("mu.backToExhibit")}>
         <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
           <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
         </svg>
@@ -38,7 +39,7 @@ export default function Story({ exhibit, roomTitle, collection, onClose, onSimul
           <p className="mu-line">{exhibit.line}</p>
 
           {exhibit.facts.length > 0 && (
-            <dl className="mu-facts" aria-label="Key facts">
+            <dl className="mu-facts" aria-label={t("mu.keyFacts")}>
               {exhibit.facts.map((f) => (
                 <div key={f.label}>
                   <dt>{f.label}</dt>
@@ -73,12 +74,12 @@ export default function Story({ exhibit, roomTitle, collection, onClose, onSimul
           <div className="mu-actions">
             {exhibit.soundBodyId && (
               <button type="button" className="mu-ghost" onClick={() => hearShutter(exhibit.soundBodyId!)}>
-                Hear the shutter
+                {t("mu.hear")}
               </button>
             )}
             {exhibit.simulate && onSimulate && (
               <button type="button" className="mu-cta" onClick={() => onSimulate(exhibit.simulate!)}>
-                Try it in the simulator
+                {t("mu.try")}
               </button>
             )}
           </div>

@@ -11,6 +11,7 @@ import { ANATOMY_PROVENANCE, PARTS, type PartId } from "../mechanics/anatomy";
 import type { CollectionItem } from "../state/collection";
 import { formatFNumber } from "../utils/format";
 import { ACCESSORIES, type Accessory } from "./accessories";
+import { langTag, t } from "../i18n";
 
 export type RoomId = "cameras" | "lenses" | "inside" | "accessories" | "collection";
 
@@ -66,38 +67,38 @@ export interface Room {
 // ── Cameras ─────────────────────────────────────────────
 
 function capture(b: Body): string {
-  if (b.medium === "film") return "35 mm film";
+  if (b.medium === "film") return t("mu.film35");
   const mp = `${Math.max(...(b.megapixels ?? [0]))} MP`;
-  const format = b.family === "S" ? "medium format" : b.sensorWidthMm < 30 ? "APS-C" : "full frame";
-  return `${mp} ${format}${b.medium === "mono" ? ", black and white only" : ""}`;
+  const format = b.family === "S" ? t("mu.format.medium") : b.sensorWidthMm < 30 ? "APS-C" : t("mu.format.full");
+  return `${mp} ${format}${b.medium === "mono" ? t("mu.monoOnly") : ""}`;
 }
 
 function finderLine(b: Body): string {
-  if (b.rangefinder) return `${b.rangefinder.magnification.toFixed(2)}× rangefinder`;
-  if (b.family === "S") return "reflex finder";
-  return "electronic finder";
+  if (b.rangefinder) return t("mu.finder.rf", { m: b.rangefinder.magnification.toFixed(2) });
+  if (b.family === "S") return t("mu.finder.reflex");
+  return t("mu.finder.evf");
 }
 
 function meterLine(b: Body): string {
-  if (b.meter === "none") return "no meter";
-  if (b.meter === "leds") return b.autoExposure ? "LED meter, auto exposure" : "LED meter";
-  return b.autoExposure ? "metering, auto exposure" : "metering";
+  if (b.meter === "none") return t("mu.meter.none");
+  if (b.meter === "leds") return b.autoExposure ? t("mu.meter.ledsAuto") : t("mu.meter.leds");
+  return b.autoExposure ? t("mu.meter.auto") : t("mu.meter.on");
 }
 
 function familyLine(b: Body): string {
   switch (b.family) {
     case "M film":
-      return "M rangefinder, film";
+      return t("mu.family.mFilm");
     case "M digital":
-      return "M rangefinder, digital";
+      return t("mu.family.mDigital");
     case "Q":
-      return "Q, fixed lens";
+      return t("mu.family.q");
     case "SL":
-      return "SL, mirrorless";
+      return t("mu.family.sl");
     case "CL":
-      return "CL, mirrorless";
+      return t("mu.family.cl");
     case "S":
-      return "S, medium format";
+      return t("mu.family.s");
   }
 }
 
@@ -108,15 +109,15 @@ export function cameraTitle(b: Body): string {
 export function cameraExhibit(b: Body, content: TimelineContent = TIMELINE_CONTENT): Exhibit {
   const frames = b.rangefinder ? [...new Set(b.rangefinder.frameSets.flat())].sort((x, y) => x - y) : [];
   const facts: Fact[] = [
-    { label: "Introduced", value: String(b.year) },
-    { label: "Kind", value: familyLine(b) },
-    { label: "Captures on", value: capture(b) },
-    { label: "Shutter", value: `${formatShutter(b.shutter.slowest)} to ${formatShutter(b.shutter.fastest)}` },
-    { label: "Finder", value: b.rangefinder ? `Rangefinder, ${b.rangefinder.magnification}× magnification` : finderLine(b).replace(/^./, (c) => c.toUpperCase()) },
-    ...(frames.length ? [{ label: "Frame lines", value: `${frames.join(", ")} mm` }] : []),
-    { label: "Light meter", value: b.meter === "none" ? "None" : b.meter === "leds" ? "LEDs in the finder" : "Built in" },
-    ...(b.isoRange ? [{ label: "ISO", value: `${b.isoRange[0]} to ${b.isoRange[1].toLocaleString("en-GB")}` }] : []),
-    { label: "Lens mount", value: b.fixedLensId ? "Fixed lens" : b.mounts.join(", ") },
+    { label: t("mu.f.introduced"), value: String(b.year) },
+    { label: t("mu.f.kind"), value: familyLine(b) },
+    { label: t("mu.f.captures"), value: capture(b) },
+    { label: t("common.shutter"), value: t("sn.range", { a: formatShutter(b.shutter.slowest), b: formatShutter(b.shutter.fastest) }) },
+    { label: t("sn.finder"), value: b.rangefinder ? t("mu.f.rfMag", { m: b.rangefinder.magnification }) : finderLine(b).replace(/^./, (c) => c.toUpperCase()) },
+    ...(frames.length ? [{ label: t("mu.f.frames"), value: `${frames.join(", ")} mm` }] : []),
+    { label: t("mu.f.meter"), value: b.meter === "none" ? t("sn.meter.none") : b.meter === "leds" ? t("mu.f.leds") : t("sn.meter.built") },
+    ...(b.isoRange ? [{ label: "ISO", value: t("sn.range", { a: b.isoRange[0], b: num(b.isoRange[1]) }) }] : []),
+    { label: t("mu.f.mount"), value: b.fixedLensId ? t("mu.f.fixed") : b.mounts.join(", ") },
   ];
   return {
     id: b.id,
@@ -135,7 +136,9 @@ export function cameraExhibit(b: Body, content: TimelineContent = TIMELINE_CONTE
 
 // ── Lenses ──────────────────────────────────────────────
 
-const metres = (mm: number) => `${(mm / 1000).toLocaleString("en-GB", { maximumFractionDigits: 2 })} m`;
+const locale = () => (langTag() === "en" ? "en-GB" : langTag());
+const num = (n: number) => n.toLocaleString(locale());
+const metres = (mm: number) => `${(mm / 1000).toLocaleString(locale(), { maximumFractionDigits: 2 })} m`;
 
 function generations(l: Lens): StoryPart | null {
   const fam = LENS_FAMILIES.find((f) => f.revisions.some((r) => r.lensId === l.id));
@@ -146,19 +149,19 @@ function generations(l: Lens): StoryPart | null {
       return lens ? `${r.label} (${lens.year})` : r.label;
     })
     .join(", ");
-  return { text: `One of ${fam.revisions.length} generations of the ${fam.name}: ${list}.` };
+  return { text: t("mu.generations", { n: fam.revisions.length, name: fam.name, list }) };
 }
 
 export function lensExhibit(l: Lens, content: TimelineContent = TIMELINE_CONTENT): Exhibit {
   const gen = generations(l);
   const facts: Fact[] = [
-    { label: "Introduced", value: String(l.year) },
-    { label: "Focal length", value: `${l.focalMm} mm` },
-    { label: "Widest aperture", value: formatFNumber(l.maxAperture) },
-    { label: "Smallest aperture", value: formatFNumber(l.minAperture) },
-    { label: "Focuses down to", value: metres(l.minFocusMm) },
-    ...(l.apertureBlades ? [{ label: "Aperture blades", value: String(l.apertureBlades) }] : []),
-    { label: "Mount", value: l.mount === "fixed" ? "Built into the camera" : `Leica ${l.mount}` },
+    { label: t("mu.f.introduced"), value: String(l.year) },
+    { label: t("mu.f.focal"), value: `${l.focalMm} mm` },
+    { label: t("mu.f.widest"), value: formatFNumber(l.maxAperture) },
+    { label: t("mu.f.smallest"), value: formatFNumber(l.minAperture) },
+    { label: t("mu.f.closest"), value: metres(l.minFocusMm) },
+    ...(l.apertureBlades ? [{ label: t("mu.f.blades"), value: String(l.apertureBlades) }] : []),
+    { label: t("mu.f.lensMount"), value: l.mount === "fixed" ? t("mu.f.builtIn") : `Leica ${l.mount}` },
   ];
   const notes = content.notes.filter((n) => n.lensId === l.id).map((n) => ({ text: n.text, source: { label: n.provenance.source, url: n.provenance.url } }));
   return {
@@ -192,7 +195,7 @@ export function partExhibits(): Exhibit[] {
     story: [
       { text: p.what },
       ...(p.history ? [{ text: p.history }] : []),
-      { text: ANATOMY_PROVENANCE.notes, source: { label: "Illustrative drawing" } },
+      { text: ANATOMY_PROVENANCE.notes, source: { label: t("mu.illustrative") } },
     ],
     art: { kind: "part" as const, partId: p.id },
     hero: true,
@@ -221,11 +224,11 @@ export function collectionExhibit(i: CollectionItem): Exhibit {
   const f = i.serialFacts;
   const v = i.valuations?.[0];
   const facts: Fact[] = [
-    ...(i.serial ? [{ label: "Serial number", value: i.serial }] : []),
-    ...(f?.model ? [{ label: "Factory list", value: `${f.model}${f.variant ? `, ${f.variant}` : ""}` }] : []),
-    ...(f ? [{ label: "Made", value: f.year.replace("/", " or ") }] : []),
-    ...(f?.batchSize ? [{ label: "Batch", value: `${f.batchSize.toLocaleString("en-GB")} made` }] : []),
-    ...(i.acquired ? [{ label: "In the collection since", value: i.acquired.slice(0, 4) }] : []),
+    ...(i.serial ? [{ label: t("col.glance.serial"), value: i.serial }] : []),
+    ...(f?.model ? [{ label: t("mu.f.factory"), value: `${f.model}${f.variant ? `, ${f.variant}` : ""}` }] : []),
+    ...(f ? [{ label: t("mu.f.made"), value: f.year.replace("/", t("col.or")) }] : []),
+    ...(f?.batchSize ? [{ label: t("mu.f.batch"), value: t("mu.f.batchMade", { n: num(f.batchSize) }) }] : []),
+    ...(i.acquired ? [{ label: t("mu.f.since"), value: i.acquired.slice(0, 4) }] : []),
   ];
   const year = f ? Number(f.year.slice(0, 4)) : undefined;
   return {
@@ -233,12 +236,12 @@ export function collectionExhibit(i: CollectionItem): Exhibit {
     room: "collection",
     title: i.name,
     year: Number.isFinite(year) ? year : undefined,
-    line: [i.serial && `No. ${i.serial}`, f && `made ${f.year.replace("/", " or ")}`].filter(Boolean).join(" · ") || (i.kind === "body" ? "Camera" : i.kind === "lens" ? "Lens" : "Accessory"),
+    line: [i.serial && `No. ${i.serial}`, f && t("mu.madeLower", { year: f.year.replace("/", t("col.or")) })].filter(Boolean).join(" · ") || t(`col.kind.${i.kind}`),
     facts,
     story: [
-      ...(i.notes ? [{ text: i.notes, source: { label: "The owner's notes" } }] : []),
-      ...(f ? [{ text: `From the factory serial list: ${f.source}.` }] : []),
-      ...(v?.range ? [{ text: `Similar items sold for ${v.range.low.toLocaleString("en-GB")} to ${v.range.high.toLocaleString("en-GB")} ${v.range.currency} (checked ${v.at.slice(0, 10)}).` }] : []),
+      ...(i.notes ? [{ text: i.notes, source: { label: t("mu.ownerNotes") } }] : []),
+      ...(f ? [{ text: `${t("col.serial.source", { source: f.source })}.` }] : []),
+      ...(v?.range ? [{ text: t("mu.sold", { low: num(v.range.low), high: num(v.range.high), currency: v.range.currency, date: v.at.slice(0, 10) }) }] : []),
     ],
     art: { kind: "item", itemId: i.id },
     hero: false,
@@ -253,11 +256,11 @@ const byYear = (a: Exhibit, b: Exhibit) => (a.year ?? 9999) - (b.year ?? 9999) |
 
 export function buildRooms(collection: CollectionItem[] = [], accessories: Accessory[] = ACCESSORIES): Room[] {
   const rooms: Room[] = [
-    { id: "cameras", title: "Cameras", line: "From the M3 of 1954 to today.", exhibits: BODIES.map((b) => cameraExhibit(b)).sort(byYear) },
-    { id: "lenses", title: "Lenses", line: "The glass: Summicron, Summilux, Noctilux and more.", exhibits: LENSES.filter((l) => l.mount !== "fixed").map((l) => lensExhibit(l)).sort(byYear) },
-    { id: "inside", title: "Inside the camera", line: "How a rangefinder works, part by part.", exhibits: partExhibits() },
-    { id: "accessories", title: "Accessories", line: "Finders, meters and the tools around the camera.", exhibits: accessories.map(accessoryExhibit).sort(byYear) },
-    { id: "collection", title: "Your collection", line: "The pieces you own.", exhibits: collection.map(collectionExhibit) },
+    { id: "cameras", title: t("mu.room.cameras"), line: t("mu.room.cameras.line"), exhibits: BODIES.map((b) => cameraExhibit(b)).sort(byYear) },
+    { id: "lenses", title: t("mu.room.lenses"), line: t("mu.room.lenses.line"), exhibits: LENSES.filter((l) => l.mount !== "fixed").map((l) => lensExhibit(l)).sort(byYear) },
+    { id: "inside", title: t("mu.room.inside"), line: t("mu.room.inside.line"), exhibits: partExhibits() },
+    { id: "accessories", title: t("mu.room.accessories"), line: t("mu.room.accessories.line"), exhibits: accessories.map(accessoryExhibit).sort(byYear) },
+    { id: "collection", title: t("mu.room.collection"), line: t("mu.room.collection.line"), exhibits: collection.map(collectionExhibit) },
   ];
   return rooms;
 }

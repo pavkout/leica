@@ -6,6 +6,7 @@ import { estimate, friendlyEstimate, friendlyUsd } from "../../services/ai/prici
 import { loadSpend, wouldExceed } from "../../services/ai/spendLog";
 import type { CollectionItem, Valuation } from "../../state/collection";
 import { openCollectorPage, useAiSettings } from "../../state/collectorStore";
+import { t } from "../../i18n";
 
 interface Props {
   items: CollectionItem[];
@@ -36,11 +37,11 @@ export default function ValueAll({ items, onValued }: Props) {
     let usd = 0;
     for (const [i, item] of items.entries()) {
       if (stop.current) {
-        setStatus(`Stopped. ${i} of ${items.length} checked.`);
+        setStatus(t("col.all.stopped", { i, n: items.length }));
         break;
       }
       if (wouldExceed(loadSpend(), settings.monthlyLimitUsd, one.high, new Date())) {
-        setStatus(`Stopped at your monthly spending limit. ${i} of ${items.length} checked.`);
+        setStatus(t("col.all.limit", { i, n: items.length }));
         break;
       }
       try {
@@ -50,7 +51,7 @@ export default function ValueAll({ items, onValued }: Props) {
       } catch (e) {
         const err = describeApiError(e);
         if (["bad-key", "no-credit", "offline", "no-key"].includes(err.kind)) {
-          setStatus(`${err.message} ${i} of ${items.length} checked.`);
+          setStatus(`${err.message} ${t("col.all.checked", { i, n: items.length })}`);
           break;
         }
         setStatus(`${item.name}: ${err.message}`);
@@ -65,25 +66,25 @@ export default function ValueAll({ items, onValued }: Props) {
     return (
       <div className="cx-progress" role="status">
         <p>
-          Checking {Math.min(done + 1, items.length)} of {items.length}… so far {friendlyUsd(spent)}.
+          {t("col.all.progress", { i: Math.min(done + 1, items.length), n: items.length, cost: friendlyUsd(spent) })}
         </p>
         <button type="button" className="btn" onClick={() => (stop.current = true)}>
-          Stop
+          {t("col.all.stop")}
         </button>
       </div>
     );
   if (confirming)
     return (
-      <div className="cx-progress" role="alertdialog" aria-label="Find the value of everything">
+      <div className="cx-progress" role="alertdialog" aria-label={t("col.all.button")}>
         <p>
-          Check the value of all {items.length} items? This takes about a minute each and costs {friendlyEstimate(total)} in total.
+          {t("col.all.confirm", { n: items.length, cost: friendlyEstimate(total) })}
         </p>
         <div className="cx-actions">
           <button type="button" className="btn btn-red" onClick={runAll}>
-            Yes, check them all
+            {t("col.all.yes")}
           </button>
           <button type="button" className="btn" onClick={() => setConfirming(false)}>
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       </div>
@@ -91,11 +92,11 @@ export default function ValueAll({ items, onValued }: Props) {
   return (
     <>
       <button type="button" className="btn" onClick={() => (settings.key ? setConfirming(true) : openCollectorPage("aihelper"))}>
-        Find the value of everything
+        {t("col.all.button")}
       </button>
       {status && (
         <p className="cx-quiet" role="status">
-          {status} {done > 0 && `Cost ${friendlyUsd(spent)}.`}
+          {status} {done > 0 && t("col.all.cost", { cost: friendlyUsd(spent) })}
         </p>
       )}
     </>

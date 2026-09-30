@@ -4,6 +4,7 @@
 
 import { BODY_SERIAL_SOURCES, bodyBlock, bodyNotes } from "../data/bodySerials";
 import { LENS_SERIAL_SOURCES, lensYear, parseSerial } from "../data/lensSerials";
+import { langTag, t } from "../i18n";
 
 export interface SerialFacts {
   kind: "body" | "lens";
@@ -24,7 +25,7 @@ export interface SerialFacts {
 
 export type SerialLookup = { status: "found"; facts: SerialFacts } | { status: "unknown"; reason: string } | { status: "invalid" };
 
-const fmt = (n: number) => n.toLocaleString("en-GB");
+const fmt = (n: number) => n.toLocaleString(langTag() === "en" ? "en-GB" : langTag());
 
 function bodySource(model: string): string {
   if (model === "M5") return BODY_SERIAL_SOURCES.find((s) => s.label.includes("M5"))!.label;
@@ -37,7 +38,7 @@ export function lookupSerialFacts(kind: "body" | "lens", text: string): SerialLo
 
   if (kind === "body") {
     const b = bodyBlock(serial);
-    if (!b) return { status: "unknown", reason: `No. ${fmt(serial)} isn't in the sourced body lists (1954–1965 and the M5).` };
+    if (!b) return { status: "unknown", reason: t("serial.unknown.body", { n: fmt(serial) }) };
     return {
       status: "found",
       facts: {
@@ -62,12 +63,12 @@ export function lookupSerialFacts(kind: "body" | "lens", text: string): SerialLo
   }
   const reason =
     a.kind === "gap"
-      ? `No. ${fmt(serial)} falls in a gap between the published ${a.before.year} and ${a.after.year} ranges.`
+      ? t("serial.unknown.gap", { n: fmt(serial), before: a.before.year, after: a.after.year })
       : a.kind === "before"
-        ? `No. ${fmt(serial)} is lower than the first published lens range (1933).`
+        ? t("serial.unknown.before", { n: fmt(serial) })
         : a.kind === "after"
-          ? `No. ${fmt(serial)} is past the published lens tables (they end in ${a.last.year}).`
-          : `No. ${fmt(serial)} isn't a lens serial the tables can read.`;
+          ? t("serial.unknown.after", { n: fmt(serial), last: a.last.year })
+          : t("serial.unknown.lens", { n: fmt(serial) });
   return { status: "unknown", reason };
 }
 
@@ -95,15 +96,23 @@ function sameModel(listed: string, claimed: string): boolean {
 export function serialConflicts(facts: SerialFacts, claim: { model?: string | null; year?: string | number | null }): string[] {
   const out: string[] = [];
   if (facts.model && claim.model && !sameModel(facts.model, claim.model))
-    out.push(`This doesn't match: the factory list says this number is ${/^[AEFHILMNORSX8]/i.test(facts.model) ? "an" : "a"} ${facts.model}${facts.variant ? ` (${facts.variant})` : ""}, not ${claim.model}.`);
+    out.push(
+      t(/^[AEFHILMNORSX8]/i.test(facts.model) ? "serial.conflict.modelAn" : "serial.conflict.model", { model: `${facts.model}${facts.variant ? ` (${facts.variant})` : ""}`, claim: claim.model })
+    );
   const claimed = claim.year != null ? yearSpan(String(claim.year)) : null;
   const listed = yearSpan(facts.year);
-  if (claimed && listed && (claimed[1] < listed[0] || claimed[0] > listed[1])) out.push(`This doesn't match: the factory list says this number was made in ${facts.year}, not ${claim.year}.`);
+  if (claimed && listed && (claimed[1] < listed[0] || claimed[0] > listed[1])) out.push(t("serial.conflict.year", { year: facts.year, claim: String(claim.year) }));
   return out;
 }
 
 /** Batch size as a plain fact. It counts cameras made, not cameras surviving. */
 export function rarityNote(facts: SerialFacts): string | null {
   if (!facts.batchSize || !facts.model) return null;
-  return `One of a batch of ${fmt(facts.batchSize)} ${facts.model} cameras${facts.variant ? ` (${facts.variant})` : ""} made in ${facts.year}, numbers ${fmt(facts.batchFrom!)} to ${fmt(facts.batchTo!)}.`;
+  return t("serial.rarity", {
+    size: fmt(facts.batchSize),
+    model: `${facts.model}${facts.variant ? ` (${facts.variant})` : ""}`,
+    year: facts.year,
+    from: fmt(facts.batchFrom!),
+    to: fmt(facts.batchTo!),
+  });
 }

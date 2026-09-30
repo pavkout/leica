@@ -63,7 +63,12 @@ export type ToolId =
   | "famous"
   | "identify"
   | "listing"
-  | "aihelper";
+  | "aihelper"
+  | "passport"
+  | "health"
+  | "lab"
+  | "walks"
+  | "matcher";
 
 export interface Tool {
   id: ToolId;
@@ -84,6 +89,7 @@ export const TOOLS: Tool[] = [
   { id: "iris", mode: "simulate", label: "Aperture iris", blurb: "The blades behind every out-of-focus highlight.", stages: ["stage-iris"] },
 
   { id: "assignment", mode: "learn", label: "Today's assignment", blurb: "One brief a day. Shoot it, hand it in, keep the streak.", stages: ["stage-assignment"] },
+  { id: "lab", mode: "learn", label: "Photography Lab", blurb: "A course for your own camera: shoot each exercise, hand in the photo, and see if it did what you meant.", stages: ["stage-lab"] },
   { id: "finder", mode: "learn", label: "Rangefinder focus", blurb: "Merge the two images in the patch, then take the shot.", stages: ["stage-finder"] },
   { id: "finders", mode: "learn", label: "Finders compared", blurb: "The same scene through each M body's viewfinder.", stages: ["stage-finder-compare"] },
   { id: "sunny16", mode: "learn", label: "Sunny 16", blurb: "Guess the exposure without a meter.", stages: ["stage-trainer"] },
@@ -101,6 +107,7 @@ export const TOOLS: Tool[] = [
   { id: "recipes", mode: "shoot", label: "Recipes", blurb: "Proven starting points for common situations.", stages: ["stage-recipes"] },
   { id: "roll", mode: "shoot", label: "Roll", blurb: "Your frames, notes and what they teach you.", stages: ["stage-roll", "stage-insights"] },
   { id: "darkroom", mode: "shoot", label: "Darkroom", blurb: "How development changes a black-and-white roll.", stages: ["stage-darkroom"] },
+  { id: "walks", mode: "shoot", label: "Photo walks", blurb: "A theme, one lens set for zone focus, pictures to find and the best light today. Send it to a friend to walk together.", stages: ["stage-walks"] },
   { id: "light", mode: "shoot", label: "Light planner", blurb: "When the light is good today, and what to set for it.", stages: ["stage-light"] },
   { id: "zone", mode: "shoot", label: "Zone coach", blurb: "Big, glanceable zone focus for a walk: what to set and what's sharp.", stages: ["stage-zone"] },
   { id: "shotlog", mode: "shoot", label: "Shot log", blurb: "Note every frame on your real camera; match the scans when they're back.", stages: ["stage-shotlog"] },
@@ -116,9 +123,12 @@ export const TOOLS: Tool[] = [
   { id: "sounds", mode: "explore", label: "Sound library", blurb: "Every shutter mechanism and camera sound, drawn and played.", stages: ["stage-sounds"] },
   { id: "coding", mode: "explore", label: "Lens coding", blurb: "The 6-bit code on an M lens: look it up, or read it off the lens in your hand.", stages: ["stage-coding"] },
   { id: "kit", mode: "explore", label: "Kit planner", blurb: "Plan the bag for a trip: what's covered, what's missing, which two to take.", stages: ["stage-kit"] },
+  { id: "matcher", mode: "explore", label: "Which Leica for me?", blurb: "Six plain questions: a camera and lenses that suit you, with the reasons, to try here before a shop.", stages: ["stage-matcher"] },
   { id: "trial", mode: "explore", label: "Try before you buy", blurb: "What another focal length would frame from where you stand.", stages: ["stage-trial"] },
 
   { id: "collection", mode: "collect", label: "My collection", blurb: "Every camera, lens and accessory you own, in one place. Printable for insurance.", stages: ["stage-collection"] },
+  { id: "passport", mode: "collect", label: "Camera passport", blurb: "Your camera's life story: where it came from, every service, its condition. Hand it to the next owner when you sell.", stages: ["stage-passport"] },
+  { id: "health", mode: "collect", label: "Camera health check", blurb: "Test a real camera with your phone: shutter speeds by sound, then a guided check of everything else.", stages: ["stage-health"] },
   { id: "identify", mode: "collect", label: "What is this?", blurb: "Take a photo of a camera or lens. We'll tell you what it is and read its serial number.", stages: ["stage-identify"] },
   { id: "listing", mode: "collect", label: "Before you buy", blurb: "Paste a link to something for sale. We'll check it and compare the price.", stages: ["stage-listing"] },
   { id: "serial", mode: "collect", label: "Serial numbers", blurb: "Type a serial number: which camera it is, or when your lens was made.", stages: ["stage-serial"] },
@@ -152,7 +162,8 @@ export const HOME: Route = { screen: "camera", mode: "simulate", tool: "studio" 
 
 /** `#/learn/sunny16` → a tool page; `#/menu` → the menu; a bare mode goes to its default tool; anything else is the camera. */
 export function parseRoute(hash: string): Route {
-  const [modePart, toolPart] = hash.replace(/^#\/?/, "").split("/");
+  // A tool may carry a query (#/collect/health?item=…); it belongs to the tool, not the route.
+  const [modePart, toolPart] = hash.replace(/^#\/?/, "").split("?")[0].split("/");
   if (modePart === "menu") return { ...HOME, screen: "menu" };
   if (modePart === "museum") return { ...HOME, screen: "museum" };
   const mode = MODES.find((m) => m.id === modePart)?.id;

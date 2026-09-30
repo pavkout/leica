@@ -1,6 +1,7 @@
 import { friendlyEstimate, friendlyUsd } from "../../services/ai/pricing";
 import type { AiError } from "../../services/ai/errors";
 import { openCollectorPage } from "../../state/collectorStore";
+import { t } from "../../i18n";
 
 interface Props {
   est: { low: number; high: number };
@@ -13,13 +14,13 @@ interface Props {
 export default function RunCostLine({ est, actual, error }: Props) {
   return (
     <>
-      <p className="cx-cost">{actual != null ? `That cost ${friendlyUsd(actual)}.` : `Costs ${friendlyEstimate(est)}.`}</p>
+      <p className="cx-cost">{actual != null ? t("col.cost.actual", { cost: friendlyUsd(actual) }) : t("col.cost.estimate", { cost: friendlyEstimate(est) })}</p>
       {error && (
         <div className="cx-problem" role="alert">
           <p>{error.message}</p>
           {["no-key", "bad-key", "limit"].includes(error.kind) && (
             <button type="button" className="btn btn-small" onClick={() => openCollectorPage("aihelper")}>
-              Open the AI helper
+              {t("col.openAiHelper")}
             </button>
           )}
         </div>

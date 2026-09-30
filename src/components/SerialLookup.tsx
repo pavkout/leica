@@ -1,13 +1,14 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { BODIES, LENSES, formatShutter } from "../data/gear";
-import { BODY_LIST_RANGE, BODY_SERIALS, BODY_SERIAL_SOURCES, MODEL_NOTES, bodyBlock, bodyNotes } from "../data/bodySerials";
+import { BODY_LIST_RANGE, BODY_SERIALS, BODY_SERIAL_SOURCES, bodyBlock, bodyNotes } from "../data/bodySerials";
 import BodyArt from "./gear/BodyArt";
 import GearImage from "./gear/GearImage";
 import LensArt from "./gear/LensArt";
 import Segmented from "./Segmented";
 import { LENS_SERIALS, LENS_SERIAL_SOURCES, lensYear, parseSerial } from "../data/lensSerials";
+import { langTag, t } from "../i18n";
 
-const fmt = (n: number) => n.toLocaleString("en-GB");
+const fmt = (n: number) => n.toLocaleString(langTag() === "en" ? "en-GB" : langTag());
 
 /**
  * When was my lens made? The serial engraved on the front ring, looked up in
@@ -23,17 +24,17 @@ interface Props {
 export default function SerialLookup(props: Props) {
   const [kind, setKind] = useState<"body" | "lens">("body");
   return (
-    <section className="panel stage-serial" aria-label="Serial number lookup">
+    <section className="panel stage-serial" aria-label={t("sn.aria")}>
       <Segmented
-        label="What's the number on?"
+        label={t("sn.on")}
         value={kind}
         onChange={setKind}
         options={[
-          { value: "body", label: "A camera" },
-          { value: "lens", label: "A lens" },
+          { value: "body", label: t("col.kind.a.body") },
+          { value: "lens", label: t("col.kind.a.lens") },
         ]}
       />
-      <p className="muted small sn-why">Leitz numbered cameras and lenses in separate series, so the same number can be both.</p>
+      <p className="muted small sn-why">{t("sn.why")}</p>
       {kind === "body" ? <BodyLookup onUse={props.onUseBody} /> : <LensLookup onUse={props.onUseLens} />}
     </section>
   );
@@ -165,19 +166,19 @@ function BodyLookup({ onUse }: { onUse: (id: string) => void }) {
     <>
       <div className="sn-entry">
         <SerialInput
-          label="Camera serial number"
+          label={t("sn.body.label")}
           placeholder="756 098"
-          help="On the top plate, beside the accessory shoe. Covers 1954–1965 (M3, M2, M1, MD and the last screw-mount models) and the M5."
+          help={t("sn.body.help")}
           value={text}
           onChange={setText}
         />
       </div>
 
       <div className="sn-readout" aria-live="polite">
-        <YearScale from={1954} to={1975} covered={BODY_COVERED} mark={mark} prompt="Type the number and the camera's year lands on this scale." />
+        <YearScale from={1954} to={1975} covered={BODY_COVERED} mark={mark} prompt={t("sn.body.prompt")} />
         <div className="sn-say">
           {text.trim() === "" ? null : serial === null ? (
-            <p className="muted">A camera serial is a number of 4 to 8 digits.</p>
+            <p className="muted">{t("sn.body.digits")}</p>
           ) : block ? (
             <div className="sn-body">
               <p className="sn-model">
@@ -185,7 +186,7 @@ function BodyLookup({ onUse }: { onUse: (id: string) => void }) {
                 {block.variant && <span className="sn-variant">{block.variant}</span>}
               </p>
               <p>
-                No. {fmt(serial)}, numbered in {block.year}. {MODEL_NOTES[block.model]}
+                {t("sn.body.numbered", { n: fmt(serial), year: block.year })} {t(`sn.model.${block.model}`)}
               </p>
               {bodyNotes(serial, block).length > 0 && (
                 <ul className="sn-notes">
@@ -196,11 +197,10 @@ function BodyLookup({ onUse }: { onUse: (id: string) => void }) {
               )}
             </div>
           ) : serial < BODY_LIST_RANGE.from ? (
-            <p className="muted">Before 700,001: a screw-mount Leica from before 1954. Those numbers aren&apos;t in this table yet.</p>
+            <p className="muted">{t("sn.body.before")}</p>
           ) : (
             <p className="muted">
-              {serial > BODY_LIST_RANGE.to ? "After the 1965 list ends, " : "In a stretch the source copy doesn't show legibly, "}and not in the M5 block: this number isn&apos;t in the table, so the
-              model isn&apos;t named rather than guessed.
+              {serial > BODY_LIST_RANGE.to ? t("sn.body.after") : t("sn.body.illegible")}
             </p>
           )}
         </div>
@@ -208,13 +208,13 @@ function BodyLookup({ onUse }: { onUse: (id: string) => void }) {
 
       {rows.length > 0 && (
         <div className="sn-detail">
-          <table className="sn-ledger" aria-label="Serial blocks around that number">
+          <table className="sn-ledger" aria-label={t("sn.body.rows")}>
             <thead>
               <tr>
-                <th scope="col">Model</th>
-                <th scope="col">First number</th>
-                <th scope="col">Last number</th>
-                <th scope="col">Year</th>
+                <th scope="col">{t("sn.th.model")}</th>
+                <th scope="col">{t("sn.th.first")}</th>
+                <th scope="col">{t("sn.th.last")}</th>
+                <th scope="col">{t("sn.th.year")}</th>
               </tr>
             </thead>
             <tbody>
@@ -238,23 +238,19 @@ function BodyLookup({ onUse }: { onUse: (id: string) => void }) {
                 <BodyArt body={body} />
               </GearImage>
               <dl className="gen-specs">
-                <dt>Shutter</dt>
-                <dd>
-                  {formatShutter(body.shutter.slowest)} to {formatShutter(body.shutter.fastest)}
-                </dd>
+                <dt>{t("common.shutter")}</dt>
+                <dd>{t("sn.range", { a: formatShutter(body.shutter.slowest), b: formatShutter(body.shutter.fastest) })}</dd>
                 {body.rangefinder && (
                   <>
-                    <dt>Finder</dt>
-                    <dd>
-                      {body.rangefinder.magnification}×, frames {body.rangefinder.frameSets.map((f) => f.join("/")).join(", ")} mm
-                    </dd>
+                    <dt>{t("sn.finder")}</dt>
+                    <dd>{t("sn.finder.value", { m: body.rangefinder.magnification, frames: body.rangefinder.frameSets.map((f) => f.join("/")).join(", ") })}</dd>
                   </>
                 )}
-                <dt>Meter</dt>
-                <dd>{body.meter === "none" ? "None" : "Built in"}</dd>
+                <dt>{t("sn.meter")}</dt>
+                <dd>{body.meter === "none" ? t("sn.meter.none") : t("sn.meter.built")}</dd>
               </dl>
               <button type="button" className="btn btn-red" onClick={() => onUse(body.id)}>
-                Shoot with an {body.name}
+                {t("sn.shootWith", { name: body.name })}
               </button>
             </div>
           )}
@@ -262,8 +258,7 @@ function BodyLookup({ onUse }: { onUse: (id: string) => void }) {
       )}
 
       <p className="hint sn-sources">
-        The 1954–1965 blocks are transcribed from a scan of a poor photocopy of Leitz&apos;s list; a few digits were hard to read, so check a
-        rare variant with a specialist before buying on it. Sources: <Sources list={BODY_SERIAL_SOURCES} />.
+        {t("sn.body.sources")} <Sources list={BODY_SERIAL_SOURCES} />.
       </p>
     </>
   );
@@ -292,7 +287,7 @@ function LensLookup({ onUse }: { onUse: (id: string) => void }) {
   if (answer?.kind === "years") {
     const lo = Math.min(...hitYears);
     const hi = Math.max(...hitYears);
-    mark = { from: lo, to: hi + 1, at: hitYears.length === 1 ? lo + within! : (lo + hi + 1) / 2, label: hitYears.join(" or ") };
+    mark = { from: lo, to: hi + 1, at: hitYears.length === 1 ? lo + within! : (lo + hi + 1) / 2, label: hitYears.join(t("col.or")) };
   } else if (answer?.kind === "gap") {
     const { before, after } = answer;
     mark = { from: before.year, to: after.year + 1, at: (before.year + after.year + 1) / 2, label: `${before.year}–${after.year}` };
@@ -301,18 +296,18 @@ function LensLookup({ onUse }: { onUse: (id: string) => void }) {
   return (
     <>
       <div className="sn-entry sn-entry-lens">
-        <SerialInput label="Lens serial number" placeholder="2 254 401" help="Engraved on the front ring or the barrel. Spaces and commas are fine." value={text} onChange={setText} />
+        <SerialInput label={t("sn.lens.label")} placeholder="2 254 401" help={t("sn.lens.help")} value={text} onChange={setText} />
         <label className="field sn-field sn-which">
-          <span>Which lens is it? (optional)</span>
+          <span>{t("sn.lens.which")}</span>
           <select value={lensId} onChange={(e) => setLensId(e.target.value)}>
-            <option value="">I don&apos;t know</option>
+            <option value="">{t("sn.lens.dontKnow")}</option>
             {LENSES.filter((l) => l.mount === "M" || l.mount === "L").map((l) => (
               <option key={l.id} value={l.id}>
                 {l.name}
               </option>
             ))}
           </select>
-          <span className="muted small">The serial dates the lens but doesn&apos;t say which lens it is: Leitz gave numbers to many lenses in turn.</span>
+          <span className="muted small">{t("sn.lens.whichNote")}</span>
         </label>
       </div>
 
@@ -322,25 +317,25 @@ function LensLookup({ onUse }: { onUse: (id: string) => void }) {
           to={LENS_LAST}
           covered={[[LENS_FIRST, LENS_LAST + 1]]}
           mark={mark}
-          prompt={`Type the number and its year, ${LENS_FIRST} to ${LENS_LAST}, lands on this scale.`}
+          prompt={t("sn.lens.prompt", { from: LENS_FIRST, to: LENS_LAST })}
         />
         <div className="sn-say">
           {text.trim() === "" ? null : serial === null ? (
-            <p className="muted">A lens serial is a number of 4 to 8 digits.</p>
+            <p className="muted">{t("sn.lens.digits")}</p>
           ) : answer?.kind === "years" ? (
             <p>
               {hitYears.length > 1
-                ? `No. ${fmt(serial)} falls where the published ranges for ${hitYears.join(" and ")} overlap, so either year is possible.`
-                : `No. ${fmt(serial)} was numbered in ${hit!.year}, ${within! < 0.34 ? "early" : within! < 0.67 ? "midway" : "late"} in that year's run of ${fmt(hit!.from)} to ${fmt(hit!.to)}.`}
+                ? t("sn.lens.overlap", { n: fmt(serial), years: hitYears.join(t("col.or")) })
+                : t(`sn.lens.in.${within! < 0.34 ? "early" : within! < 0.67 ? "mid" : "late"}`, { n: fmt(serial), year: hit!.year, from: fmt(hit!.from), to: fmt(hit!.to) })}
             </p>
           ) : answer?.kind === "gap" ? (
             <p>
-              No. {fmt(serial)} falls in a gap between the published ranges for {answer.before.year} and {answer.after.year}.
+              {t("serial.unknown.gap", { n: fmt(serial), before: answer.before.year, after: answer.after.year })}
             </p>
           ) : answer?.kind === "before" ? (
-            <p className="muted">That&apos;s earlier than the table ({LENS_FIRST}). Early Leitz lenses were numbered with the cameras; a collector&apos;s reference will know more.</p>
+            <p className="muted">{t("sn.lens.before", { first: LENS_FIRST })}</p>
           ) : answer?.kind === "after" ? (
-            <p className="muted">That&apos;s after {LENS_LAST} ({fmt(answer.last.to)}), where the published table stops. Leica can tell you the date of a newer lens.</p>
+            <p className="muted">{t("sn.lens.after", { last: LENS_LAST, n: fmt(answer.last.to) })}</p>
           ) : null}
         </div>
       </div>
@@ -348,12 +343,12 @@ function LensLookup({ onUse }: { onUse: (id: string) => void }) {
       {(rows.length > 0 || lens) && (
         <div className="sn-detail">
           {rows.length > 0 && (
-            <table className="sn-ledger" aria-label="Lens serial numbers around that year">
+            <table className="sn-ledger" aria-label={t("sn.lens.rows")}>
               <thead>
                 <tr>
-                  <th scope="col">Year</th>
-                  <th scope="col">First number</th>
-                  <th scope="col">Last number</th>
+                  <th scope="col">{t("sn.th.year")}</th>
+                  <th scope="col">{t("sn.th.first")}</th>
+                  <th scope="col">{t("sn.th.last")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -374,27 +369,25 @@ function LensLookup({ onUse }: { onUse: (id: string) => void }) {
                 <LensArt lens={lens} />
               </GearImage>
               <dl className="gen-specs">
-                <dt>Lens</dt>
+                <dt>{t("common.lens")}</dt>
                 <dd>{lens.name}</dd>
-                <dt>Design from</dt>
+                <dt>{t("sn.designFrom")}</dt>
                 <dd>{lens.year}</dd>
-                <dt>Aperture</dt>
-                <dd>
-                  f/{lens.maxAperture} to f/{lens.minAperture}
-                </dd>
+                <dt>{t("common.aperture")}</dt>
+                <dd>{t("sn.range", { a: `f/${lens.maxAperture}`, b: `f/${lens.minAperture}` })}</dd>
                 {hitYears.length > 0 && (
                   <>
-                    <dt>Your number</dt>
+                    <dt>{t("sn.yourNumber")}</dt>
                     <dd className={Math.max(...hitYears) < lens.year ? "warn-text" : undefined}>
                       {Math.max(...hitYears) < lens.year
-                        ? `Numbered ${hitYears.join("/")}, before this design came out in ${lens.year}: probably an earlier version of the lens.`
-                        : `Numbered ${hitYears.join("/")}, which fits this design (${lens.year} on).`}
+                        ? t("sn.lens.earlier", { years: hitYears.join("/"), year: lens.year })
+                        : t("sn.lens.fits", { years: hitYears.join("/"), year: lens.year })}
                     </dd>
                   </>
                 )}
               </dl>
               <button type="button" className="btn btn-red" onClick={() => onUse(lens.id)}>
-                Shoot with this lens
+                {t("sn.shootLens")}
               </button>
             </div>
           )}
@@ -402,8 +395,7 @@ function LensLookup({ onUse }: { onUse: (id: string) => void }) {
       )}
 
       <p className="hint sn-sources">
-        Lenses only: camera bodies have their own numbering. The year is when the number was allocated, which is usually, not always, the year
-        the lens was made. Tables: <Sources list={LENS_SERIAL_SOURCES} />.
+        {t("sn.lens.sources")} <Sources list={LENS_SERIAL_SOURCES} />.
       </p>
     </>
   );

@@ -11,6 +11,7 @@ Last updated: 2026-09-30
 | Phase 2 — Tactile Learning | ✅ COMPLETE |
 | Phase 3 — “WTF” / 3D Layer | 🟡 IN PROGRESS: all features done; #2 awaits the real-phone check |
 | Phase 4 — Explore / Kiosk / Museum | 🟡 MOSTLY DONE: #20, #23, #34 COMPLETE; #21 PARTIAL (no authored 3D assets). Not formally defined in the Master Plan |
+| Product expansion — #40–#45 (user request, 2026-09-30) | 🟡 CODE COMPLETE, awaiting the user's review; #40 PARTIAL (older pages still English) |
 
 > Phase 0 and Phase 1 were verified directly against the repository (typecheck/lint/test/build all clean, 126 tests passing before this session's work) before Phase 2 began.
 
@@ -20,7 +21,60 @@ Last updated: 2026-09-30
 
 ## Current task
 
-**Private sign-in for publishing on Vercel** (user request, 2026-09-30; outside the Master Plan's phases: a deployment need, not a product feature). **IN PROGRESS**: code written; validation is pending because shell commands were blocked while it was written.
+**Product expansion #40–#45** (user request, 2026-09-30: act as product owner, then "fix gaps two and three and implement all six ideas, don't ask"). Briefs are in the Master Plan (#40–#45). **Code COMPLETE for #41–#45; #40 PARTIAL. Waiting for the user's review and a real-phone pass.** Nothing committed.
+- Gap 1 from the review (accounts, sync across devices) was **not** requested, so everything stays on the device. The Passport's hand-over works through a file plus a seal code instead of a server.
+- **#40 Languages:** `src/i18n/` has a tiny `t()`/`tn()` plus `useLang()`, and no dependency.
+  - Languages: en (source), de, fr, ja, zh-Hans, ko. Each non-English language is its own lazy chunk (~16 KB gzipped).
+  - Chosen from the browser on first visit; MENU → Setup → Language changes it and remembers it. `<html lang>` follows.
+  - Translated: the MENU, the tool rail, every mode and tool name and description, the top plate, the footer, the camera screen's labels, the gear pickers, playback, **all of #41–#45**, and **every Collectors page** (My collection and its editor, What is this?, Before you buy, Serial numbers, the AI helper, plus the cost wording, AI error messages and serial-list sentences they share).
+  - The museum's rooms, controls and fact labels are translated; its sourced story texts stay in their original English.
+  - The AI helper is asked to write its free-text answers (condition, warning signs, tips) in the reader's language, keeping names, engravings, serials, prices and quoted text unchanged (`inReadersLanguage`, tested).
+  - Prices, dates and serial numbers follow the reader's locale.
+  - Tests: every translation's placeholders equal English's; every key used in code exists in English; #41–#45 are complete in every language.
+  - **Known limitation:** the Simulate, Learn, Shoot and Explore tool pages from before this work (about 35, plus their data texts such as recipes, film notes and the timeline) still show their own text in English, falling back key by key as designed. Next step for #40: convert them page by page. Translations were written with AI help and haven't been checked by native speakers; the language screen says so.
+- **#41 Camera passport** (Collectors → Camera passport): `state/passport.ts` (pure, tested), `state/passportStore.ts` (IndexedDB), `components/collector/PassportPage.tsx`, `passportCard.ts`.
+  - History entries (bought, service, repair, condition photos, health check, note, hand-over) are sealed in a SHA-256 chain that starts from the item itself (kind, name, serial, model), so editing an entry or the serial breaks it.
+  - The fingerprint is 16 hex characters. Hand-over seals and saves a `.passport.json`, and the seller gives the code separately. On import the buyer sees whether the chain is intact and whether the code matches, and the received entries are locked.
+  - Serial check against the published lists: match, mismatch with the described model, or "can't say". A general fakes checklist (no model-specific claims).
+  - An optional service reminder chosen by the owner. A shareable 1080 × 1350 card (share sheet or download) and a printed passport.
+  - Named "Camera passport", not "Leica Passport": the app stays unaffiliated.
+  - `collectionStorage.ts` is now a shared store (`useCollection`/`saveCollection`), so the collection, passport, health check and museum stay in step.
+- **#42 Camera health check** (Collectors): `physics/shutterTest.ts` (pure, tested with synthetic recordings), `services/shutterMic.ts`, `data/healthChecks.ts`, `components/collector/HealthCheck.tsx`.
+  - Shutter timing by sound. One release at the fastest speed measures the curtain travel time, which is taken off the other speeds.
+  - Offered from 1 s to 1/125, with 1/60 and 1/125 marked "rough guide". Graded ⅓ / ⅔ stop, stated as the app's rule of thumb.
+  - A guided look-over that adapts to the body. Results save into the passport and print as a report.
+  - Checked in Chrome with a generated WAV through the fake microphone: a 0.144 s gap read as 0.145 s.
+  - Fixed on the way: a click in the first quarter-second used to be learnt as background noise and blocked detection.
+- **#43 Photography Lab** (Learn → Photography Lab): `data/labCourse.ts` (12 exercises in 4 levels, pure, tested), `utils/exif.ts` (EXIF reader, tested in both byte orders), `state/labStore.ts`, `components/PhotoLab.tsx`.
+  - Predictions come from the optics/exposure engines, and the settings are checked from EXIF or typed in. The photographer confirms the look.
+  - The next level opens after 2 passes. The Leica M aperture estimate is flagged as correctable.
+- **#44 Photo walks** (Shoot → Photo walks): `state/walks.ts` (pure, tested), `components/PhotoWalks.tsx`.
+  - Seven themes of the app's own, plus walks people write themselves.
+  - One lens and zone focus with its sharp range; the next right light from the sun engine for a chosen city.
+  - An invite link (base64url in `#/shoot/walks?w=…`) carries the walk plus an optional meeting place and time, never the location.
+  - Walk mode: checklist, timer, optional GPS distance, wake lock. It resumes after a reload.
+  - The sign-in gate's `safeHash` now allows a `?query` on the hash route (up to 2000 characters, no quotes, spaces or line breaks), so walk links and passport → health links survive the login. Tested.
+- **#45 Which Leica for me?** (Explore): `physics/matcher.ts` (pure, tested), `components/WhichLeica.tsx`.
+  - Six questions. Scores come only from catalogue facts, plus two documented facts: which families autofocus, and that the M11-D has no rear screen.
+  - Each camera also counts its best lens. Every pick shows its reasons and two alternatives.
+  - Hand-offs: hold it on the simulator, compare the finders, keep it in My Gear, print it for the shop. No prices or weights (none in the catalogue); the page says so.
+- **Validation (2026-09-30):**
+  - Typecheck clean. Lint has 0 errors (the 5 warnings were there before).
+  - 734 tests pass. The build passes. The English dictionary adds about 17 KB to the main bundle; each other language is its own chunk (about 24 KB gzipped).
+  - Chrome walkthroughs at 390 px: passport (add, remind, seal, hand over, receive, tamper detected), health check (checklist, save to passport, fake-mic timing), lab (EXIF read, pass, level unlock, reload), walks (theme, own walk, link opened in a new tab, resume, finish), matcher (answers, reasons, My Gear, hold on the simulator), and German/Japanese/Korean pages plus language switching. No page errors and no sideways overflow.
+- **Known limitations:**
+  - No real-phone check yet, in particular iOS Safari's microphone for the shutter test.
+  - Sound timing is approximate by nature (see #42).
+  - The Passport can't prove authenticity, and the UI says so.
+  - Walks have no server-side community (no accounts).
+  - The older Simulate/Learn/Shoot/Explore pages are still in English.
+
+**Previous task:**
+
+**Private sign-in for publishing on Vercel** (user request, 2026-09-30; outside the Master Plan's phases: a deployment need, not a product feature). **IN PROGRESS**: validated locally; waiting for a redeploy and a live sign-in check.
+- 2026-09-30 fix: the first deploy failed with `500 MIDDLEWARE_INVOCATION_FAILED`. Vercel runs `middleware.ts` as unbundled Node ESM, which can't resolve extensionless imports (`./src/auth/gate`), so every request crashed. The server-side imports now end in `.js`, and a test guards this.
+  - Verified by compiling the files unbundled and calling the middleware in plain Node: 303 to login, 401 for assets, sign-in, pass-through (`x-middleware-next`), and sign-out.
+  - All 648 tests pass; typecheck and build are clean; lint shows 0 errors. No gate code is in the client bundle.
 - The owner wants to publish online, with only them able to use the app. It's a single user with no database; a proper account system may come later.
 - **Server side, not in the browser:** a login inside a static site would ship the credentials, or a way past them, in the JavaScript. So the check runs on the host. `middleware.ts` (Vercel Routing Middleware, via `@vercel/functions`' `next()`) calls `src/auth/gate.ts` before every request.
   - Without a session, pages redirect with 303 to `/login?next=…` and every other file gets a 401, so no app code is served.

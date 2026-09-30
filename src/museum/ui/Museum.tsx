@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent } from "react";
 import { playDialClick } from "../../audio/sounds";
 import Wordmark from "../../components/app/Wordmark";
-import { loadCollection } from "../../state/collectionStorage";
+import { useCollection } from "../../state/collectionStorage";
 import { ATTRACT_IDLE_MS, attractSequence, museumHash, parseMuseumPath, step } from "../deck";
 import { buildRooms, findExhibit, type Exhibit, type Room, type RoomId } from "../exhibits";
 import { leaveFullscreen, requestFullscreen } from "../fullscreen";
@@ -11,6 +11,7 @@ import { useIdle } from "../../utils/useIdle";
 import { hearShutter } from "./sound";
 import Story from "./Story";
 import "./museum.css";
+import { t, tn, useLang } from "../../i18n";
 
 /** How long each piece stays up in the display loop, and how long an idle visitor keeps control. */
 const LOOP_MS = 9000;
@@ -60,8 +61,11 @@ function initialView(rooms: Room[]): View {
  * the loop when left alone.
  */
 export default function Museum({ onExit, onSimulate }: Props) {
-  const collection = useMemo(() => loadCollection(), []);
-  const rooms = useMemo(() => buildRooms(collection), [collection]);
+  const collection = useCollection();
+  const lang = useLang();
+  // Rooms carry their words, so they're rebuilt when the language changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const rooms = useMemo(() => buildRooms(collection), [collection, lang]);
   const loop = useMemo(() => attractSequence(rooms), [rooms]);
   const [view, setView] = useState<View>(() => initialView(rooms));
   // Display mode stays on while a visitor explores; idle time brings the loop back.
@@ -211,18 +215,18 @@ export default function Museum({ onExit, onSimulate }: Props) {
     const e = loop[view.index];
     const room = rooms.find((r) => r.id === e?.room);
     return (
-      <div className="mu mu-display" ref={rootRef} tabIndex={-1} role="region" aria-label="Museum display" onClick={explore}>
+      <div className="mu mu-display" ref={rootRef} tabIndex={-1} role="region" aria-label={t("mu.display")} onClick={explore}>
         <button
           type="button"
           className={`mu-hold${holding ? " mu-hold-on" : ""}`}
-          aria-label="Hold for three seconds to leave display mode"
+          aria-label={t("mu.hold")}
           onPointerDown={(ev) => (ev.stopPropagation(), holdStart())}
           onPointerUp={holdEnd}
           onPointerLeave={holdEnd}
           onClick={(ev) => ev.stopPropagation()}
         />
         <div className="mu-display-mark">
-          <Wordmark /> <span>Museum</span>
+          <Wordmark /> <span>{t("menu.museum")}</span>
         </div>
         {e ? (
           <div key={`${e.room}-${e.id}-${view.index}`} className={`mu-stage mu-stage-display${motion ? " mu-drift" : ""}`}>
@@ -236,9 +240,9 @@ export default function Museum({ onExit, onSimulate }: Props) {
             </div>
           </div>
         ) : (
-          <p className="mu-empty">Nothing to show yet.</p>
+          <p className="mu-empty">{t("mu.empty")}</p>
         )}
-        <p className="mu-touch">Touch to explore</p>
+        <p className="mu-touch">{t("mu.touch")}</p>
         <div key={`bar-${view.index}`} className={`mu-loopbar${motion ? " mu-loopbar-run" : ""}`} style={{ animationDuration: `${LOOP_MS}ms` }} aria-hidden="true" />
       </div>
     );
@@ -249,16 +253,16 @@ export default function Museum({ onExit, onSimulate }: Props) {
     const focus = rooms.find((r) => r.id === focusRoom) ?? rooms[0];
     const preview = focus.exhibits.find((x) => x.hero) ?? focus.exhibits[0];
     return (
-      <div className="mu mu-lobby" ref={rootRef} tabIndex={-1} role="region" aria-label="Museum">
+      <div className="mu mu-lobby" ref={rootRef} tabIndex={-1} role="region" aria-label={t("menu.museum")}>
         <header className="mu-top">
           <div className="mu-brand">
-            <Wordmark /> <span>Museum</span>
+            <Wordmark /> <span>{t("menu.museum")}</span>
           </div>
           <div className="mu-top-actions">
             <button type="button" className="mu-ghost" onClick={startDisplay}>
-              Display mode
+              {t("menu.museum.display")}
             </button>
-            <button type="button" className="mu-round" onClick={exit} aria-label="Leave the museum">
+            <button type="button" className="mu-round" onClick={exit} aria-label={t("mu.leave")}>
               <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
                 <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
               </svg>
@@ -266,8 +270,8 @@ export default function Museum({ onExit, onSimulate }: Props) {
           </div>
         </header>
         <div className="mu-lobby-grid">
-          <nav className="mu-rooms" aria-label="Rooms">
-            <p className="mu-intro">Seventy years of the rangefinder, one piece at a time.</p>
+          <nav className="mu-rooms" aria-label={t("mu.rooms")}>
+            <p className="mu-intro">{t("mu.intro")}</p>
             <ol>
               {rooms.map((r) => {
                 const empty = r.exhibits.length === 0;
@@ -283,7 +287,7 @@ export default function Museum({ onExit, onSimulate }: Props) {
                     >
                       <span className="mu-room-title">{r.title}</span>
                       <span className="mu-room-meta">
-                        {empty ? (r.id === "collection" ? "Add pieces in My collection" : "Being researched") : `${r.exhibits.length} ${r.exhibits.length === 1 ? "piece" : "pieces"}`}
+                        {empty ? (r.id === "collection" ? t("mu.addPieces") : t("mu.researching")) : tn("mu.pieces", r.exhibits.length)}
                         <span className="mu-room-line"> · {r.line}</span>
                       </span>
                     </button>
@@ -313,20 +317,20 @@ export default function Museum({ onExit, onSimulate }: Props) {
   const nextRoom = rooms.slice(rooms.indexOf(room) + 1).find((r) => r.exhibits.length > 0);
 
   return (
-    <div className="mu mu-room-view" ref={rootRef} tabIndex={-1} role="region" aria-label={`${room.title}, piece ${view.index + 1} of ${count}`}>
+    <div className="mu mu-room-view" ref={rootRef} tabIndex={-1} role="region" aria-label={t("mu.pieceOf", { room: room.title, i: view.index + 1, n: count })}>
       <header className="mu-top">
         <button type="button" className="mu-back" onClick={() => setView({ kind: "lobby" })}>
           <svg viewBox="0 0 10 16" width="9" height="15" aria-hidden="true">
             <path d="M8 1L2 8l6 7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          Museum
+          {t("menu.museum")}
         </button>
         <p className="mu-room-name">{room.title}</p>
         <div className="mu-top-actions">
           <span className="mu-count" aria-hidden="true">
             {String(view.index + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}
           </span>
-          <button type="button" className="mu-round" onClick={exit} aria-label="Leave the museum">
+          <button type="button" className="mu-round" onClick={exit} aria-label={t("mu.leave")}>
             <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
               <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
@@ -345,24 +349,24 @@ export default function Museum({ onExit, onSimulate }: Props) {
             <InfoLabel exhibit={e} />
             <div className="mu-actions">
               <button type="button" className="mu-cta" onClick={() => setView({ ...view, story: true })}>
-                Explore
+                {t("mu.explore")}
               </button>
               {e.soundBodyId && (
                 <button type="button" className="mu-ghost" onClick={() => hearShutter(e.soundBodyId!)}>
-                  Hear the shutter
+                  {t("mu.hear")}
                 </button>
               )}
             </div>
           </div>
         </div>
 
-        <button type="button" className="mu-arrow mu-arrow-prev" onClick={() => go(-1)} disabled={view.index === 0} aria-label="Previous piece">
+        <button type="button" className="mu-arrow mu-arrow-prev" onClick={() => go(-1)} disabled={view.index === 0} aria-label={t("mu.prev")}>
           <svg viewBox="0 0 12 20" width="12" height="20" aria-hidden="true">
             <path d="M10 2L2 10l8 8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         {view.index < count - 1 ? (
-          <button type="button" className="mu-arrow mu-arrow-next" onClick={() => go(1)} aria-label="Next piece">
+          <button type="button" className="mu-arrow mu-arrow-next" onClick={() => go(1)} aria-label={t("mu.next")}>
             <svg viewBox="0 0 12 20" width="12" height="20" aria-hidden="true">
               <path d="M2 2l8 8-8 8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -370,7 +374,7 @@ export default function Museum({ onExit, onSimulate }: Props) {
         ) : (
           nextRoom && (
             <button type="button" className="mu-next-room" onClick={() => openRoom(nextRoom.id)}>
-              Next room: {nextRoom.title}
+              {t("mu.nextRoom", { room: nextRoom.title })}
             </button>
           )
         )}

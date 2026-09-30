@@ -68,3 +68,15 @@ describe("clearFrames", () => {
     expect(await loadFrames("digital")).toEqual([frame2]);
   });
 });
+
+describe("record stores", () => {
+  it("round-trips, replaces and deletes passports by item id", async () => {
+    const { loadRecords, saveRecord, deleteRecord } = await import("./db");
+    await saveRecord("passports", { itemId: "a", n: 1 });
+    await saveRecord("passports", { itemId: "a", n: 2 });
+    await saveRecord("passports", { itemId: "b", n: 3 });
+    expect((await loadRecords<{ itemId: string; n: number }>("passports")).map((r) => r.n).sort()).toEqual([2, 3]);
+    await deleteRecord("passports", "a");
+    expect(await loadRecords("passports")).toEqual([{ itemId: "b", n: 3 }]);
+  });
+});

@@ -1,3 +1,4 @@
+import { langTag, t } from "../i18n";
 // Market context for collectors: cited comparable sales and listings, and the
 // range the app is willing to state from them. Pure logic. The rules are the
 // honesty rules of #38: every price has a source URL, sold and asking are kept
@@ -63,15 +64,15 @@ export function askingPosition(asking: { price: number; currency: string } | nul
 export function askingNote(asking: { price: number; currency: string } | null, range: PriceRange | null): string | null {
   const pos = askingPosition(asking, range);
   if (!pos || !asking || !range) return null;
-  if (pos === "within") return "In line with what similar items sold for.";
+  if (pos === "within") return t("col.asking.within");
   const edge = pos === "above" ? range.high : range.low;
   const pct = Math.round((Math.abs(asking.price - edge) / edge) * 100);
-  return pos === "above" ? `About ${pct}% more than the highest similar sale.` : `About ${pct}% less than the lowest similar sale. Ask why it's so cheap.`;
+  return pos === "above" ? t("col.asking.above", { pct }) : t("col.asking.below", { pct });
 }
 
 export function formatMoney(n: number, currency: string): string {
   try {
-    return new Intl.NumberFormat("en-GB", { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
+    return new Intl.NumberFormat(langTag() === "en" ? "en-GB" : langTag(), { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
   } catch {
     return `${Math.round(n)} ${currency}`;
   }

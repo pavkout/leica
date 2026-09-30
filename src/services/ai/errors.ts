@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 // Every way a Claude call can fail, said in plain language. The UI shows
 // `message`; `kind` lets it offer the right next step.
 
@@ -15,7 +16,8 @@ export class AiError extends Error {
   }
 }
 
-const MESSAGES: Record<AiErrorKind, string> = {
+/** English wording, for reference; the text shown comes from the dictionaries (ai.error.<kind>). */
+export const MESSAGES: Record<AiErrorKind, string> = {
   "no-key": "The AI helper isn't turned on yet. Turn it on first.",
   "bad-key": "Your key didn't work. Check it on the AI helper page.",
   "no-credit": "Your Anthropic account has no credit left. Add credit at console.anthropic.com, then try again.",
@@ -30,7 +32,8 @@ const MESSAGES: Record<AiErrorKind, string> = {
 };
 
 export function aiError(kind: AiErrorKind, detail?: string, retryAfter?: number): AiError {
-  return new AiError(kind, detail ? `${MESSAGES[kind]} (${detail})` : MESSAGES[kind], retryAfter);
+  const text = t(`ai.error.${kind}`);
+  return new AiError(kind, detail ? `${text} (${detail})` : text, retryAfter);
 }
 
 /** Maps an SDK/network error to an AiError without depending on the SDK's classes. */

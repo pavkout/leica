@@ -54,7 +54,7 @@ export function takeDraft(): CollectionItem | null {
   return d;
 }
 
-export type CollectorPage = "collection" | "identify" | "listing" | "serial" | "aihelper";
+export type CollectorPage = "collection" | "passport" | "health" | "identify" | "listing" | "serial" | "aihelper";
 
 export function openCollectorPage(page: CollectorPage): void {
   if (typeof location !== "undefined") location.hash = `#/collect/${page}`;

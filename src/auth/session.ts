@@ -88,5 +88,6 @@ export function safeNext(next: string | null | undefined): string {
 
 /** The app's hash route ("#/museum/display") carried through the login, or "". */
 export function safeHash(hash: string | null | undefined): string {
-  return hash && /^#\/[\w\-./%]*$/.test(hash) && hash.length <= 200 ? hash : "";
+  // A tool may carry a query (#/shoot/walks?w=…, #/collect/health?item=…); still no quotes, spaces or line breaks.
+  return hash && /^#\/[\w\-./%]*(\?[\w\-.%=&]*)?$/.test(hash) && hash.length <= 2000 ? hash : "";
 }

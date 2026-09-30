@@ -105,3 +105,15 @@ describe("AI client", () => {
     expect(r.model).toBe("M3");
   });
 });
+
+describe("the reader's language", () => {
+  it("leaves English prompts alone and asks for other languages' words", async () => {
+    const { inReadersLanguage } = await import("./aiClient");
+    const { __setDictForTest } = await import("../../i18n");
+    const en = (await import("../../i18n/locales/en")).default;
+    expect(inReadersLanguage("SYS")).toBe("SYS");
+    __setDictForTest("ja", {});
+    expect(inReadersLanguage("SYS")).toMatch(/^SYS\n\nWrite every free-text field meant for the user in Japanese\./);
+    __setDictForTest("en", en);
+  });
+});

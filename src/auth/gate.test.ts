@@ -114,6 +114,10 @@ describe("sign-in gate", () => {
     expect(safeNext("/login")).toBe("/");
     expect(safeNext(null)).toBe("/");
     expect(safeHash("#/museum/display")).toBe("#/museum/display");
+    expect(safeHash("#/shoot/walks?w=eyJ2IjoxLCJ0aGVtZSI6Im93biJ9_-x")).toBe("#/shoot/walks?w=eyJ2IjoxLCJ0aGVtZSI6Im93biJ9_-x");
+    expect(safeHash("#/collect/health?item=abc-12&x=1")).toBe("#/collect/health?item=abc-12&x=1");
+    expect(safeHash("#/a?b=<x>")).toBe("");
+    expect(safeHash(`#/a?w=${"x".repeat(2100)}`)).toBe("");
     expect(safeHash("#/x\"><script>")).toBe("");
     expect(safeHash("javascript:alert(1)")).toBe("");
   });

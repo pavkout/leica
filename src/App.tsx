@@ -66,9 +66,15 @@ import Collection from "./components/Collection";
 import IdentifyPage from "./components/collector/IdentifyPage";
 import ListingPage from "./components/collector/ListingPage";
 import AiHelper from "./components/collector/AiHelper";
+import PassportPage from "./components/collector/PassportPage";
+import PhotoLab from "./components/PhotoLab";
+import PhotoWalks from "./components/PhotoWalks";
+import WhichLeica from "./components/WhichLeica";
+import HealthCheck from "./components/collector/HealthCheck";
 import { requestFullscreen } from "./museum/fullscreen";
 import { ATTRACT_IDLE_MS } from "./museum/deck";
 import { useIdle } from "./utils/useIdle";
+import { t, useLang } from "./i18n";
 
 // The museum (#39) is its own full-screen world, loaded only when it's opened.
 const Museum = lazy(() => import("./museum/ui/Museum"));
@@ -225,6 +231,8 @@ function LensOptions({ body, lenses }: { body: Body; lenses: Lens[] }) {
 }
 
 export default function App() {
+  // Re-render every page when the language changes.
+  useLang();
   const optical = useOpticalState();
   const {
     bodyId,
@@ -1452,6 +1460,19 @@ export default function App() {
       />
     ),
     collection: <Collection />,
+    passport: <PassportPage />,
+    lab: <PhotoLab />,
+    walks: <PhotoWalks />,
+    matcher: (
+      <WhichLeica
+        onTry={(bodyId, lensId) => {
+          selectBody(bodyId);
+          selectLens(lensId);
+          goCamera();
+        }}
+      />
+    ),
+    health: <HealthCheck />,
     identify: <IdentifyPage />,
     listing: <ListingPage />,
     aihelper: <AiHelper />,
@@ -1647,16 +1668,16 @@ export default function App() {
       <div className="pages" hidden={!onTools && !testAll}>
       {/* The top plate: back to the camera, what's mounted and set, MENU. Nothing else competes with the tool. */}
       <header className="topbar">
-        <button type="button" className="plate-back" onClick={goCamera} aria-label="Back to the camera">
+        <button type="button" className="plate-back" onClick={goCamera} aria-label={t("top.back")}>
           <svg viewBox="0 0 12 20" width="8" height="14" aria-hidden="true">
             <path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square" />
           </svg>
-          <span>Camera</span>
+          <span>{t("common.camera")}</span>
         </button>
 
-        <div className="rig" role="group" aria-label="Camera on the simulator">
-          <button type="button" className="rig-part" onClick={() => setPicker("body")} aria-label={`Camera: ${body.name}. Change camera`} title="Change the camera">
-            <span className="rig-cap">Camera</span>
+        <div className="rig" role="group" aria-label={t("top.rig")}>
+          <button type="button" className="rig-part" onClick={() => setPicker("body")} aria-label={t("top.cameraAria", { name: body.name })} title={t("top.changeCamera")}>
+            <span className="rig-cap">{t("common.camera")}</span>
             <span className="rig-name">{body.name}</span>
             <RigChevron />
           </button>
@@ -1665,10 +1686,10 @@ export default function App() {
             className="rig-part rig-lens"
             onClick={() => setPicker("lens")}
             disabled={lenses.length === 1}
-            aria-label={`Lens: ${lens.name}.${lenses.length === 1 ? "" : " Change lens"}`}
-            title={lenses.length === 1 ? "This camera's lens is built in" : "Change the lens"}
+            aria-label={lenses.length === 1 ? `${t("common.lens")}: ${lens.name}` : t("top.lensAria", { name: lens.name })}
+            title={lenses.length === 1 ? t("top.builtIn") : t("top.changeLens")}
           >
-            <span className="rig-cap">Lens</span>
+            <span className="rig-cap">{t("common.lens")}</span>
             <span className="rig-name rig-full">{lens.name}</span>
             <span className="rig-name rig-short">{lensShortName(lens.name)}</span>
             {lenses.length > 1 && <RigChevron />}
@@ -1676,18 +1697,18 @@ export default function App() {
           <span
             className="rig-window"
             role="group"
-            aria-label={`Settings: aperture ${formatFNumber(fNumber)}, shutter ${formatShutter(shutterSec)}, ${isFilm ? `film ${look.name}, ISO ${iso}` : `ISO ${iso}`}`}
+            aria-label={t("top.settingsAria", { f: formatFNumber(fNumber), s: formatShutter(shutterSec), iso: isFilm ? `${look.name}, ISO ${iso}` : `ISO ${iso}` })}
           >
             <span className="rig-val" aria-hidden="true">
-              <span className="rig-cap">Aperture</span>
+              <span className="rig-cap">{t("common.aperture")}</span>
               {formatFNumber(fNumber)}
             </span>
             <span className="rig-val" aria-hidden="true">
-              <span className="rig-cap">Shutter</span>
+              <span className="rig-cap">{t("common.shutter")}</span>
               {formatShutter(shutterSec)}
             </span>
             <span className="rig-val" aria-hidden="true">
-              <span className="rig-cap">{isFilm ? "Film ISO" : "ISO"}</span>
+              <span className="rig-cap">{isFilm ? t("common.filmIso") : t("common.iso")}</span>
               {iso}
             </span>
           </span>
@@ -1702,24 +1723,23 @@ export default function App() {
         <ToolNav mode={route.mode} tools={modeTools} active={activeTool} onSelect={goTool} />
 
         <main className="tool-stage" id="main">
-          {mounted.map((t) => {
-            const solo = t.id !== "studio" && t.id !== "roll";
+          {mounted.map((tool) => {
+            const solo = tool.id !== "studio" && tool.id !== "roll";
             return (
-              <div key={t.id} className={`tool-view${solo ? " tool-solo" : ""}`} hidden={!testAll && t.id !== activeTool} data-tool={t.id}>
+              <div key={tool.id} className={`tool-view${solo ? " tool-solo" : ""}`} hidden={!testAll && tool.id !== activeTool} data-tool={tool.id}>
                 <header className="tool-head">
-                  <h1 className="tool-title">{t.label}</h1>
-                  <p className="tool-blurb">{t.blurb}</p>
+                  <h1 className="tool-title">{t(`tool.${tool.id}`)}</h1>
+                  <p className="tool-blurb">{t(`tool.${tool.id}.blurb`)}</p>
                 </header>
-                <ToolBoundary label={t.label}>{views[t.id]}</ToolBoundary>
+                <ToolBoundary label={t(`tool.${tool.id}`)}>{views[tool.id]}</ToolBoundary>
               </div>
             );
           })}
 
           <footer className="footer">
             <Wordmark className="footer-mark" />
-            Independent tool, not affiliated with or endorsed by Leica Camera AG. Product names are trademarks of their owners.
-            {GEAR_IMAGE_CREDITS.length > 0 && ` Product photos: ${GEAR_IMAGE_CREDITS.join("; ")}.`} Lens specs come from public sources; check
-            them against Leica&apos;s datasheets. Distances are measured from the lens (thin-lens model).
+            {t("footer.disclaimer")}
+            {GEAR_IMAGE_CREDITS.length > 0 && ` ${t("footer.photos", { credits: GEAR_IMAGE_CREDITS.join("; ") })}`} {t("footer.specs")}
           </footer>
         </main>
       </div>
@@ -1752,11 +1772,11 @@ export default function App() {
           onOpenTool={goTool}
           onClose={goCamera}
           museum={[
-            { id: "museum-enter", label: "Enter the museum", value: "Cameras, lenses, how they work, accessories and your collection, full screen.", onActivate: () => navigate({ ...route, screen: "museum" }) },
+            { id: "museum-enter", label: t("menu.museum.enter"), value: t("menu.museum.enter.detail"), onActivate: () => navigate({ ...route, screen: "museum" }) },
             {
               id: "museum-display",
-              label: "Display mode",
-              value: "Runs on its own on an iPad or TV: a slow loop of pieces, touch to explore. Hold the top-left corner to leave.",
+              label: t("menu.museum.display"),
+              value: t("menu.museum.display.detail"),
               onActivate: () => {
                 requestFullscreen();
                 location.hash = "#/museum/display";
@@ -1764,11 +1784,11 @@ export default function App() {
             },
           ]}
           settings={[
-            { id: "units", label: "Distance units", value: units === "metric" ? "Metres" : "Feet", onActivate: () => setUnits(units === "metric" ? "imperial" : "metric") },
+            { id: "units", label: t("setup.units"), value: units === "metric" ? t("setup.units.metric") : t("setup.units.imperial"), onActivate: () => setUnits(units === "metric" ? "imperial" : "metric") },
             {
               id: "sound",
-              label: "Sounds",
-              value: muted ? "Off" : "On",
+              label: t("setup.sound"),
+              value: muted ? t("common.off") : t("common.on"),
               onActivate: () => {
                 setMuted(!muted);
                 setMutedState(!muted);
@@ -1777,8 +1797,8 @@ export default function App() {
             },
             {
               id: "haptics",
-              label: "Haptics",
-              value: haptics ? "On" : "Off",
+              label: t("setup.haptics"),
+              value: haptics ? t("common.on") : t("common.off"),
               onActivate: () => {
                 setHaptics(!haptics);
                 setHapticsState(!haptics);
@@ -1786,13 +1806,13 @@ export default function App() {
             },
             {
               id: "safelight",
-              label: "Red safelight",
-              value: safelight ? "On" : "Off",
+              label: t("setup.safelight"),
+              value: safelight ? t("common.on") : t("common.off"),
               onActivate: () => setSafelight(!safelight),
             },
             {
               id: "camera",
-              label: "Camera and lens",
+              label: t("setup.camera"),
               value: `${body.name} · ${lens.name}`,
               // Back to the camera, with the camera chooser open: you'll want to hold the new one.
               onActivate: () => {
@@ -1800,9 +1820,9 @@ export default function App() {
                 setPicker("body");
               },
             },
-            { id: "tour", label: "60-second tour", value: "Start", onActivate: startDemo },
+            { id: "tour", label: t("setup.tour"), value: t("common.start"), onActivate: startDemo },
             // The sign-in gate runs on the host (middleware.ts), so there's nothing to sign out of in development.
-            ...(import.meta.env.PROD ? [{ id: "signout", label: "Sign out", value: "Leave this device signed out", onActivate: () => location.assign("/logout") }] : []),
+            ...(import.meta.env.PROD ? [{ id: "signout", label: t("setup.signout"), value: t("setup.signout.detail"), onActivate: () => location.assign("/logout") }] : []),
           ]}
         />
       )}
@@ -1814,7 +1834,7 @@ export default function App() {
 
       <GearPicker
         open={picker === "body"}
-        title="Choose a camera"
+        title={t("picker.camera")}
         selectedId={bodyId}
         onSelect={selectBody}
         onClose={() => setPicker(null)}
@@ -1835,7 +1855,7 @@ export default function App() {
       />
       <GearPicker
         open={picker === "lens"}
-        title={`Lenses for the ${body.name}`}
+        title={t("picker.lenses", { body: body.name })}
         selectedId={lensId}
         onSelect={selectLens}
         onClose={() => setPicker(null)}

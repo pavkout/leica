@@ -1287,3 +1287,14 @@
     animation: none;
   }
 }
+
+/* Setup → Language: the note above the list. */
+.menu-note {
+  padding: 4px 14px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.menu-note p {
+  margin: 0 0 4px;
+}

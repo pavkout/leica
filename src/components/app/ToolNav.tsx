@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { MODES, type ModeId, type Tool, type ToolId } from "../../app/tools";
+import { type ModeId, type Tool, type ToolId } from "../../app/tools";
+import { t, useLang } from "../../i18n";
 
 interface Props {
   mode: ModeId;
@@ -10,7 +11,7 @@ interface Props {
 
 /** The tools in the current mode: a side rail on wide screens, a sideways strip on phones. */
 export default function ToolNav({ mode, tools, active, onSelect }: Props) {
-  const m = MODES.find((x) => x.id === mode)!;
+  useLang();
   const listRef = useRef<HTMLUListElement>(null);
 
   // Keep the active tool in view in the phone strip.
@@ -20,21 +21,21 @@ export default function ToolNav({ mode, tools, active, onSelect }: Props) {
   }, [active, mode]);
 
   return (
-    <nav className="tool-nav" aria-label={`${m.label} tools`}>
+    <nav className="tool-nav" aria-label={t("tools.navAria", { mode: t(`mode.${mode}`) })}>
       <div className="tool-nav-head">
-        <p className="tool-nav-mode">{m.label}</p>
-        <p className="tool-nav-job">{m.job}</p>
+        <p className="tool-nav-mode">{t(`mode.${mode}`)}</p>
+        <p className="tool-nav-job">{t(`mode.${mode}.job`)}</p>
       </div>
       <ul ref={listRef} className="tool-list">
-        {tools.map((t) => (
-          <li key={t.id}>
+        {tools.map((tool) => (
+          <li key={tool.id}>
             <button
               type="button"
               className="tool-link"
-              aria-current={t.id === active ? "page" : undefined}
-              onClick={() => onSelect(t.id)}
+              aria-current={tool.id === active ? "page" : undefined}
+              onClick={() => onSelect(tool.id)}
             >
-              <span className="tool-link-label">{t.label}</span>
+              <span className="tool-link-label">{t(`tool.${tool.id}`)}</span>
             </button>
           </li>
         ))}

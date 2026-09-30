@@ -5,6 +5,7 @@ import { formatMoney } from "../../state/market";
 import PriceView from "./PriceView";
 import RunCostLine from "./RunCostLine";
 import { useAiRun } from "./useAiRun";
+import { langTag, t } from "../../i18n";
 
 interface Props {
   item: CollectionItem;
@@ -27,26 +28,27 @@ export default function ValuationPanel({ item, onValued }: Props) {
 
   return (
     <div className="cx-block cx-value">
-      <h3 className="cx-h">What is it worth?</h3>
+      <h3 className="cx-h">{t("col.value.title")}</h3>
       {latest ? (
         <>
           <p className="cx-quiet">
-            Checked on {new Date(latest.at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-            {Date.now() - new Date(latest.at).getTime() > YEAR && ". That's over a year ago, so prices may have changed"}.
+            {t(Date.now() - new Date(latest.at).getTime() > YEAR ? "col.value.checkedOld" : "col.value.checked", {
+              date: new Date(latest.at).toLocaleDateString(langTag() === "en" ? "en-GB" : langTag(), { day: "numeric", month: "long", year: "numeric" }),
+            })}
           </p>
           <PriceView range={latest.range} comparables={latest.comparables} note={latest.note} />
         </>
       ) : (
-        <p>Find out what similar items sold for recently. We search public sales and show you each one.</p>
+        <p>{t("col.value.intro")}</p>
       )}
       {older.length > 0 && (
         <details className="cx-sources">
-          <summary>Earlier checks ({older.length})</summary>
+          <summary>{t("col.value.earlier", { n: older.length })}</summary>
           <ul>
             {older.map((v) => (
               <li key={v.at}>
                 <span>{v.at.slice(0, 10)}</span>
-                <span>{v.range ? `${formatMoney(v.range.low, v.range.currency)} to ${formatMoney(v.range.high, v.range.currency)}` : "Not enough sales found"}</span>
+                <span>{v.range ? t("col.price.range", { low: formatMoney(v.range.low, v.range.currency), high: formatMoney(v.range.high, v.range.currency) }) : t("col.value.notEnough")}</span>
               </li>
             ))}
           </ul>
@@ -54,19 +56,19 @@ export default function ValuationPanel({ item, onValued }: Props) {
       )}
       {!settings.key ? (
         <p className="cx-quiet">
-          Needs the AI helper.{" "}
+          {t("col.needsAi")}{" "}
           <button type="button" className="cx-link" onClick={() => openCollectorPage("aihelper")}>
-            Turn it on
+            {t("col.turnOn")}
           </button>
         </p>
       ) : (
         <>
           <div className="cx-actions">
             <button type="button" className="btn" disabled={ai.busy || !named} onClick={find}>
-              {ai.busy ? "Searching sales… about a minute" : latest ? "Check the value again" : "Find the value"}
+              {ai.busy ? t("col.value.busy") : latest ? t("col.value.again") : t("col.value.find")}
             </button>
           </div>
-          {!named && <p className="cx-quiet">Give it a name first, so we know what to search for.</p>}
+          {!named && <p className="cx-quiet">{t("col.value.needsName")}</p>}
           <RunCostLine est={ai.est} error={ai.error} />
         </>
       )}

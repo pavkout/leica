@@ -133,7 +133,7 @@ Development phases are separate roadmap milestones: Phase 0, Phase 1, Phase 2, P
 
 A Priority 1 feature is not automatically part of Phase 1. A Priority 2 feature is not automatically part of Phase 2. Feature completion must be determined from `PROJECT_STATUS.md` and the explicit milestone sections of this Master Plan.
 
-## Feature implementation briefs (1–39)
+## Feature implementation briefs (1–45)
 
 ### 1. Live Leica View  — Priority 1
 **Goal:** Turn the phone into a live shooting companion that overlays the selected Leica body/lens behavior on the real camera feed. The goal is not to pretend the phone is optically identical to the Leica; it is to help the photographer make a better decision before exposing film or pressing the shutter.
@@ -941,6 +941,80 @@ Added 2026-09-29 at the user's request. Design: `docs/superpowers/specs/2026-09-
 - Works at phone, landscape phone, iPad and desktop sizes, with no overflow.
 - "Try it in the simulator" puts that camera or lens on the camera.
 - Your collection stays out of the unattended loop.
+
+### 40. Languages  — Priority 1
+Added 2026-09-30 at the user's request ("fix the gaps": the app was English only, for a worldwide audience).
+
+**Goal:** The app speaks English, German, French, Japanese, Simplified Chinese and Korean.
+
+**Requirements**
+- The browser's language is used on first visit; MENU → Setup → Language changes it and remembers the choice.
+- English is the source. Every other language may be partial and falls back to English key by key, so an untranslated page still reads.
+- Each language loads as its own chunk; English costs nothing extra.
+- `<html lang>` follows the language; dates follow the reader's locale.
+- Camera engravings (MENU, PLAY, ROLL, FN, ISO, f-numbers, speeds) stay as engraved.
+- Tests keep every translation's placeholders equal to English's and every key used in code present in English.
+- The UI says translations were written with AI help and not all checked by native speakers.
+
+### 41. Camera passport  — Priority 1
+Added 2026-09-30 at the user's request (product idea "Leica Passport"; named "Camera passport" in the app, which stays unaffiliated).
+
+**Goal:** A lifetime record for each camera or lens: where it came from, every service and repair, condition photos, health checks, owners. It is handed to the next owner when sold.
+
+**Requirements**
+- Starts from any item in My collection; works on this device without an account.
+- Every entry is sealed in a SHA-256 chain that starts from the item itself (kind, name, serial, model); the last seal is shown as a 16-character fingerprint.
+- Hand-over: adds a transfer entry, seals, and saves a file for the buyer. The seller gives the fingerprint separately; the buyer's import verifies the chain and the typed code, and locks the received history.
+- The published serial lists check the serial against the model: a match, a mismatch, or "can't say".
+- A checklist of warning signs for fakes, written generally (no model-specific claims without a source).
+- Optional service reminder chosen by the owner (no invented service interval).
+- A shareable card image and a printable passport.
+- The UI states that the seal proves the history is unchanged, not that a camera is genuine.
+
+### 42. Camera health check  — Priority 1
+Added 2026-09-30 at the user's request.
+
+**Goal:** Check a real camera with a phone before buying, after a service, or once a year.
+
+**Requirements**
+- Shutter speeds by sound: two clicks per release; the fastest speed measures the curtain travel time, which is taken off the others. Offered only from 1 s to 1/125 s, with 1/60 and 1/125 labelled indicative.
+- Grades: within ⅓ stop fine, within ⅔ worth attention, beyond that a service (this app's rule of thumb, stated as such).
+- A guided look-over: body, curtains, advance, infinity focus, finder, meter, lens, light leaks, each only where it applies to the body.
+- The result saves into the camera's passport and prints as a report.
+- Microphone unavailable or refused: the rest still works and the page says why.
+
+### 43. Photography Lab  — Priority 2
+Added 2026-09-30 at the user's request (the Master Plan's "Photography Lab" candidate, scheduled).
+
+**Goal:** A course for the photographer's own camera. It closes the loop between the simulator and real pictures.
+
+**Requirements**
+- Four levels of three exercises (light without a meter, focus, time, lens and light); a level opens after two passes in the one before.
+- Each exercise predicts the result with the app's engines (thin-lens depth of field, hyperfocal distance, exposure, shake) and checks the settings.
+- Settings are read from the photo's EXIF (no dependency) or typed in for film. Leica M aperture estimates are flagged as correctable.
+- The app can't judge a picture's content, so the photographer confirms what they see; a pass needs both.
+- Photos stay on the device (a small copy per exercise).
+
+### 44. Photo walks  — Priority 2
+Added 2026-09-30 at the user's request.
+
+**Goal:** Theme walks and walks people write themselves: one lens set for zone focus, pictures to find, and the best light today. Shared by link to walk together.
+
+**Requirements**
+- The app's own themes; no fabricated places or famous-route claims.
+- The best light comes from the sun engine for a chosen city (or the Light planner's saved location).
+- A walk link carries only the walk and an optional meeting place and time, never the user's location; it survives the sign-in gate.
+- On the walk: the zone reminder, a checklist, elapsed time, optional GPS distance kept on the device, and the screen kept awake.
+
+### 45. Which Leica for me?  — Priority 2
+Added 2026-09-30 at the user's request.
+
+**Goal:** Six plain questions lead to a camera and one or two lenses, with the reasons, and ways to try them before a shop.
+
+**Requirements**
+- Only catalogue facts: medium, finder magnification, frame lines, mounts, year, maximum aperture, size, ISO range. Also the documented facts that Q, SL, CL and S focus automatically and that the M11-D has no rear screen.
+- No prices or weights (the catalogue has none); the page says so and points to a dealer.
+- Hand-offs: hold it on the simulator, compare the viewfinders, keep it in My Gear, print it for the shop.
 
 ## First production milestone I want you to implement after Phase 0
 

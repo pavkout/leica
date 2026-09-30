@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { t } from "../../i18n";
 
 export interface PickerItem {
   id: string;
@@ -61,15 +62,15 @@ export default function GearPicker({ open, title, items, selectedId, onSelect, o
       <div className="picker-inner">
         <header className="picker-head">
           <h2>{title}</h2>
-          <button type="button" className="picker-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="picker-close" onClick={onClose} aria-label={t("common.close")}>
             ×
           </button>
         </header>
         {groups.length > 2 && (
-          <div className="picker-tabs" role="tablist" aria-label="Filter">
+          <div className="picker-tabs" role="tablist" aria-label={t("picker.filter")}>
             {groups.map((g) => (
               <button key={g} type="button" role="tab" aria-selected={filter === g} className={filter === g ? "tab tab-on" : "tab"} onClick={() => setFilter(g)}>
-                {g}
+                {g === "All" ? t("common.all") : g === MY_GEAR ? t("picker.myGear") : g === "Via adapter" ? t("picker.viaAdapter") : g}
               </button>
             ))}
           </div>

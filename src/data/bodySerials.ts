@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 // Leica camera body serial numbers, 1954–1965, and the M5.
 //
 // Provenance
@@ -319,11 +320,11 @@ export function bodyBlock(serial: number, blocks: BodyBlock[] = BODY_SERIALS): B
 /** Extra facts for a body by its serial, beyond the list's row. */
 export function bodyNotes(serial: number, b: BodyBlock): string[] {
   const notes: string[] = [];
-  if (b.model === "M3") notes.push(serial >= M3_SINGLE_STROKE_FROM ? "Single-stroke film advance (from 919,251)." : "Double-stroke film advance (before 919,251).");
+  if (b.model === "M3") notes.push(serial >= M3_SINGLE_STROKE_FROM ? t("serial.note.m3Single") : t("serial.note.m3Double"));
   if (b.model === "M5") {
-    if (serial >= 1357001) notes.push("Late M5, with the third strap lug added in 1973.");
-    else if (serial >= 1355001) notes.push("Third strap lug if it's chrome (from 1,355,001); black chrome bodies got it from 1,357,001.");
-    else notes.push("Early M5, with two strap lugs.");
+    if (serial >= 1357001) notes.push(t("serial.note.m5Late"));
+    else if (serial >= 1355001) notes.push(t("serial.note.m5Mid"));
+    else notes.push(t("serial.note.m5Early"));
   }
   return notes;
 }

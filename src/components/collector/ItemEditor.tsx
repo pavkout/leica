@@ -6,14 +6,8 @@ import { scanThumbnail } from "../../state/shotLogStore";
 import SerialFactsCard from "./SerialFactsCard";
 import { sureness } from "./sureness";
 import ValuationPanel from "./ValuationPanel";
+import { t } from "../../i18n";
 
-const KIND_WORD: Record<ItemKind, string> = { body: "camera", lens: "lens", accessory: "accessory" };
-
-const WHERE_SERIAL: Record<ItemKind, string> = {
-  body: "On the top of the camera, next to the shutter button (on some models, under the base plate or inside the film door).",
-  lens: "On the front ring around the glass, or on the side of the lens barrel.",
-  accessory: "Many accessories have none. Leave it empty if you can't find one.",
-};
 
 interface Props {
   item: CollectionItem;
@@ -56,17 +50,17 @@ export default function ItemEditor({ item, isNew, onChange, onSave, onCancel, on
   );
 
   return (
-    <div className="cx-editor" ref={ref} role="group" aria-label={isNew ? `Add a ${KIND_WORD[item.kind]}` : `Edit ${item.name}`}>
+    <div className="cx-editor" ref={ref} role="group" aria-label={isNew ? t(`col.ed.add.${item.kind}`) : t("col.ed.editName", { name: item.name })}>
       <h2 className="cx-editor-title" tabIndex={-1}>
-        {isNew ? `Add a ${KIND_WORD[item.kind]}` : item.name}
+        {isNew ? t(`col.ed.add.${item.kind}`) : item.name}
       </h2>
 
       <fieldset className="cx-fieldset">
-        <legend>What is it?</legend>
-        <div className="cx-actions" role="radiogroup" aria-label="Type of item">
+        <legend>{t("col.whatIsIt")}</legend>
+        <div className="cx-actions" role="radiogroup" aria-label={t("col.ed.type")}>
           {(["body", "lens", "accessory"] as ItemKind[]).map((k) => (
             <button key={k} type="button" role="radio" aria-checked={item.kind === k} className={`cx-pick${item.kind === k ? " cx-pick-on" : ""}`} onClick={() => onChange({ ...item, kind: k, catalogueId: undefined })}>
-              {k === "body" ? "A camera" : k === "lens" ? "A lens" : "An accessory"}
+              {t(`col.kind.a.${k}`)}
             </button>
           ))}
         </div>
@@ -74,12 +68,12 @@ export default function ItemEditor({ item, isNew, onChange, onSave, onCancel, on
 
       {item.kind !== "accessory" && (
         <fieldset className="cx-fieldset">
-          <legend>Serial number</legend>
+          <legend>{t("col.ed.serial")}</legend>
           <label className="field cx-serial">
-            <span>The number engraved on it</span>
-            <input type="text" inputMode="numeric" autoComplete="off" value={item.serial ?? ""} placeholder="For example 919251" onChange={(e) => set("serial", e.target.value || undefined)} />
+            <span>{t("col.ed.serialLabel")}</span>
+            <input type="text" inputMode="numeric" autoComplete="off" value={item.serial ?? ""} placeholder={t("col.ed.serialHint")} onChange={(e) => set("serial", e.target.value || undefined)} />
           </label>
-          <p className="cx-quiet">Where to find it: {WHERE_SERIAL[item.kind]}</p>
+          <p className="cx-quiet">{t("col.ed.where", { where: t(`col.ed.where.${item.kind}`) })}</p>
           {item.serial && (
             <SerialFactsCard
               kind={item.kind}
@@ -93,12 +87,12 @@ export default function ItemEditor({ item, isNew, onChange, onSave, onCancel, on
       )}
 
       <fieldset className="cx-fieldset">
-        <legend>Name</legend>
-        {text("name", "What you call it", item.kind === "accessory" ? "For example: Visoflex II, leather half case" : "For example: My father's M3")}
-        {!named && <p className="cx-quiet">A name is the only thing you must fill in.</p>}
+        <legend>{t("col.ed.name")}</legend>
+        {text("name", t("col.ed.nameLabel"), item.kind === "accessory" ? t("col.ed.nameHint.accessory") : t("col.ed.nameHint"))}
+        {!named && <p className="cx-quiet">{t("col.ed.nameOnly")}</p>}
         {catalogue.length > 0 && (
           <label className="field">
-            <span>Pick the model from our list (optional)</span>
+            <span>{t("col.ed.pick")}</span>
             <select
               value={item.catalogueId ?? ""}
               onChange={(e) => {
@@ -107,7 +101,7 @@ export default function ItemEditor({ item, isNew, onChange, onSave, onCancel, on
                 onChange({ ...item, catalogueId: id, name: item.name || known?.name || "" });
               }}
             >
-              <option value="">Not in the list, or not sure</option>
+              <option value="">{t("col.ed.notListed")}</option>
               {catalogue.map((x) => (
                 <option key={x.id} value={x.id}>
                   {x.name}
@@ -120,29 +114,29 @@ export default function ItemEditor({ item, isNew, onChange, onSave, onCancel, on
 
       {item.aiFindings && (
         <div className="cx-block cx-ai">
-          <h3 className="cx-h">What the AI saw in your photo</h3>
+          <h3 className="cx-h">{t("col.ai.saw")}</h3>
           <dl className="cx-facts">
-            <dt>It looks like</dt>
+            <dt>{t("col.ai.looksLike")}</dt>
             <dd>
-              {itemName(item.aiFindings.maker ?? null, item.aiFindings.model ?? null) || "Couldn't tell"} ({sureness(item.aiFindings.confidence.model).toLowerCase()})
+              {itemName(item.aiFindings.maker ?? null, item.aiFindings.model ?? null) || t("col.ai.couldntTell")} ({sureness(item.aiFindings.confidence.model).toLowerCase()})
             </dd>
             {item.aiFindings.serial && (
               <>
-                <dt>Serial number read</dt>
+                <dt>{t("col.ai.serialRead")}</dt>
                 <dd>
-                  {item.aiFindings.serial} ({item.aiFindings.serialLegible === "partial" ? "partly readable" : sureness(item.aiFindings.confidence.serial).toLowerCase()})
+                  {item.aiFindings.serial} ({item.aiFindings.serialLegible === "partial" ? t("col.ai.partly") : sureness(item.aiFindings.confidence.serial).toLowerCase()})
                 </dd>
               </>
             )}
             {item.aiFindings.finish && (
               <>
-                <dt>Finish</dt>
+                <dt>{t("col.ai.finish")}</dt>
                 <dd>{item.aiFindings.finish}</dd>
               </>
             )}
             {item.aiFindings.condition && (
               <>
-                <dt>What it could see</dt>
+                <dt>{t("col.ai.condition")}</dt>
                 <dd>{item.aiFindings.condition}</dd>
               </>
             )}
@@ -151,21 +145,21 @@ export default function ItemEditor({ item, isNew, onChange, onSave, onCancel, on
       )}
 
       <fieldset className="cx-fieldset">
-        <legend>Your records (all optional)</legend>
+        <legend>{t("col.ed.records")}</legend>
         <div className="cx-grid">
-          {date("acquired", "When you got it")}
-          {text("price", "What you paid", "For example: €1,800")}
-          {item.kind === "body" && date("serviced", "Last serviced")}
-          {item.kind === "lens" && text("filter", "Filter size", "For example: E39")}
+          {date("acquired", t("col.ed.acquired"))}
+          {text("price", t("col.ed.price"), t("col.ed.priceHint"))}
+          {item.kind === "body" && date("serviced", t("col.ed.serviced"))}
+          {item.kind === "lens" && text("filter", t("col.ed.filter"), t("col.ed.filterHint"))}
         </div>
         <label className="field">
-          <span>Notes</span>
-          <textarea value={item.notes ?? ""} placeholder="Where it came from, its story, anything to remember" onChange={(e) => set("notes", e.target.value || undefined)} />
+          <span>{t("common.notes")}</span>
+          <textarea value={item.notes ?? ""} placeholder={t("col.ed.notesHint")} onChange={(e) => set("notes", e.target.value || undefined)} />
         </label>
         <div className="cx-photo">
-          {item.photo && <img src={item.photo} alt="Your photo of it" />}
+          {item.photo && <img src={item.photo} alt={t("col.ed.photoAlt")} />}
           <label className="btn cx-file">
-            {item.photo ? "Change the photo" : "Add a photo"}
+            {item.photo ? t("col.ed.changePhoto") : t("col.ed.addPhoto")}
             <input
               type="file"
               accept="image/*"
@@ -189,30 +183,30 @@ export default function ItemEditor({ item, isNew, onChange, onSave, onCancel, on
 
       <div className="cx-savebar">
         <button type="button" className="btn btn-red" disabled={!named} onClick={onSave}>
-          {isNew ? "Save to my collection" : "Save changes"}
+          {isNew ? t("col.ed.saveNew") : t("col.ed.saveChanges")}
         </button>
         <button type="button" className="btn" onClick={onCancel}>
-          {isNew ? "Cancel" : "Back"}
+          {isNew ? t("common.cancel") : t("common.back")}
         </button>
-        {!named && <p className="cx-quiet">Type a name to save.</p>}
+        {!named && <p className="cx-quiet">{t("col.ed.needName")}</p>}
       </div>
 
       {!isNew &&
         (confirmRemove ? (
-          <div className="cx-progress" role="alertdialog" aria-label="Remove this item">
-            <p>Remove {item.name} from your collection? This can't be undone.</p>
+          <div className="cx-progress" role="alertdialog" aria-label={t("col.ed.removeTitle")}>
+            <p>{t("col.ed.removeQ", { name: item.name })}</p>
             <div className="cx-actions">
               <button type="button" className="btn btn-red" onClick={onRemove}>
-                Yes, remove it
+                {t("col.ed.removeYes")}
               </button>
               <button type="button" className="btn" onClick={() => setConfirmRemove(false)}>
-                Keep it
+                {t("col.ed.keep")}
               </button>
             </div>
           </div>
         ) : (
           <button type="button" className="cx-link cx-remove" onClick={() => setConfirmRemove(true)}>
-            Remove from my collection
+            {t("col.ed.remove")}
           </button>
         ))}
     </div>

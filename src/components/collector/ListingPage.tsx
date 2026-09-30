@@ -10,6 +10,7 @@ import PriceView from "./PriceView";
 import RunCostLine from "./RunCostLine";
 import SerialFactsCard from "./SerialFactsCard";
 import { useAiRun } from "./useAiRun";
+import { t } from "../../i18n";
 
 const isHttp = (u: string) => /^https?:\/\/\S+\.\S+/i.test(u.trim());
 
@@ -32,11 +33,11 @@ export default function ListingPage() {
   async function pasteLink() {
     setPasteNote(null);
     try {
-      const t = (await navigator.clipboard.readText()).trim();
-      if (isHttp(t)) setUrl(t);
-      else setPasteNote("What you copied isn't a link. Copy the listing's link, then press Paste again.");
+      const copied = (await navigator.clipboard.readText()).trim();
+      if (isHttp(copied)) setUrl(copied);
+      else setPasteNote(t("col.li.notLink"));
     } catch {
-      setPasteNote("This browser didn't allow pasting. Press and hold in the box, then choose Paste.");
+      setPasteNote(t("col.li.noPaste"));
     }
   }
 
@@ -63,64 +64,64 @@ export default function ListingPage() {
   const what = report ? itemName(report.maker, report.model) || report.title : null;
 
   return (
-    <section className="panel stage-listing cx" aria-label="Before you buy">
+    <section className="panel stage-listing cx" aria-label={t("tool.listing")}>
       <ol className="cx-flow">
         <li className={isHttp(url) ? "cx-flow-done" : undefined}>
-          <h2 className="cx-h">Copy the link to the listing</h2>
-          <p>On the listing (eBay, an auction, a shop), press Share and then Copy link. Then paste it here.</p>
+          <h2 className="cx-h">{t("col.li.copy")}</h2>
+          <p>{t("col.li.how")}</p>
           <div className="cx-inline">
             <label className="field">
-              <span>Link to the listing</span>
+              <span>{t("col.li.link")}</span>
               <input type="url" inputMode="url" autoComplete="off" value={url} placeholder="https://" onChange={(e) => setUrl(e.target.value)} />
             </label>
             <button type="button" className="btn" onClick={pasteLink}>
-              Paste
+              {t("col.li.paste")}
             </button>
           </div>
           {pasteNote && <p className="cx-quiet">{pasteNote}</p>}
-          {url.trim() && !isHttp(url) && <p className="cx-quiet">A link starts with https://</p>}
+          {url.trim() && !isHttp(url) && <p className="cx-quiet">{t("col.li.https")}</p>}
           {showPaste || pasted ? (
             <label className="field">
-              <span>The listing's text (only needed if the link can't be read)</span>
-              <textarea value={pasted} onChange={(e) => setPasted(e.target.value)} placeholder="Copy the title, description and price from the listing, and paste them here" />
+              <span>{t("col.li.text")}</span>
+              <textarea value={pasted} onChange={(e) => setPasted(e.target.value)} placeholder={t("col.li.textHint")} />
             </label>
           ) : (
             <button type="button" className="cx-link" onClick={() => setShowPaste(true)}>
-              I'd rather paste the listing's text
+              {t("col.li.rather")}
             </button>
           )}
         </li>
 
         <li className={report ? "cx-flow-done" : undefined}>
-          <h2 className="cx-h">Check it</h2>
+          <h2 className="cx-h">{t("col.id.check")}</h2>
           {!settings.key ? (
-            <AiGate what="check listings" />
+            <AiGate what={t("col.li.gate")} />
           ) : (
             <>
               <div className="cx-actions">
                 <button type="button" className="btn btn-red" disabled={!isHttp(url) || ai.busy} onClick={check}>
-                  {ai.busy ? "Checking… this takes about a minute" : "Check this listing"}
+                  {ai.busy ? t("col.li.busy") : t("col.li.go")}
                 </button>
               </div>
-              {!isHttp(url) && <p className="cx-quiet">Paste the link first.</p>}
+              {!isHttp(url) && <p className="cx-quiet">{t("col.li.needLink")}</p>}
               <RunCostLine est={ai.est} actual={cost} error={ai.error} />
             </>
           )}
         </li>
 
         <li aria-live="polite">
-          <h2 className="cx-h">What we found</h2>
+          <h2 className="cx-h">{t("col.li.found")}</h2>
           {!report ? (
-            <p className="cx-quiet">It appears here when the check is done.</p>
+            <p className="cx-quiet">{t("col.li.wait")}</p>
           ) : (
             <div className="cx-answer">
-              <p className="cx-answer-lead">{what ? `A ${what}` : "We couldn't tell what's for sale."}</p>
+              <p className="cx-answer-lead">{what ? t("col.li.what", { what }) : t("col.li.cant")}</p>
               <p className="cx-quiet">
-                {report.asking ? `Asking ${formatMoney(report.asking.price, report.asking.currency)}` : "No price found"}
-                {!report.fetched && ". Read from the text you pasted"}
+                {report.asking ? t("col.li.asking", { price: formatMoney(report.asking.price, report.asking.currency) }) : t("col.li.noPrice")}
+                {!report.fetched && ` · ${t("col.li.fromText")}`}
               </p>
 
-              <ul className="cx-glance" aria-label="At a glance">
+              <ul className="cx-glance" aria-label={t("col.li.glance")}>
                 {listingGlance(report).map((g) => (
                   <li key={g.label} className={`cx-glance-${g.mark}`}>
                     <span className="cx-glance-mark" aria-hidden="true">
@@ -135,14 +136,14 @@ export default function ListingPage() {
 
               {kind && report.statedSerial && (
                 <>
-                  <h3 className="cx-h">The serial number</h3>
+                  <h3 className="cx-h">{t("col.glance.serial")}</h3>
                   <SerialFactsCard kind={kind} serial={report.statedSerial} claim={{ model: report.model, year: report.statedYear }} />
                 </>
               )}
 
               {report.redFlags.length > 0 && (
                 <>
-                  <h3 className="cx-h">Warning signs</h3>
+                  <h3 className="cx-h">{t("col.glance.flags")}</h3>
                   <ul className="cx-flags">
                     {report.redFlags.map((f, i) => (
                       <li key={i}>
@@ -153,16 +154,16 @@ export default function ListingPage() {
                 </>
               )}
 
-              <h3 className="cx-h">What similar items sold for</h3>
+              <h3 className="cx-h">{t("col.li.similar")}</h3>
               <PriceView range={report.price.range} comparables={report.price.comparables} note={report.price.note} />
 
-              <p className="cx-quiet">No warning signs doesn't mean no risk. Buy where you can return it, and see it in person if you can.</p>
+              <p className="cx-quiet">{t("col.li.risk")}</p>
               <div className="cx-actions">
                 <button type="button" className="btn" onClick={() => sendDraftToCollection(draftFromListing(report, url.trim(), { at: new Date().toISOString(), model: ai.model, usd: cost ?? 0 }))}>
-                  I bought it: add to my collection
+                  {t("col.li.bought")}
                 </button>
                 <button type="button" className="btn" onClick={startOver}>
-                  Check another listing
+                  {t("col.li.again")}
                 </button>
               </div>
             </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { t } from "../i18n";
 import { prepareAudio } from "../audio/sounds";
 import type { Body, Lens } from "../data/gear";
 import { formatShutter } from "../data/gear";
@@ -132,7 +133,7 @@ export default function CameraView(p: CameraProps) {
     <>
       <div className="cam-lcd">
         {p.image(interacting ? 0.5 : 1)}
-        {p.isFilm && previewHeld && !p.liveOn && <span className="cam-sim-tag">Simulated exposure</span>}
+        {p.isFilm && previewHeld && !p.liveOn && <span className="cam-sim-tag">{t("cam.simulated")}</span>}
       </div>
       {/* Live, a film body shows the simulated picture: a rangefinder's second image would need a second camera. */}
       {p.isFilm && !previewHeld && !p.liveOn && <div className="cam-finder">{p.finder}</div>}
@@ -140,11 +141,11 @@ export default function CameraView(p: CameraProps) {
   );
 
   return (
-    <div className={`camera ${p.isFilm ? "camera-film" : "camera-digital"}${immersed ? " camera-immersed" : ""}`} aria-label={`${p.body.name} with ${p.lens.name}`} role="region">
+    <div className={`camera ${p.isFilm ? "camera-film" : "camera-digital"}${immersed ? " camera-immersed" : ""}`} aria-label={t("cam.withLens", { body: p.body.name, lens: p.lens.name })} role="region">
       {/* Left of the screen: ISO dial (digital) and the back buttons. */}
       <div className="cam-left">
         {!p.isFilm && isoStops.length > 0 ? (
-          <RotaryDial label="ISO dial" stops={isoStops} index={isoIndex} onChange={(i) => p.onIso(p.isoChoices[i])} size={Math.round(dialSize * 0.86)} step={32} className="dial-iso" />
+          <RotaryDial label={t("cam.isoDial")} stops={isoStops} index={isoIndex} onChange={(i) => p.onIso(p.isoChoices[i])} size={Math.round(dialSize * 0.86)} step={32} className="dial-iso" />
         ) : (
           <div className="cam-film-window" aria-label={`Film: ${p.filmName ?? ""}`}>
             <span className="cam-film-name">{p.filmName}</span>
@@ -152,13 +153,13 @@ export default function CameraView(p: CameraProps) {
           </div>
         )}
         <div className="cam-buttons">
-          <button type="button" className="cam-btn" onClick={p.onPlay} aria-label={p.isFilm ? "Roll: your frames" : "Play: review pictures"}>
+          <button type="button" className="cam-btn" onClick={p.onPlay} aria-label={p.isFilm ? t("cam.roll") : t("cam.play")}>
             {p.isFilm ? "ROLL" : "PLAY"}
           </button>
-          <button type="button" className="cam-btn" aria-expanded={fnOpen} onClick={() => setFnOpen((v) => !v)} aria-label="FN: choose the scene">
+          <button type="button" className="cam-btn" aria-expanded={fnOpen} onClick={() => setFnOpen((v) => !v)} aria-label={t("cam.fn")}>
             FN
           </button>
-          <button type="button" className="cam-btn" onClick={p.onMenu} aria-label="Menu">
+          <button type="button" className="cam-btn" onClick={p.onMenu} aria-label={t("cam.menu")}>
             MENU
           </button>
           {p.liveAvailable && (
@@ -167,7 +168,7 @@ export default function CameraView(p: CameraProps) {
               className={`cam-btn cam-btn-live${p.liveOn ? " cam-btn-live-on" : ""}`}
               onClick={p.onLive}
               aria-pressed={p.liveOn}
-              aria-label={p.liveOn ? "Live on: back to the scene" : "Live: use your phone's camera"}
+              aria-label={p.liveOn ? t("cam.liveOn") : t("cam.liveOff")}
             >
               LIVE
             </button>
@@ -197,9 +198,9 @@ export default function CameraView(p: CameraProps) {
             </div>
           )}
           {fnOpen && (
-            <div className="cam-fn" role="dialog" aria-label={p.liveOn ? "Scene light" : "Scene"}>
+            <div className="cam-fn" role="dialog" aria-label={p.liveOn ? t("cam.sceneLight") : t("cam.scene")}>
               <div className="cam-fn-head">
-                <span>{p.liveOn ? "Scene light" : "Scene"}</span>
+                <span>{p.liveOn ? t("cam.sceneLight") : t("cam.scene")}</span>
                 <button type="button" className="cam-btn cam-btn-small" onClick={() => setFnOpen(false)}>
                   Done
                 </button>
@@ -207,7 +208,7 @@ export default function CameraView(p: CameraProps) {
               {p.scenes}
               {p.liveOn && p.onOpenMeter && (
                 <div className="cam-fn-meter">
-                  <p>Metering for a real camera? The light meter has spot readings and the equivalent settings.</p>
+                  <p>{t("cam.meterHint")}</p>
                   <button
                     type="button"
                     className="cam-btn"
@@ -226,7 +227,7 @@ export default function CameraView(p: CameraProps) {
             type="button"
             className="cam-vf"
             aria-pressed={immersed}
-            aria-label={immersed ? "Show the camera controls" : "Viewfinder mode: hide the controls"}
+            aria-label={immersed ? t("cam.showControls") : t("cam.hideControls")}
             onClick={() => setImmersed((v) => !v)}
           >
             <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
@@ -253,10 +254,10 @@ export default function CameraView(p: CameraProps) {
           />
         </div>
         <div className="cam-plates">
-          <button type="button" className="cam-plate" onClick={p.onPickBody} aria-label={`Camera: ${p.body.name}, change the camera`}>
+          <button type="button" className="cam-plate" onClick={p.onPickBody} aria-label={t("cam.pickBody", { name: p.body.name })}>
             {p.body.name}
           </button>
-          <button type="button" className="cam-plate cam-plate-lens" onClick={p.onPickLens} aria-label={`Lens: ${p.lens.name}, change the lens`}>
+          <button type="button" className="cam-plate cam-plate-lens" onClick={p.onPickLens} aria-label={t("cam.pickLens", { name: p.lens.name })}>
             {lensEngraving(p.lens.name)}
           </button>
           <p className="cam-caption" aria-live="polite">
@@ -269,7 +270,7 @@ export default function CameraView(p: CameraProps) {
       {/* Right: the top-plate shutter dial, the release, then the back's thumb wheel (digital) or the preview key (film). */}
       <div className="cam-right">
         <RotaryDial
-          label="Shutter speed dial"
+          label={t("cam.shutterDial")}
           stops={dial}
           index={dialIndex}
           onChange={(i) => {
@@ -280,7 +281,7 @@ export default function CameraView(p: CameraProps) {
           step={30}
           className="dial-shutter"
         />
-        <ReleaseButton onHalf={setHalf} onFire={shoot} disabled={!p.canShoot} label="Release the shutter" />
+        <ReleaseButton onHalf={setHalf} onFire={shoot} disabled={!p.canShoot} label={t("cam.release")} />
         {p.isFilm ? (
           <button
             type="button"

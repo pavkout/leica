@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { t } from "../i18n";
 import type { Frame } from "../state/rollExport";
 
 interface Props {
@@ -24,7 +25,7 @@ export default function Playback({ frames, onClose, onSheet }: Props) {
   }, [frames.length, onClose]);
 
   return (
-    <div className="play" role="dialog" aria-modal="true" aria-label="Review pictures">
+    <div className="play" role="dialog" aria-modal="true" aria-label={t("play.title")}>
       {f ? (
         <figure
           className="play-frame"
@@ -47,14 +48,14 @@ export default function Playback({ frames, onClose, onSheet }: Props) {
         </figure>
       ) : (
         <div className="play-empty">
-          <p>No pictures on the card yet.</p>
+          <p>{t("play.empty")}</p>
           <button type="button" className="cam-btn" onClick={onClose}>
             Take a picture
           </button>
         </div>
       )}
       <div className="play-bar">
-        <button type="button" className="cam-btn" disabled={i <= 0} onClick={() => setI((v) => v - 1)} aria-label="Previous picture">
+        <button type="button" className="cam-btn" disabled={i <= 0} onClick={() => setI((v) => v - 1)} aria-label={t("play.prev")}>
           ‹
         </button>
         <button type="button" className="cam-btn" onClick={onSheet}>
@@ -63,7 +64,7 @@ export default function Playback({ frames, onClose, onSheet }: Props) {
         <button type="button" className="cam-btn" onClick={onClose}>
           Camera
         </button>
-        <button type="button" className="cam-btn" disabled={i >= frames.length - 1} onClick={() => setI((v) => v + 1)} aria-label="Next picture">
+        <button type="button" className="cam-btn" disabled={i >= frames.length - 1} onClick={() => setI((v) => v + 1)} aria-label={t("play.next")}>
           ›
         </button>
       </div>
