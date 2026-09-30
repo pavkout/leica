@@ -35,7 +35,7 @@ Last updated: 2026-09-30
   - "Hear the shutter"
   - "Try it in the simulator"
 - **Display mode:**
-  - a 9-second loop, alternating rooms
+  - a 9-second loop, alternating rooms; since 2026-09-30 (user request) it shows **every** piece (83, about 12½ minutes a cycle), each room's best-known pieces first. Your collection stays out (private)
   - touch to explore; back to the loop after 30 s idle (was 60 s; user request, 2026-09-30)
   - **Starts on its own** (user request, 2026-09-30): after 2 minutes without a touch anywhere in the app (or while browsing the museum normally), the display loop starts. Shared idle watcher: `src/utils/useIdle.ts` (tested); the 2-minute value is `ATTRACT_IDLE_MS` in `src/museum/deck.ts`. Full screen still needs a tap, since browsers only allow it from a gesture.
   - wake lock, and full screen from a tap

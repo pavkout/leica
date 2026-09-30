@@ -71,7 +71,10 @@ describe("museum deck", () => {
     const seq = attractSequence(rooms);
     expect(seq.slice(0, 3).map((e) => e.room)).toEqual(["cameras", "lenses", "inside"]);
     expect(seq.some((e) => e.room === "collection")).toBe(false);
-    expect(seq.every((e) => e.hero)).toBe(true);
+    const shown = rooms.filter((r) => r.id !== "collection").reduce((n, r) => n + r.exhibits.length, 0);
+    expect(seq).toHaveLength(shown);
+    const firstPlain = seq.findIndex((e) => e.room === "cameras" && !e.hero);
+    expect(seq.slice(firstPlain).some((e) => e.room === "cameras" && e.hero)).toBe(false);
   });
 
   it("parses and writes museum links", () => {

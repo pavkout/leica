@@ -14,12 +14,15 @@ export function step(index: number, count: number, dir: 1 | -1): number {
 }
 
 /**
- * The display loop: hero exhibits from each room, taken in turn (a camera, a
- * lens, a part, an accessory, then the next camera…), so a passer-by sees the
- * variety. Your collection is private and stays out of the loop.
+ * The display loop: every exhibit, the rooms taken in turn (a camera, a lens,
+ * a part, an accessory, then the next camera…), so a passer-by sees the
+ * variety. A room's hero pieces come first, so the best-known pieces show
+ * early. Your collection is private and stays out of the loop.
  */
 export function attractSequence(rooms: Room[]): Exhibit[] {
-  const lists = rooms.filter((r) => r.id !== "collection").map((r) => r.exhibits.filter((e) => e.hero));
+  const lists = rooms
+    .filter((r) => r.id !== "collection")
+    .map((r) => [...r.exhibits.filter((e) => e.hero), ...r.exhibits.filter((e) => !e.hero)]);
   const out: Exhibit[] = [];
   for (let i = 0; lists.some((l) => i < l.length); i++) for (const l of lists) if (i < l.length) out.push(l[i]);
   return out;

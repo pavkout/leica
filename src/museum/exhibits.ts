@@ -47,7 +47,7 @@ export interface Exhibit {
   facts: Fact[];
   story: StoryPart[];
   art: ExhibitArt;
-  /** Shown in the unattended display's loop. */
+  /** A best-known piece: first in the display loop, and the room's preview in the lobby. */
   hero: boolean;
   /** "Try it in the simulator" target. */
   simulate?: { bodyId?: string; lensId?: string };
