@@ -13,6 +13,7 @@ Last updated: 2026-09-30
 | Phase 4 — Explore / Kiosk / Museum | 🟡 MOSTLY DONE: #20, #23, #34 COMPLETE; #21 PARTIAL (no authored 3D assets). Not formally defined in the Master Plan |
 | Product expansion — #40–#45 (user request, 2026-09-30) | 🟡 CODE COMPLETE, awaiting the user's review; #40 PARTIAL (older pages still English) |
 | Everyday tools — #46–#55 (user request, 2026-09-30) | 🟡 CODE COMPLETE, awaiting the user's review and a real-phone pass |
+| Keeping, reviewing and selling — #56–#64 (user request, 2026-09-30) | 🟡 CODE COMPLETE, awaiting the user's review and a real-phone pass |
 
 > Phase 0 and Phase 1 were verified directly against the repository (typecheck/lint/test/build all clean, 126 tests passing before this session's work) before Phase 2 began.
 
@@ -21,6 +22,45 @@ Last updated: 2026-09-30
 **Phase 3 — "WTF" / 3D Layer**, started 2026-09-27 at the user's request, after Phase 2 was closed.
 
 ## Current task
+
+**Keeping, reviewing and selling #56–#64** (user request, 2026-09-30: "let's do 1–9"; briefs in the Master Plan). **Code COMPLETE, waiting for the user's review and a real-phone pass.** Nothing committed.
+- **New pages (lazy chunks):**
+  - Backup and restore (Collectors, also in Setup)
+  - Roll review and See it on film (Film & darkroom)
+  - Sell it well (Collectors)
+  - Zone System meter (Shoot)
+- **Additions to existing pages:**
+  - Routes and places in Tag your scans; route recording also starts with Photo walks' distance counter.
+  - A birthday banner and a backup reminder in My collection; the backup reminder also appears in Film stock.
+  - Setup toggles for Spoken cues and Large text.
+- **Pure, tested modules:**
+  - `state/backup.ts` (+ `db.ts` `dumpStore`/`replaceStore`, `services/backupIo.ts`)
+  - `state/track.ts` (+ `trackStore.ts`), GPS IFD in `utils/exifWrite.ts` and `utils/exif.ts`
+  - `physics/rollReview.ts`, `state/listingDraft.ts`, `physics/zones.ts`
+  - `preview/filmLookCpu.ts`, `state/birthdays.ts`
+  - `services/speech.ts`, `state/bigText.ts`
+- **AI:** new `review` (roll keepers) and `condition` (sell description, no grades) actions, tested with the fake transport.
+- **Sell it well, after the user's first look:** the page for an empty collection now explains the four steps and has a "Go to My collection" button, instead of the Passport's message.
+- **i18n:** all new strings in `en.more.ts` and `{de,fr,ja,zh,ko}.more.ts`; the completeness test now covers bk, rr, sell, zn, of and bd.
+- **Validation:**
+  - Typecheck clean; lint 0 errors (5 old warnings); 808 tests pass; the build passes.
+  - Chrome at 390 px in English, German and large-text mode: all seven affected pages have no errors, no overflow and no raw keys.
+  - Backup round trip in the browser: the file has no AI key, a safety copy downloads first, and the collection is restored.
+  - A GPS-tagged JPEG read back with Pillow (51°30′26.82″ N, 0°7′39.97″ W).
+  - Zone meter: exposure checked by hand (EV 12 placed on III at ISO 400 gives f/8 · 1/1000).
+- **Known limitations:**
+  - Not tried on a phone:
+    - route recording with the screen locked (browsers stop location for background pages; the page says so)
+    - speech voices in iOS Safari
+    - `zoom` in large-text mode on older Safari
+    - live-camera zones
+  - The zone meter's absolute EV only comes from the camera where the browser reports exposure time and ISO; otherwise it uses a chosen preset, which the page states.
+  - See it on film works on the finished JPEG, so it's a look, not a re-exposure.
+  - The roll-review AI and condition AI haven't been run against the real API.
+  - Birthdays show on My collection only, not in each Passport.
+  - Translations were written with AI help.
+
+**Previous task:**
 
 **Everyday tools #46–#55** (user request, 2026-09-30: "let's do the 1–10"; briefs in the Master Plan). **Code COMPLETE, waiting for the user's review and a real-phone pass.** Nothing committed.
 - **New mode:** Film & darkroom (`#/film/…`), holding Film stock, Developing timer, Negative viewer, Printing and Tag your scans. Shoot gains Exposure calculators, Sun finder and Travel kit; Learn gains Photo feedback; Collectors gains Manuals and care.
@@ -1798,6 +1838,7 @@ Known limitations: checked in WebKit emulation, not on a physical iPhone. The M3
   - Add sourced data: `PROCESS_TIMES` (#34), `LENS_CHARACTER_PROFILES` (#4/#24), `BREATHING_PROFILES` (#26).
   - Define Phase 4 in the Master Plan.
 - **#2:** the real-phone check, whenever the user can.
+- **#46–#64:** the user's review and a phone pass (iOS Safari: speech, location, zoom, camera).
 
 ## Blockers
 

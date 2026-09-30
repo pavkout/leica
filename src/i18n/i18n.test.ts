@@ -76,7 +76,7 @@ describe.each(Object.entries(all))("%s dictionary", (_lang, dict) => {
   });
   it("translates every new feature's page completely", () => {
     // Camera passport, health check, Photography Lab, Photo walks, Which Leica (#41–#45), and the Collectors pages.
-    const feature = /^(passport|health|lab|walk|match|col|ai|serial|sn|mu|dev|fs|neg|pr|tag|calc|sun|travel|pack|fb|care)\./;
+    const feature = /^(passport|health|lab|walk|match|col|ai|serial|sn|mu|dev|fs|neg|pr|tag|calc|sun|travel|pack|fb|care|bk|rr|sell|zn|of|bd)\./;
     const plural = /_(zero|one|two|few|many|other)$/;
     const missing = Object.keys(en).filter((k) => feature.test(k) && en[k].trim() && !(k in dict) && !(plural.test(k) && k.replace(plural, "_other") in dict));
     expect(missing).toEqual([]);

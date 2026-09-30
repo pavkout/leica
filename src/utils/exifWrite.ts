@@ -15,11 +15,14 @@ export interface ExifFields {
   takenAt?: string;
   description?: string;
   artist?: string;
+  /** Where it was taken, decimal degrees. */
+  gps?: { lat: number; lon: number };
 }
 
 const enc = new TextEncoder();
 
-type Value = { tag: number; type: 2 | 3 | 5; data: number[] | [number, number][] | Uint8Array };
+/** One IFD entry: ASCII, BYTEs, SHORT, LONG pointer, or one or more RATIONALs. */
+type Entry = { tag: number; type: 1 | 2 | 3 | 4 | 5; data: number[] | [number, number][] | Uint8Array };
 
 function rational(x: number, den: number): [number, number] {
   return [Math.round(x * den), den];
@@ -41,10 +44,25 @@ const ascii = (s: string) => {
   return out;
 };
 
-/** The TIFF block (big-endian): IFD0 with a pointer to the Exif IFD. */
+/** Decimal degrees → degrees, minutes, seconds (to 1/10000 s) as three rationals. */
+export function dms(deg: number): [number, number][] {
+  const a = Math.abs(deg);
+  const d = Math.floor(a);
+  const mFull = (a - d) * 60;
+  const m = Math.floor(mFull);
+  const sec = (mFull - m) * 60;
+  return [
+    [d, 1],
+    [m, 1],
+    [Math.round(sec * 10000), 10000],
+  ];
+}
+
+/** The TIFF block (big-endian): IFD0, with pointers to the Exif IFD and, if there's a position, the GPS IFD. */
 function tiff(f: ExifFields): Uint8Array {
-  const ifd0: Value[] = [];
-  const exif: Value[] = [];
+  const ifd0: Entry[] = [];
+  const exif: Entry[] = [];
+  const gps: Entry[] = [];
   if (f.description) ifd0.push({ tag: 0x010e, type: 2, data: ascii(f.description) });
   if (f.make) ifd0.push({ tag: 0x010f, type: 2, data: ascii(f.make) });
   if (f.model) ifd0.push({ tag: 0x0110, type: 2, data: ascii(f.model) });
@@ -56,40 +74,49 @@ function tiff(f: ExifFields): Uint8Array {
   if (f.takenAt) exif.push({ tag: 0x9003, type: 2, data: ascii(f.takenAt) });
   if (f.focalMm) exif.push({ tag: 0x920a, type: 5, data: [rational(f.focalMm, 10)] });
   if (f.lens) exif.push({ tag: 0xa434, type: 2, data: ascii(f.lens) });
+  if (f.gps) {
+    gps.push({ tag: 0x0000, type: 1, data: [2, 3, 0, 0] });
+    gps.push({ tag: 0x0001, type: 2, data: ascii(f.gps.lat >= 0 ? "N" : "S") });
+    gps.push({ tag: 0x0002, type: 5, data: dms(f.gps.lat) });
+    gps.push({ tag: 0x0003, type: 2, data: ascii(f.gps.lon >= 0 ? "E" : "W") });
+    gps.push({ tag: 0x0004, type: 5, data: dms(f.gps.lon) });
+  }
 
-  const withPointer: Value[] = [...ifd0, { tag: 0x8769, type: 4 as 3, data: [0] }].sort((a, b) => a.tag - b.tag);
-  exif.sort((a, b) => a.tag - b.tag);
   const ifdSize = (n: number) => 2 + n * 12 + 4;
+  const withPointers = [...ifd0, { tag: 0x8769, type: 4, data: [0] } as Entry, ...(gps.length ? [{ tag: 0x8825, type: 4, data: [0] } as Entry] : [])].sort((a, b) => a.tag - b.tag);
+  exif.sort((a, b) => a.tag - b.tag);
   const ifd0At = 8;
-  const exifAt = ifd0At + ifdSize(withPointer.length);
-  let dataAt = exifAt + ifdSize(exif.length);
+  const exifAt = ifd0At + ifdSize(withPointers.length);
+  const gpsAt = exifAt + ifdSize(exif.length);
+  let dataAt = gpsAt + (gps.length ? ifdSize(gps.length) : 0);
   const bytes: number[] = [0x4d, 0x4d, 0, 42, 0, 0, 0, ifd0At];
   const tail: number[] = [];
   const u16 = (v: number) => [(v >> 8) & 255, v & 255];
   const u32 = (v: number) => [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255];
 
-  const write = (list: Value[]) => {
+  const write = (list: Entry[]) => {
     bytes.push(...u16(list.length));
     for (const v of list) {
-      const isPointer = v.tag === 0x8769;
-      const type = isPointer ? 4 : v.type;
       let payload: number[];
       let count: number;
-      if (isPointer) {
+      if (v.tag === 0x8769 && v.type === 4) {
         payload = u32(exifAt);
         count = 1;
-      } else if (v.type === 2) {
-        payload = [...(v.data as Uint8Array)];
+      } else if (v.tag === 0x8825 && v.type === 4) {
+        payload = u32(gpsAt);
+        count = 1;
+      } else if (v.type === 1 || v.type === 2) {
+        payload = [...(v.data as Uint8Array | number[])];
         count = payload.length;
       } else if (v.type === 3) {
-        payload = [...u16((v.data as number[])[0]), 0, 0].slice(0, 2);
+        payload = u16((v.data as number[])[0]);
         count = 1;
       } else {
-        const [n, d] = (v.data as [number, number][])[0];
-        payload = [...u32(n), ...u32(d)];
-        count = 1;
+        const list5 = v.data as [number, number][];
+        payload = list5.flatMap(([n, d]) => [...u32(n), ...u32(d)]);
+        count = list5.length;
       }
-      bytes.push(...u16(v.tag), ...u16(type), ...u32(count));
+      bytes.push(...u16(v.tag), ...u16(v.type), ...u32(count));
       if (payload.length <= 4) bytes.push(...payload, ...Array(4 - payload.length).fill(0));
       else {
         bytes.push(...u32(dataAt));
@@ -100,8 +127,9 @@ function tiff(f: ExifFields): Uint8Array {
     }
     bytes.push(0, 0, 0, 0);
   };
-  write(withPointer);
+  write(withPointers);
   write(exif);
+  if (gps.length) write(gps);
   return Uint8Array.from([...bytes, ...tail]);
 }
 

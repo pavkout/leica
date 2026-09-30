@@ -10777,3 +10777,257 @@ label.btn-small {
 .care-habits p {
   margin: 0 0 4px;
 }
+
+/* Backup reminder (#56). */
+.bk-remind {
+  margin-bottom: 16px;
+}
+
+/* Roll review (#58): the contact sheet. */
+.rr-sheet {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rr-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--plate-2);
+}
+
+.rr-frame img,
+.rr-noscan {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 2px;
+  background: #000;
+}
+
+.rr-noscan {
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+  font-size: 22px;
+}
+
+.rr-pick {
+  border-color: var(--red);
+  box-shadow: inset 0 0 0 1px var(--red);
+}
+
+.rr-suggested:not(.rr-pick) {
+  border-style: dashed;
+  border-color: var(--red-dim);
+}
+
+.rr-meta,
+.rr-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.rr-note {
+  color: var(--text);
+}
+
+.rr-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.rr-marks .cx-pick {
+  min-height: 32px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* Sell it well (#59): the photos a buyer wants. */
+.sell-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.sell-shot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--plate-2);
+  cursor: pointer;
+}
+
+.sell-shot input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.sell-shot:focus-within {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
+.sell-done {
+  border-style: solid;
+  border-color: var(--red);
+}
+
+.sell-shot img,
+.sell-empty {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
+.sell-empty {
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+  font-size: 28px;
+}
+
+.sell-label {
+  font-size: 12px;
+  text-align: center;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+.sell-draft {
+  margin: 8px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--plate-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Zone System meter (#60). */
+.zn-stage .neg-canvas {
+  cursor: crosshair;
+}
+
+.zn-dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #000;
+  pointer-events: none;
+}
+
+.zn-dot-placed {
+  border-color: var(--red);
+}
+
+/* See it on film (#61): before and after, split by a line. */
+.of-compare {
+  position: relative;
+  margin: 12px 0;
+  border-radius: var(--radius);
+  background: #000;
+  overflow: hidden;
+}
+
+.of-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.of-before {
+  position: absolute;
+  inset: 0;
+}
+
+.of-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.of-tag {
+  position: absolute;
+  top: 8px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.of-tag-left {
+  left: 8px;
+}
+
+.of-tag-right {
+  right: 8px;
+}
+
+/* Camera birthdays (#63). */
+.bd-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--red-dim);
+  border-radius: var(--radius);
+  background: var(--red-soft);
+}
+
+.bd-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  width: 100%;
+}
+
+.bd-row p {
+  flex: 1 1 200px;
+  margin: 0;
+}
+
+/* Large text (#64): every page a size larger. Sizes here are in px, so zoom scales them all together. */
+html.big-text .tool-stage,
+html.big-text .menu-body {
+  zoom: 1.18;
+}

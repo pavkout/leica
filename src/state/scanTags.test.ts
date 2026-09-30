@@ -18,3 +18,13 @@ describe("scan tags", () => {
     expect(f.description).toBe("ISO 1600");
   });
 });
+
+describe("locations from routes", () => {
+  it("places a frame where the phone was when it was logged", () => {
+    const t = Date.parse(e.takenAt);
+    const tracks = [{ id: "r", startedAt: t - 60_000, points: [{ t: t - 60_000, lat: 38.7, lon: -9.14 }, { t: t + 60_000, lat: 38.71, lon: -9.13 }] }];
+    const f = fieldsFor(e, "", tracks);
+    expect(f.gps!.lat).toBeCloseTo(38.705, 5);
+    expect(fieldsFor(e, "", []).gps).toBeUndefined();
+  });
+});

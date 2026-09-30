@@ -9,6 +9,7 @@ import sn from "./ja.sn";
 import mu from "./ja.mu";
 import film from "./ja.film";
 import kit from "./ja.kit";
+import more from "./ja.more";
 
 const ja: Dict = {
   ...tools,
@@ -21,6 +22,7 @@ const ja: Dict = {
   ...mu,
   ...film,
   ...kit,
+  ...more,
   "common.close": "閉じる",
   "common.back": "戻る",
   "common.save": "保存",

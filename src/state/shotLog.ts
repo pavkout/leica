@@ -22,7 +22,14 @@ export interface LogEntry {
   note?: string;
   /** A small JPEG of the scan, once it's back from the lab. */
   scan?: string;
+  /** Roll review (#58): the photographer's keeper. */
+  pick?: boolean;
+  /** Roll review: what went wrong, if anything. */
+  issue?: FrameIssue;
 }
+
+export type FrameIssue = "focus" | "blur" | "under" | "over";
+export const FRAME_ISSUES: FrameIssue[] = ["focus", "blur", "under", "over"];
 
 export type NewEntry = Omit<LogEntry, "id" | "frame" | "takenAt"> & { takenAt?: string };
 

@@ -21,12 +21,15 @@ export interface ExifSettings {
   subjectDistanceM?: number;
   /** "YYYY:MM:DD HH:MM:SS", as written by the camera. */
   takenAt?: string;
+  /** Decimal degrees, when the file carries a position. */
+  gps?: { lat: number; lon: number };
 }
 
 const TAGS = {
   make: 0x010f,
   model: 0x0110,
   exifPointer: 0x8769,
+  gpsPointer: 0x8825,
   exposureTime: 0x829a,
   fNumber: 0x829d,
   iso: 0x8827,
@@ -134,6 +137,26 @@ function parseTiff(view: DataView, tiff: number): ExifSettings {
     subjectDistanceM: num(TAGS.subjectDistance),
     takenAt: ascii(view, tiff, exif.get(TAGS.takenAt)),
   };
+  const gpsAt = number(view, tiff, ifd0.get(TAGS.gpsPointer), little);
+  if (gpsAt) {
+    const g = readIfd(view, tiff, gpsAt, little);
+    const coord = (tag: number, refTag: number) => {
+      const e = g.get(tag);
+      if (!e || e.type !== 5 || e.count < 3) return undefined;
+      const r = (i: number) => {
+        const p = tiff + e.at + i * 8;
+        if (p + 8 > view.byteLength) return NaN;
+        const den = view.getUint32(p + 4, little);
+        return den ? view.getUint32(p, little) / den : NaN;
+      };
+      const v = r(0) + r(1) / 60 + r(2) / 3600;
+      const ref = ascii(view, tiff, g.get(refTag));
+      return Number.isFinite(v) ? (ref === "S" || ref === "W" ? -v : v) : undefined;
+    };
+    const lat = coord(0x0002, 0x0001);
+    const lon = coord(0x0004, 0x0003);
+    if (lat !== undefined && lon !== undefined) out.gps = { lat, lon };
+  }
   // Zero means "unknown" for these tags.
   for (const k of ["fNumber", "shutterSec", "iso", "focalMm", "focal35Mm", "subjectDistanceM"] as const) if (!out[k]) delete out[k];
   for (const k of Object.keys(out) as (keyof ExifSettings)[]) if (out[k] === undefined) delete out[k];

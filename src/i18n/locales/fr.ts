@@ -9,6 +9,7 @@ import sn from "./fr.sn";
 import mu from "./fr.mu";
 import film from "./fr.film";
 import kit from "./fr.kit";
+import more from "./fr.more";
 
 const fr: Dict = {
   ...tools,
@@ -21,6 +22,7 @@ const fr: Dict = {
   ...mu,
   ...film,
   ...kit,
+  ...more,
   "common.close": "Fermer",
   "common.back": "Retour",
   "common.save": "Enregistrer",

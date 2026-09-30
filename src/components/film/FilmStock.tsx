@@ -23,6 +23,7 @@ import {
   type StockItem,
 } from "../../state/filmStock";
 import { getFilmStock, saveFilmStock, useFilmStock } from "../../state/filmStockStore";
+import BackupReminder from "../BackupReminder";
 
 const FILMS = FILM_STOCKS.filter((f) => f.kind !== "digital");
 
@@ -65,6 +66,7 @@ export default function FilmStock() {
           {note}
         </p>
       )}
+      <BackupReminder />
       <p className="cx-summary">
         {t("fs.summary", {
           loaded: tn("fs.rollsInCameras", loaded.length),

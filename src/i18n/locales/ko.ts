@@ -9,6 +9,7 @@ import sn from "./ko.sn";
 import mu from "./ko.mu";
 import film from "./ko.film";
 import kit from "./ko.kit";
+import more from "./ko.more";
 
 const ko: Dict = {
   ...tools,
@@ -21,6 +22,7 @@ const ko: Dict = {
   ...mu,
   ...film,
   ...kit,
+  ...more,
   "common.close": "닫기",
   "common.back": "뒤로",
   "common.save": "저장",

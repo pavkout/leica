@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { t, tn, useLang } from "../../i18n";
+import { langTag, t, tn, useLang } from "../../i18n";
 import { getString, setString } from "../../services/persistence";
 import { rollsOf } from "../../state/shotLog";
 import { useShotLog } from "../../state/shotLogStore";
 import { writeExif } from "../../utils/exifWrite";
 import { fieldsFor } from "../../state/scanTags";
+import { locate } from "../../state/track";
+import { deleteRoute, startRoute, stopRoute, useTracks } from "../../state/trackStore";
 import { formatFNumber } from "../../utils/format";
 import { formatShutter } from "../../data/gear";
 import { downloadBlob } from "../collector/passportCard";
@@ -19,6 +21,8 @@ const ARTIST_KEY = "rangefinder-artist";
 export default function TagScans() {
   useLang();
   const { log } = useShotLog();
+  const { tracks, recording } = useTracks();
+  const [useGps, setUseGps] = useState(true);
   const rolls = rollsOf(log);
   const [roll, setRoll] = useState(rolls[rolls.length - 1] ?? "");
   const [files, setFiles] = useState<File[]>([]);
@@ -38,7 +42,7 @@ export default function TagScans() {
     for (const { file, entry } of pairs) {
       if (!entry) continue;
       try {
-        const bytes = writeExif(await file.arrayBuffer(), fieldsFor(entry, artist));
+        const bytes = writeExif(await file.arrayBuffer(), fieldsFor(entry, artist, useGps ? tracks : []));
         out.push(new File([bytes], file.name, { type: "image/jpeg" }));
       } catch {
         skipped++;
@@ -66,6 +70,7 @@ export default function TagScans() {
             {t("walk.toShotLog")}
           </a>
         </div>
+        <Routes tracks={tracks} recording={recording} />
       </section>
     );
 
@@ -105,6 +110,7 @@ export default function TagScans() {
                     <th>{t("tag.file")}</th>
                     <th>{t("tag.frame")}</th>
                     <th>{t("tag.settings")}</th>
+                    <th>{t("tag.place")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -113,11 +119,15 @@ export default function TagScans() {
                       <td className="tag-file">{file.name}</td>
                       <td>{entry ? entry.frame : "—"}</td>
                       <td>{entry ? `${formatFNumber(entry.fNumber)} · ${formatShutter(entry.shutterSec)} · ${entry.film}` : t("tag.noFrame")}</td>
+                      <td>{entry && useGps && locate(tracks, Date.parse(entry.takenAt)) ? "✓" : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            <label className="cx-check">
+              <input type="checkbox" checked={useGps} onChange={(e) => setUseGps(e.target.checked)} /> {t("tag.addPlaces")}
+            </label>
             <label className="field cx-narrow">
               <span>
                 {t("tag.artist")} ({t("common.optional")})
@@ -138,6 +148,46 @@ export default function TagScans() {
           </li>
         )}
       </ol>
+      <Routes tracks={tracks} recording={recording} />
     </section>
+  );
+}
+
+function Routes({ tracks, recording }: { tracks: ReturnType<typeof useTracks>["tracks"]; recording: string | null }) {
+  const fmt = (ms: number) => new Intl.DateTimeFormat(langTag(), { dateStyle: "medium", timeStyle: "short" }).format(new Date(ms));
+  const [failed, setFailed] = useState(false);
+  return (
+    <div className="cx-block">
+      <h2 className="pp-h3">{t("tag.routes")}</h2>
+      <p className="cx-quiet">{t("tag.routesHint")}</p>
+      <div className="cx-actions">
+        {recording ? (
+          <button type="button" className="btn btn-red" onClick={stopRoute}>
+            {t("tag.stopRoute")}
+          </button>
+        ) : (
+          <button type="button" className="btn" onClick={() => setFailed(!startRoute())}>
+            {t("tag.startRoute")}
+          </button>
+        )}
+      </div>
+      {recording && <p className="cx-tip">{t("tag.recording")}</p>}
+      {failed && <p className="cx-problem">{t("tag.noLocation")}</p>}
+      {tracks.length > 0 && (
+        <ul className="fs-list">
+          {[...tracks].reverse().map((tr) => (
+            <li key={tr.id}>
+              <span className="fs-name">{fmt(tr.startedAt)}</span>
+              <span className="cx-quiet">{tn("tag.fixes", tr.points.length)}</span>
+              {tr.id !== recording && (
+                <button type="button" className="cx-link" onClick={() => deleteRoute(tr.id)}>
+                  {t("common.remove")}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

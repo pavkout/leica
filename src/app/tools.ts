@@ -79,7 +79,12 @@ export type ToolId =
   | "printing"
   | "calcs"
   | "feedback"
-  | "care";
+  | "care"
+  | "backup"
+  | "review"
+  | "sell"
+  | "zones"
+  | "onfilm";
 
 export interface Tool {
   id: ToolId;
@@ -123,6 +128,7 @@ export const TOOLS: Tool[] = [
   { id: "calcs", mode: "shoot", label: "Exposure calculators", blurb: "Long exposures through ND filters with your film's reciprocity correction, and flash by guide number.", stages: ["stage-calcs"] },
   { id: "sun", mode: "shoot", label: "Sun finder", blurb: "Where the sun will be at any time, on a compass or over your camera view, and what the clouds mean for the golden hours.", stages: ["stage-sun"] },
   { id: "travel", mode: "shoot", label: "Travel kit", blurb: "The airport card asking for a hand check of your film, in the local language; a packing list; and proof of ownership for customs.", stages: ["stage-travel"] },
+  { id: "zones", mode: "shoot", label: "Zone System meter", blurb: "Place a shadow on Zone III, see every tone's zone, and get the exposure and development, Ansel Adams' way.", stages: ["stage-zones"] },
   { id: "light", mode: "shoot", label: "Light planner", blurb: "When the light is good today, and what to set for it.", stages: ["stage-light"] },
   { id: "zone", mode: "shoot", label: "Zone coach", blurb: "Big, glanceable zone focus for a walk: what to set and what's sharp.", stages: ["stage-zone"] },
   { id: "shotlog", mode: "shoot", label: "Shot log", blurb: "Note every frame on your real camera; match the scans when they're back.", stages: ["stage-shotlog"] },
@@ -134,6 +140,8 @@ export const TOOLS: Tool[] = [
   { id: "negative", mode: "film", label: "Negative viewer", blurb: "Point your phone at a negative and see the positive, live. Or make this screen the light table.", stages: ["stage-negative"] },
   { id: "printing", mode: "film", label: "Printing", blurb: "An enlarger timer that runs your test strip, print-size changes, and chemistry you can count.", stages: ["stage-printing"] },
   { id: "tagscans", mode: "film", label: "Tag your scans", blurb: "Write each frame's camera, lens, settings and film from the Shot log into your scans, for Lightroom and photo apps.", stages: ["stage-tagscans"] },
+  { id: "review", mode: "film", label: "Roll review", blurb: "A roll's contact sheet: mark the keepers and what went wrong, and see your patterns across every roll.", stages: ["stage-review"] },
+  { id: "onfilm", mode: "film", label: "See it on film", blurb: "One of your own photos through each film's look, side by side with the original.", stages: ["stage-onfilm"] },
   { id: "today", mode: "explore", label: "Today in the museum", blurb: "One camera or lens a day, with its history.", stages: ["stage-today"] },
   { id: "famous", mode: "explore", label: "Famous frames", blurb: "Pictures made with a Leica, the gear behind them, and the lens to try.", stages: ["stage-famous"] },
   { id: "camera3d", mode: "explore", label: "Virtual camera", blurb: "Turn the rings and dials on a 3D camera.", stages: ["stage-camera3d"] },
@@ -150,6 +158,8 @@ export const TOOLS: Tool[] = [
   { id: "passport", mode: "collect", label: "Camera passport", blurb: "Your camera's life story: where it came from, every service, its condition. Hand it to the next owner when you sell.", stages: ["stage-passport"] },
   { id: "health", mode: "collect", label: "Camera health check", blurb: "Test a real camera with your phone: shutter speeds by sound, then a guided check of everything else.", stages: ["stage-health"] },
   { id: "care", mode: "collect", label: "Manuals and care", blurb: "Each camera's manual, when it was last serviced, your workshops, and the habits that keep old cameras working.", stages: ["stage-care"] },
+  { id: "backup", mode: "collect", label: "Backup and restore", blurb: "Everything the app keeps on this phone, in one file you can store safely, and put back on a new device.", stages: ["stage-backup"] },
+  { id: "sell", mode: "collect", label: "Sell it well", blurb: "The photos a buyer wants, an honest condition description, and a listing drafted from its record and passport.", stages: ["stage-sell"] },
   { id: "identify", mode: "collect", label: "What is this?", blurb: "Take a photo of a camera or lens. We'll tell you what it is and read its serial number.", stages: ["stage-identify"] },
   { id: "listing", mode: "collect", label: "Before you buy", blurb: "Paste a link to something for sale. We'll check it and compare the price.", stages: ["stage-listing"] },
   { id: "serial", mode: "collect", label: "Serial numbers", blurb: "Type a serial number: which camera it is, or when your lens was made.", stages: ["stage-serial"] },

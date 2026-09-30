@@ -25,7 +25,7 @@ export function loadAiSettings(): AiSettings {
     raw = {};
   }
   const perAction: Partial<Record<AiAction, ModelId>> = {};
-  for (const a of ["photo", "listing", "value", "critique"] as const) if (isModel(raw.perAction?.[a])) perAction[a] = raw.perAction![a];
+  for (const a of ["photo", "listing", "value", "critique", "review", "condition"] as const) if (isModel(raw.perAction?.[a])) perAction[a] = raw.perAction![a];
   const limit = typeof raw.monthlyLimitUsd === "number" && raw.monthlyLimitUsd > 0 ? raw.monthlyLimitUsd : null;
   return { key: getString(SECRET) || null, model: isModel(raw.model) ? raw.model : DEFAULT_MODEL, perAction, monthlyLimitUsd: limit };
 }

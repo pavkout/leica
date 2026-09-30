@@ -11,6 +11,8 @@ import BodyArt from "./gear/BodyArt";
 import GearImage from "./gear/GearImage";
 import LensArt from "./gear/LensArt";
 import { langTag, t, tn } from "../i18n";
+import BackupReminder from "./BackupReminder";
+import BirthdayBanner from "./collector/BirthdayBanner";
 
 
 function download(name: string, text: string) {
@@ -135,6 +137,8 @@ export default function Collection() {
         </p>
       )}
 
+      <BirthdayBanner items={items} />
+      <BackupReminder />
       <p className="cx-summary">{items.length ? t("col.youHave", { list: counted(items) }) : t("col.empty")}</p>
 
       <div className="cx-add">

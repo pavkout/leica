@@ -80,3 +80,14 @@ describe("record stores", () => {
     expect(await loadRecords("passports")).toEqual([{ itemId: "b", n: 3 }]);
   });
 });
+
+describe("backups of the stores", () => {
+  it("dumps and replaces any store", async () => {
+    const { dumpStore, replaceStore, ALL_STORES } = await import("./db");
+    expect(ALL_STORES).toEqual(expect.arrayContaining(["filmFrames", "digitalFrames", "passports", "labWork"]));
+    await replaceStore("labWork", [{ id: "x", passed: true }]);
+    expect(await dumpStore("labWork")).toEqual([{ id: "x", passed: true }]);
+    await replaceStore("labWork", []);
+    expect(await dumpStore("labWork")).toEqual([]);
+  });
+});

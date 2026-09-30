@@ -3,6 +3,7 @@ import { t, useLang } from "../../i18n";
 import { adjustStops, mix, newSizeTime, parseDilution, stripIncrements, testStripTimes } from "../../physics/printing";
 import { getString, setString } from "../../services/persistence";
 import { playTone, unlockTones } from "../../services/cueTone";
+import { speak } from "../../services/speech";
 import { setSafelight, useSafelight } from "../../state/safelight";
 import { useWakeLock } from "../../utils/useWakeLock";
 
@@ -75,6 +76,7 @@ function Enlarger() {
     if (running && left <= 0 && !done.current) {
       done.current = true;
       playTone(index + 1 >= exposures.length ? "done" : "next");
+      speak(index + 1 >= exposures.length ? t("pr.say.done") : t("pr.say.next"));
       setRunning(null);
       setIndex((i) => i + 1);
     }

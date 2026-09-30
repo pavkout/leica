@@ -11,8 +11,8 @@ import type { CollectionItem } from "../../state/collection";
 import { aiError, describeApiError } from "./errors";
 import type { PreparedImage } from "./image";
 import { actualCost, type AiAction, type ModelId } from "./pricing";
-import { CRITIQUE_SCHEMA, LISTING_SCHEMA, PHOTO_SCHEMA, PRICE_SCHEMA, parseCritique, parseListingReport, parsePhotoReading, parsePriceSuggestion, type Critique, type ListingReport, type PhotoReading, type PriceSuggestion } from "./schemas";
-import { CRITIQUE_SYSTEM, LISTING_SYSTEM, PHOTO_PROMPT, PHOTO_SYSTEM, VALUE_SYSTEM, critiquePrompt, listingPrompt, valuePrompt } from "./prompts";
+import { CONDITION_SCHEMA, ROLL_SCHEMA, parseCondition, parseRollSuggestion, type ConditionReport, type RollSuggestion, CRITIQUE_SCHEMA, LISTING_SCHEMA, PHOTO_SCHEMA, PRICE_SCHEMA, parseCritique, parseListingReport, parsePhotoReading, parsePriceSuggestion, type Critique, type ListingReport, type PhotoReading, type PriceSuggestion } from "./schemas";
+import { CONDITION_SYSTEM, ROLL_SYSTEM, CRITIQUE_SYSTEM, LISTING_SYSTEM, PHOTO_PROMPT, PHOTO_SYSTEM, VALUE_SYSTEM, critiquePrompt, listingPrompt, valuePrompt } from "./prompts";
 import { recordSpend } from "./spendLog";
 import { getLang, languageOf } from "../../i18n";
 
@@ -230,4 +230,31 @@ export async function critiquePhoto(key: string | null, model: ModelId, image: P
   const critique = parseCritique(firstJsonText(res));
   if (!critique) throw aiError("unreadable");
   return { critique, cost };
+}
+
+/** Suggested keepers for a roll (#58): small copies of its frames, each with its number and settings. */
+export async function reviewRoll(key: string | null, model: ModelId, frames: { frame: number; base64: string; settings: string }[]): Promise<{ suggestion: RollSuggestion; cost: RunCost }> {
+  const cost = newCost();
+  const content: ContentBlockParam[] = frames.flatMap((f): ContentBlockParam[] => [
+    { type: "text", text: `Frame ${f.frame}: ${f.settings}` },
+    { type: "image", source: { type: "base64", media_type: "image/jpeg", data: f.base64 } },
+  ]);
+  content.push({ type: "text", text: "Which frames are the keepers, and what should I know about this roll?" });
+  const res = await send(key, "review", { model, max_tokens: 4000, system: inReadersLanguage(ROLL_SYSTEM), messages: [{ role: "user", content }], output_config: { ...effortFor(model), format: { type: "json_schema", schema: ROLL_SCHEMA } } }, cost);
+  const suggestion = parseRollSuggestion(firstJsonText(res), frames.map((f) => f.frame));
+  if (!suggestion) throw aiError("unreadable");
+  return { suggestion, cost };
+}
+
+/** A factual condition description from a seller's photos (#59): observations, never a grade. */
+export async function describeCondition(key: string | null, model: ModelId, images: PreparedImage[], item: string): Promise<{ report: ConditionReport; cost: RunCost }> {
+  const cost = newCost();
+  const content: ContentBlockParam[] = [
+    ...images.map((img): ContentBlockParam => ({ type: "image", source: { type: "base64", media_type: img.mediaType, data: img.base64 } })),
+    { type: "text", text: `Describe the visible condition of this item: ${item}.` },
+  ];
+  const res = await send(key, "condition", { model, max_tokens: 3000, system: inReadersLanguage(CONDITION_SYSTEM), messages: [{ role: "user", content }], output_config: { ...effortFor(model), format: { type: "json_schema", schema: CONDITION_SCHEMA } } }, cost);
+  const report = parseCondition(firstJsonText(res));
+  if (!report) throw aiError("unreadable");
+  return { report, cost };
 }

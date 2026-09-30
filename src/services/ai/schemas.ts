@@ -200,3 +200,54 @@ export function parseCritique(x: unknown): Critique | null {
   if (typeof x.summary !== "string" || typeof x.tryNext !== "string" || !strengths || !improvements || !sOrNull(x.exposure) || !sOrNull(x.focus) || !sOrNull(x.composition)) return null;
   return { summary: x.summary.trim(), strengths, improvements, exposure: clean(x.exposure), focus: clean(x.focus), composition: clean(x.composition), tryNext: x.tryNext.trim() };
 }
+
+export interface RollSuggestion {
+  overall: string;
+  picks: number[];
+  notes: { frame: number; note: string }[];
+}
+
+export const ROLL_SCHEMA = obj({
+  overall: str,
+  picks: { type: "array", items: { type: "integer" } },
+  notes: { type: "array", items: obj({ frame: { type: "integer" }, note: str }) },
+});
+
+/** Picks and notes only for frames that were sent. */
+export function parseRollSuggestion(x: unknown, frames: number[]): RollSuggestion | null {
+  if (!isRec(x) || typeof x.overall !== "string" || !Array.isArray(x.picks) || !Array.isArray(x.notes)) return null;
+  const known = new Set(frames);
+  const picks = [...new Set((x.picks as unknown[]).filter((p): p is number => typeof p === "number" && known.has(p)))];
+  const notes: { frame: number; note: string }[] = [];
+  for (const n of x.notes as unknown[]) {
+    if (!isRec(n) || typeof n.frame !== "number" || typeof n.note !== "string") return null;
+    if (known.has(n.frame) && n.note.trim()) notes.push({ frame: n.frame, note: n.note.trim() });
+  }
+  return { overall: x.overall.trim(), picks, notes };
+}
+
+export interface ConditionReport {
+  summary: string;
+  cosmetic: string[];
+  glass: string | null;
+  mechanical: string[];
+  notVisible: string[];
+}
+
+export const CONDITION_SCHEMA = obj({
+  summary: str,
+  cosmetic: { type: "array", items: str },
+  glass: nullable(str),
+  mechanical: { type: "array", items: str },
+  notVisible: { type: "array", items: str },
+});
+
+export function parseCondition(x: unknown): ConditionReport | null {
+  if (!isRec(x)) return null;
+  const list = (v: unknown) => (Array.isArray(v) && v.every((e) => typeof e === "string") ? (v as string[]).map((e) => e.trim()).filter(Boolean).slice(0, 8) : null);
+  const cosmetic = list(x.cosmetic);
+  const mechanical = list(x.mechanical);
+  const notVisible = list(x.notVisible);
+  if (typeof x.summary !== "string" || !cosmetic || !mechanical || !notVisible || !sOrNull(x.glass)) return null;
+  return { summary: x.summary.trim(), cosmetic, glass: clean(x.glass), mechanical, notVisible };
+}

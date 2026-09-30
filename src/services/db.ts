@@ -138,3 +138,32 @@ export async function deleteRecord(store: RecordStore, key: string): Promise<boo
     return false;
   }
 }
+
+/** Every store the app keeps, for backups (#56). */
+export const ALL_STORES = [...Object.values(STORE_NAMES), ...Object.keys(RECORD_STORES)];
+
+/** All records of one store (any kind); empty when storage is unavailable. */
+export async function dumpStore(name: string): Promise<unknown[]> {
+  try {
+    return await withNamedStore<unknown[]>(name, "readonly", (s) => s.getAll() as IDBRequest<unknown[]>);
+  } catch {
+    return [];
+  }
+}
+
+/** Replaces a store's records with these (restoring a backup). */
+export async function replaceStore(name: string, records: unknown[]): Promise<boolean> {
+  try {
+    const db = await openDb();
+    return await new Promise<boolean>((resolve, reject) => {
+      const tx = db.transaction(name, "readwrite");
+      const store = tx.objectStore(name);
+      store.clear();
+      for (const r of records) store.put(r);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error ?? new Error("IndexedDB transaction failed"));
+    });
+  } catch {
+    return false;
+  }
+}

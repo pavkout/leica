@@ -59,3 +59,17 @@ describe("writing EXIF into a scan", () => {
     expect(exifDate(new Date(2026, 8, 30, 10, 12, 5).toISOString())).toBe("2026:09:30 10:12:05");
   });
 });
+
+describe("GPS", () => {
+  it("writes a position the reader and other tools can read back", () => {
+    const out = writeExif(jpeg(), { model: "M6", gps: { lat: 38.71385, lon: -9.13942 } });
+    const r = readExif(out.buffer);
+    expect(r.gps!.lat).toBeCloseTo(38.71385, 5);
+    expect(r.gps!.lon).toBeCloseTo(-9.13942, 5);
+    expect(r.model).toBe("M6");
+  });
+  it("gives south and west as negatives", () => {
+    const out = writeExif(jpeg(), { gps: { lat: -33.8688, lon: 151.2093 } });
+    expect(readExif(out.buffer).gps!.lat).toBeCloseTo(-33.8688, 4);
+  });
+});

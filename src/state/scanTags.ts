@@ -4,9 +4,10 @@ import { LENSES } from "../data/gear";
 import { FILM_STOCKS } from "../preview/film";
 import { exifDate, type ExifFields } from "../utils/exifWrite";
 import type { LogEntry } from "./shotLog";
+import { locate, type Track } from "./track";
 
 /** What the shot log knows, as EXIF. */
-export function fieldsFor(e: LogEntry, artist: string): ExifFields {
+export function fieldsFor(e: LogEntry, artist: string, tracks: Track[] = []): ExifFields {
   const lens = LENSES.find((l) => l.name === e.lens);
   const isoFromName = /ISO\s*(\d+)/i.exec(e.film)?.[1];
   const film = FILM_STOCKS.find((f) => f.name === e.film);
@@ -22,6 +23,7 @@ export function fieldsFor(e: LogEntry, artist: string): ExifFields {
     takenAt: exifDate(e.takenAt),
     description: description || undefined,
     artist: artist.trim() || undefined,
+    gps: locate(tracks, Date.parse(e.takenAt)) ?? undefined,
   };
 }
 

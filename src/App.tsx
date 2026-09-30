@@ -51,6 +51,8 @@ import { useRoute } from "./components/app/useRoute";
 import { TOOLS, findTool, toolForStage, toolsFor, type Tool, type ToolId } from "./app/tools";
 import { parseKiosk } from "./state/kiosk";
 import { setSafelight, useSafelight } from "./state/safelight";
+import { setBigText, useBigText } from "./state/bigText";
+import { canSpeak, setSpokenCues, useSpokenCues } from "./services/speech";
 import { describeRecord, parseRecord, type DevelopmentRecord } from "./physics/darkroom";
 import { bodyForLens, type TimelineItem } from "./data/timeline";
 import PerspectiveLab from "./components/PerspectiveLab";
@@ -87,6 +89,11 @@ const SunFinder = lazy(() => import("./components/SunFinder"));
 const TravelKit = lazy(() => import("./components/TravelKit"));
 const PhotoFeedback = lazy(() => import("./components/PhotoFeedback"));
 const CameraCare = lazy(() => import("./components/collector/CameraCare"));
+const BackupPage = lazy(() => import("./components/BackupPage"));
+const RollReview = lazy(() => import("./components/film/RollReview"));
+const SellItWell = lazy(() => import("./components/collector/SellItWell"));
+const ZoneMeter = lazy(() => import("./components/ZoneMeter"));
+const OnFilm = lazy(() => import("./components/film/OnFilm"));
 // The museum (#39) is its own full-screen world, loaded only when it's opened.
 const Museum = lazy(() => import("./museum/ui/Museum"));
 import RangefinderCheck from "./components/RangefinderCheck";
@@ -319,6 +326,8 @@ export default function App() {
   const [muted, setMutedState] = useState(isMuted);
   const [haptics, setHapticsState] = useState(hapticsEnabled);
   const safelight = useSafelight();
+  const bigText = useBigText();
+  const spoken = useSpokenCues();
   const [rollFrames, setRollFrames] = useState<Frame[]>([]);
   const [devRecord, setDevRecordState] = useState<DevelopmentRecord | null>(() => parseRecord(getString(DEV_RECORD_KEY)));
   function setDevRecord(r: DevelopmentRecord | null) {
@@ -1484,6 +1493,11 @@ export default function App() {
     travel: <TravelKit />,
     feedback: <PhotoFeedback />,
     care: <CameraCare />,
+    backup: <BackupPage />,
+    review: <RollReview />,
+    sell: <SellItWell />,
+    zones: <ZoneMeter />,
+    onfilm: <OnFilm />,
     matcher: (
       <WhichLeica
         onTry={(bodyId, lensId) => {
@@ -1833,6 +1847,8 @@ export default function App() {
               value: safelight ? t("common.on") : t("common.off"),
               onActivate: () => setSafelight(!safelight),
             },
+            { id: "bigtext", label: t("setup.bigText"), value: bigText ? t("common.on") : t("common.off"), onActivate: () => setBigText(!bigText) },
+            ...(canSpeak() ? [{ id: "spoken", label: t("setup.spoken"), value: spoken ? t("common.on") : t("common.off"), onActivate: () => setSpokenCues(!spoken) }] : []),
             {
               id: "camera",
               label: t("setup.camera"),
@@ -1844,6 +1860,7 @@ export default function App() {
               },
             },
             { id: "tour", label: t("setup.tour"), value: t("common.start"), onActivate: startDemo },
+            { id: "backup", label: t("tool.backup"), value: t("tool.backup.blurb"), onActivate: () => goTool("backup") },
             // The sign-in gate runs on the host (middleware.ts), so there's nothing to sign out of in development.
             ...(import.meta.env.PROD ? [{ id: "signout", label: t("setup.signout"), value: t("setup.signout.detail"), onActivate: () => location.assign("/logout") }] : []),
           ]}

@@ -133,7 +133,7 @@ Development phases are separate roadmap milestones: Phase 0, Phase 1, Phase 2, P
 
 A Priority 1 feature is not automatically part of Phase 1. A Priority 2 feature is not automatically part of Phase 2. Feature completion must be determined from `PROJECT_STATUS.md` and the explicit milestone sections of this Master Plan.
 
-## Feature implementation briefs (1–55)
+## Feature implementation briefs (1–64)
 
 ### 1. Live Leica View  — Priority 1
 **Goal:** Turn the phone into a live shooting companion that overlays the selected Leica body/lens behavior on the real camera feed. The goal is not to pretend the phone is optically identical to the Leica; it is to help the photographer make a better decision before exposing film or pressing the shutter.
@@ -1057,6 +1057,32 @@ Added 2026-09-30 at the user's request ("do 1–10"). A new mode, **Film & darkr
   - General care habits, labelled as such.
 
 Shared requirements: everything is kept on the device, works at phone width, and is translated in every language.
+
+### 56–64. Keeping, reviewing and selling  — Priority 2
+Added 2026-09-30 at the user's request ("do 1–9").
+
+- **56. Backup and restore** (Collectors)
+  - Everything the app keeps (localStorage and IndexedDB) saved as one file, and restored on this or another device.
+  - The AI key is never written into a backup.
+  - A copy of the current state is downloaded before any restore.
+  - A gentle reminder after 30 days.
+- **57. GPS for film scans** (Film & darkroom): the phone records a route while you shoot; Tag your scans writes each frame's place (EXIF GPS) from the time it was logged. Positions with poor accuracy are dropped, and a frame far from any point stays untagged.
+- **58. Roll review** (Film & darkroom)
+  - A contact sheet: mark keepers and one issue per frame (focus, blur, too dark, too bright), with the keeper rate.
+  - Patterns across rolls grouped by settings, each linked to a Photography Lab exercise.
+  - An optional AI keeper suggestion. The owner's marks always count.
+- **59. Sell it well** (Collectors)
+  - The six photos buyers ask for, and a condition description from the owner and, optionally, the AI (no grades).
+  - A listing drafted from the record, serial facts, service history and passport.
+  - No prices are suggested; a link goes to the listing check.
+- **60. Zone System meter** (Shoot)
+  - Place a measured tone on a zone and read other tones' zones, with a zone-map overlay.
+  - The exposure, and N−2…N+2 development advice from the highlight zone.
+  - Absolute EV from the camera track or the photo's EXIF, otherwise from a chosen light preset (stated).
+- **61. See it on film** (Film & darkroom): the simulator's film looks (curve, colour, tints, grain, halation) ported to a pure CPU module and applied to the owner's photo, with a before/after split, exposure within or past the film's latitude, and saving. Labelled an approximation.
+- **62. Spoken cues** (Setup): the developing and printing timers say their cues in the reader's language (browser speech synthesis); the tones and vibration stay as they are.
+- **63. Camera birthdays** (Collectors): milestone ages this year from the serial-list year (ranges read as "about"), and anniversaries of the acquired date, with a shareable card.
+- **64. Large text** (Setup): the tool pages and the menu one size larger, stored on the device.
 
 ## First production milestone I want you to implement after Phase 0
 

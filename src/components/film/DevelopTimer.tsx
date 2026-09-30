@@ -5,6 +5,7 @@ import { AGITATION_PRESETS, c41Steps, clock, cues, elapsedSec, filmSteps, pause,
 import { FILM_STOCKS } from "../../preview/film";
 import { getString, setString } from "../../services/persistence";
 import { playTone, unlockTones } from "../../services/cueTone";
+import { speak } from "../../services/speech";
 import { setSafelight, useSafelight } from "../../state/safelight";
 import { useWakeLock } from "../../utils/useWakeLock";
 import { MinSec } from "./MinSec";
@@ -280,7 +281,11 @@ function Running({ saved, onStop }: { saved: SavedRun; onStop: () => void }) {
     const passed = cues(steps).filter((c) => c.at > lastCue.current && c.at <= elapsed);
     lastCue.current = elapsed;
     const latest = passed[passed.length - 1];
-    if (latest) playTone(latest.kind);
+    if (!latest) return;
+    playTone(latest.kind);
+    const next = steps[latest.step + 1];
+    if (latest.kind === "next") speak(next ? t(`dev.step.${next.kind}`) : t("dev.say.done"));
+    else speak(t(`dev.say.${latest.kind}`));
   }, [elapsed, steps]);
 
   const step = steps[state.step];

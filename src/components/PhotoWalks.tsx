@@ -5,6 +5,7 @@ import { sunDay } from "../physics/sun";
 import { getString, setString } from "../services/persistence";
 import { THEMES, decodeWalk, nextLight, promptsOf, themeOf, trackMetres, walkFromTheme, walkLink, walkZone, type Walk, type WalkLog } from "../state/walks";
 import { formatFNumber } from "../utils/format";
+import { startRoute, stopRoute } from "../state/trackStore";
 
 const ACTIVE_KEY = "rangefinder-walk-active";
 const LOG_KEY = "rangefinder-walk-log";
@@ -296,6 +297,13 @@ function ActiveWalk({ log, onChange, onFinish }: { log: WalkLog; onChange: (l: W
       .catch(() => undefined);
     return () => void lock?.release();
   }, []);
+
+  // Counting the distance also records the route, for placing the walk's frames on the map later (#57).
+  useEffect(() => {
+    if (gps !== "on") return;
+    startRoute();
+    return () => stopRoute();
+  }, [gps]);
 
   useEffect(() => {
     if (gps !== "on") return;

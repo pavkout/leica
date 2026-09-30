@@ -9,6 +9,7 @@ import sn from "./zh.sn";
 import mu from "./zh.mu";
 import film from "./zh.film";
 import kit from "./zh.kit";
+import more from "./zh.more";
 
 const zh: Dict = {
   ...tools,
@@ -21,6 +22,7 @@ const zh: Dict = {
   ...mu,
   ...film,
   ...kit,
+  ...more,
   "common.close": "关闭",
   "common.back": "返回",
   "common.save": "保存",

@@ -131,3 +131,16 @@ describe("photo feedback", () => {
     restore();
   });
 });
+
+describe("roll review and condition", () => {
+  it("keeps only frames that were sent, and refuses a malformed condition", async () => {
+    const { reviewRoll, describeCondition, setTransport: set } = await import("./aiClient");
+    let restore = set(async () => fakeMessage([textBlock(JSON.stringify({ overall: "Good light.", picks: [3, 99, 3], notes: [{ frame: 3, note: "Lovely timing." }, { frame: 42, note: "?" }] }))]));
+    const out = await reviewRoll("sk-ant-x", "claude-sonnet-5", [{ frame: 3, base64: "AA", settings: "f/8" }, { frame: 4, base64: "AA", settings: "f/2" }]);
+    expect(out.suggestion).toEqual({ overall: "Good light.", picks: [3], notes: [{ frame: 3, note: "Lovely timing." }] });
+    restore();
+    restore = set(async () => fakeMessage([textBlock(JSON.stringify({ summary: "x", cosmetic: "nope" }))]));
+    await expect(describeCondition("sk-ant-x", "claude-sonnet-5", [{ base64: "AA", mediaType: "image/jpeg", dataUrl: "" }], "M6")).rejects.toMatchObject({ kind: "unreadable" });
+    restore();
+  });
+});

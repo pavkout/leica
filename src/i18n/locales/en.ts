@@ -14,6 +14,7 @@ import sn from "./en.sn";
 import mu from "./en.mu";
 import film from "./en.film";
 import kit from "./en.kit";
+import more from "./en.more";
 
 export type Dict = Record<string, string>;
 
@@ -39,6 +40,7 @@ const en: Dict = {
   ...mu,
   ...film,
   ...kit,
+  ...more,
 
   // Shared words.
   "common.close": "Close",
