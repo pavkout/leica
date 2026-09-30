@@ -7,7 +7,7 @@ import { loadSpend, monthTotal } from "../../services/ai/spendLog";
 import { updateAiSettings, useAiSettings } from "../../state/collectorStore";
 import { t } from "../../i18n";
 
-const ACTIONS: AiAction[] = ["photo", "listing", "value"];
+const ACTIONS: AiAction[] = ["photo", "listing", "value", "critique"];
 const LIMITS: (number | null)[] = [5, 10, 25, null];
 const CONSOLE = "https://console.anthropic.com/";
 

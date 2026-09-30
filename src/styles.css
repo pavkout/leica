@@ -10355,3 +10355,425 @@ label.btn-small {
     box-shadow: none !important;
   }
 }
+
+/* ── Film & darkroom (#46–#48, #51, #52) and shoot kits (#49, #50, #53) ── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.cx-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 16px;
+}
+
+.cx-check input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--red);
+}
+
+.dev-plan {
+  margin: 8px 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.dev-plan li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.dev-plan-run .dev-now {
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--red);
+  padding-left: 10px;
+}
+
+.dev-plan-run .dev-past,
+.hc-table .dev-past {
+  color: var(--faint);
+}
+
+.dev-run {
+  text-align: center;
+}
+
+.dev-run .dev-plan,
+.dev-run .cx-actions {
+  text-align: left;
+}
+
+.dev-step {
+  margin: 4px 0 0;
+  font-size: clamp(26px, 7vw, 40px);
+}
+
+.dev-clock {
+  margin: 4px 0 !important;
+  color: var(--chrome);
+  font-family: var(--font-engraving);
+  font-stretch: var(--engrave-stretch);
+  font-size: clamp(72px, 26vw, 160px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.dev-say {
+  margin: 0 0 12px !important;
+  font-size: clamp(20px, 5.5vw, 30px);
+  font-weight: 600;
+}
+
+.dev-agitate .dev-say {
+  color: #fff;
+}
+
+.dev-agitate .dev-clock {
+  color: #fff;
+}
+
+.dev-drain .dev-say {
+  color: var(--red-hover);
+}
+
+.dev-bar {
+  margin: 0 0 16px;
+}
+
+.fs-rolls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: 12px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fs-roll {
+  padding: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--plate-2);
+}
+
+.fs-roll p {
+  margin: 0 0 4px;
+}
+
+.fs-frames .cx-plate-no {
+  display: inline;
+}
+
+.fs-push {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 15px;
+}
+
+.fs-list {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fs-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.fs-list .cx-actions {
+  margin: 0;
+}
+
+.fs-name {
+  flex: 1 1 200px;
+  font-weight: 600;
+}
+
+.fs-exp-warn {
+  color: var(--red-hover);
+  font-size: 15px;
+}
+
+.fs-expired .fs-name {
+  box-shadow: inset 3px 0 0 var(--red);
+  padding-left: 10px;
+}
+
+.fs-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fs-count .cx-pick {
+  min-width: 44px;
+  padding: 0;
+}
+
+.fs-n {
+  min-width: 2ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+}
+
+.neg-stage {
+  position: relative;
+  margin: 12px 0;
+  border-radius: var(--radius);
+  background: #000;
+  overflow: hidden;
+}
+
+.neg-video {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.neg-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+  touch-action: manipulation;
+}
+
+.neg-placeholder {
+  margin: 0 !important;
+  padding: 60px 20px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.neg-light {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: end center;
+  padding-bottom: 24px;
+  background: #fff;
+  color: #999;
+  cursor: pointer;
+}
+
+.pr-timer {
+  margin: 12px 0;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--plate-3);
+  text-align: center;
+}
+
+.pr-timer .dev-clock {
+  font-size: clamp(56px, 18vw, 110px);
+}
+
+.pr-on {
+  box-shadow: inset 0 0 0 2px var(--red);
+}
+
+.tag-file {
+  max-width: 180px;
+  overflow-wrap: anywhere;
+}
+
+.sun-read .cx-plate-no {
+  font-size: 40px;
+}
+
+.sun-slider {
+  width: 100%;
+  accent-color: var(--red);
+}
+
+.sun-compass-wrap {
+  position: relative;
+  margin: 16px auto;
+  max-width: 360px;
+}
+
+.sun-compass {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: transform 120ms linear;
+}
+
+.sun-dir {
+  fill: var(--muted);
+  font-size: 13px;
+  font-family: var(--font-engraving);
+}
+
+.sun-dir-n {
+  fill: var(--red-hover);
+  font-weight: 700;
+}
+
+.sun-facing {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 14px solid var(--red);
+  transform: translateX(-50%);
+}
+
+.sun-legend {
+  text-align: center;
+}
+
+.cx-ok-inline {
+  color: var(--chrome);
+  font-size: 15px;
+}
+
+.sun-ar {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #000;
+}
+
+.sun-ar-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sun-ar-svg {
+  position: absolute;
+  inset: 0;
+}
+
+.sun-ar-label {
+  fill: #fff;
+  font-size: 13px;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.7);
+  stroke-width: 3px;
+}
+
+.sun-ar-bar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: rgba(18, 18, 17, 0.85);
+  color: var(--text);
+}
+
+.sun-ar-bar p {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+}
+
+.xr-card {
+  margin: 16px 0;
+  padding: 24px 20px;
+  border-radius: var(--radius);
+  background: #fff;
+  color: #111;
+}
+
+.xr-icon {
+  margin: 0 0 8px !important;
+  font-size: 28px;
+  letter-spacing: 0.3em;
+}
+
+.xr-main {
+  margin: 0 0 14px !important;
+  font-size: clamp(22px, 6vw, 34px);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.xr-en {
+  margin: 0 !important;
+  color: #444;
+  font-size: 17px;
+}
+
+.xr-full {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  align-content: center;
+  padding: 24px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.xr-full .xr-card {
+  margin: 0;
+  padding: 0;
+}
+
+.xr-full .xr-main {
+  font-size: clamp(30px, 8vw, 56px);
+}
+
+.xr-exit {
+  margin-top: 24px !important;
+  color: #888;
+  text-align: center;
+}
+
+.care-item {
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--plate-2);
+}
+
+.care-item p {
+  margin: 0 0 4px;
+}
+
+.care-habits {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.care-habits li {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.care-habits p {
+  margin: 0 0 4px;
+}

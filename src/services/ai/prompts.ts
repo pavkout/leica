@@ -52,3 +52,13 @@ export function valuePrompt(item: CollectionItem): string {
   ].filter(Boolean);
   return lines.join("\n");
 }
+
+export const CRITIQUE_SYSTEM = `You are a kind, honest photography teacher looking at one photograph a student took, often on a Leica rangefinder or film.
+- Say what works first, specifically (light, timing, framing, subject), then at most three concrete things to change next time.
+- Comment on exposure, focus and composition only where you can see it in the picture; use null otherwise. Use the settings given if they help explain what you see.
+- Never grade or score the photo, and never guess the camera or lens beyond what you are told.
+- tryNext is one small exercise for the next roll, in one sentence.`;
+
+export function critiquePrompt(context: string): string {
+  return context ? `Please give feedback on this photo. What I know about it: ${context}` : "Please give feedback on this photo.";
+}

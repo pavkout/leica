@@ -3,7 +3,7 @@
 // a tool opens on its own page (#/learn/sunny16) so it can be linked. The
 // existing query links (?recipe, ?try, ?demo, ?kiosk) keep working alongside.
 
-export type ModeId = "simulate" | "learn" | "shoot" | "explore" | "collect";
+export type ModeId = "simulate" | "learn" | "shoot" | "film" | "explore" | "collect";
 
 export interface Mode {
   id: ModeId;
@@ -16,6 +16,7 @@ export const MODES: Mode[] = [
   { id: "simulate", label: "Simulate", job: "See what a setting does to the picture." },
   { id: "learn", label: "Learn", job: "Practise the skills a rangefinder asks for." },
   { id: "shoot", label: "Shoot", job: "Take it out with your own camera." },
+  { id: "film", label: "Film & darkroom", job: "Your film stock, developing, printing and scans." },
   { id: "explore", label: "Explore", job: "The cameras, the lenses and their history." },
   { id: "collect", label: "Collectors", job: "Keep track of what you own, and check what you might buy." },
 ];
@@ -68,7 +69,17 @@ export type ToolId =
   | "health"
   | "lab"
   | "walks"
-  | "matcher";
+  | "matcher"
+  | "develop"
+  | "negative"
+  | "filmstock"
+  | "travel"
+  | "sun"
+  | "tagscans"
+  | "printing"
+  | "calcs"
+  | "feedback"
+  | "care";
 
 export interface Tool {
   id: ToolId;
@@ -90,6 +101,7 @@ export const TOOLS: Tool[] = [
 
   { id: "assignment", mode: "learn", label: "Today's assignment", blurb: "One brief a day. Shoot it, hand it in, keep the streak.", stages: ["stage-assignment"] },
   { id: "lab", mode: "learn", label: "Photography Lab", blurb: "A course for your own camera: shoot each exercise, hand in the photo, and see if it did what you meant.", stages: ["stage-lab"] },
+  { id: "feedback", mode: "learn", label: "Photo feedback", blurb: "Show one of your pictures to an AI teacher: what works, what to change, one thing to try next.", stages: ["stage-feedback"] },
   { id: "finder", mode: "learn", label: "Rangefinder focus", blurb: "Merge the two images in the patch, then take the shot.", stages: ["stage-finder"] },
   { id: "finders", mode: "learn", label: "Finders compared", blurb: "The same scene through each M body's viewfinder.", stages: ["stage-finder-compare"] },
   { id: "sunny16", mode: "learn", label: "Sunny 16", blurb: "Guess the exposure without a meter.", stages: ["stage-trainer"] },
@@ -108,12 +120,20 @@ export const TOOLS: Tool[] = [
   { id: "roll", mode: "shoot", label: "Roll", blurb: "Your frames, notes and what they teach you.", stages: ["stage-roll", "stage-insights"] },
   { id: "darkroom", mode: "shoot", label: "Darkroom", blurb: "How development changes a black-and-white roll.", stages: ["stage-darkroom"] },
   { id: "walks", mode: "shoot", label: "Photo walks", blurb: "A theme, one lens set for zone focus, pictures to find and the best light today. Send it to a friend to walk together.", stages: ["stage-walks"] },
+  { id: "calcs", mode: "shoot", label: "Exposure calculators", blurb: "Long exposures through ND filters with your film's reciprocity correction, and flash by guide number.", stages: ["stage-calcs"] },
+  { id: "sun", mode: "shoot", label: "Sun finder", blurb: "Where the sun will be at any time, on a compass or over your camera view, and what the clouds mean for the golden hours.", stages: ["stage-sun"] },
+  { id: "travel", mode: "shoot", label: "Travel kit", blurb: "The airport card asking for a hand check of your film, in the local language; a packing list; and proof of ownership for customs.", stages: ["stage-travel"] },
   { id: "light", mode: "shoot", label: "Light planner", blurb: "When the light is good today, and what to set for it.", stages: ["stage-light"] },
   { id: "zone", mode: "shoot", label: "Zone coach", blurb: "Big, glanceable zone focus for a walk: what to set and what's sharp.", stages: ["stage-zone"] },
   { id: "shotlog", mode: "shoot", label: "Shot log", blurb: "Note every frame on your real camera; match the scans when they're back.", stages: ["stage-shotlog"] },
   { id: "card", mode: "shoot", label: "Pocket card", blurb: "A printable card for your camera bag: zone focus and exposure without a meter.", stages: ["stage-card"] },
   { id: "longexp", mode: "shoot", label: "Long exposure", blurb: "Your camera on a tripod, this screen as the light.", stages: ["stage-longexp"] },
 
+  { id: "filmstock", mode: "film", label: "Film stock", blurb: "The film in your fridge and in each camera: what's loaded, what's left, what's expiring.", stages: ["stage-filmstock"] },
+  { id: "develop", mode: "film", label: "Developing timer", blurb: "The datasheet time for your film and developer, then every step on a clock with agitation cues.", stages: ["stage-develop"] },
+  { id: "negative", mode: "film", label: "Negative viewer", blurb: "Point your phone at a negative and see the positive, live. Or make this screen the light table.", stages: ["stage-negative"] },
+  { id: "printing", mode: "film", label: "Printing", blurb: "An enlarger timer that runs your test strip, print-size changes, and chemistry you can count.", stages: ["stage-printing"] },
+  { id: "tagscans", mode: "film", label: "Tag your scans", blurb: "Write each frame's camera, lens, settings and film from the Shot log into your scans, for Lightroom and photo apps.", stages: ["stage-tagscans"] },
   { id: "today", mode: "explore", label: "Today in the museum", blurb: "One camera or lens a day, with its history.", stages: ["stage-today"] },
   { id: "famous", mode: "explore", label: "Famous frames", blurb: "Pictures made with a Leica, the gear behind them, and the lens to try.", stages: ["stage-famous"] },
   { id: "camera3d", mode: "explore", label: "Virtual camera", blurb: "Turn the rings and dials on a 3D camera.", stages: ["stage-camera3d"] },
@@ -129,13 +149,14 @@ export const TOOLS: Tool[] = [
   { id: "collection", mode: "collect", label: "My collection", blurb: "Every camera, lens and accessory you own, in one place. Printable for insurance.", stages: ["stage-collection"] },
   { id: "passport", mode: "collect", label: "Camera passport", blurb: "Your camera's life story: where it came from, every service, its condition. Hand it to the next owner when you sell.", stages: ["stage-passport"] },
   { id: "health", mode: "collect", label: "Camera health check", blurb: "Test a real camera with your phone: shutter speeds by sound, then a guided check of everything else.", stages: ["stage-health"] },
+  { id: "care", mode: "collect", label: "Manuals and care", blurb: "Each camera's manual, when it was last serviced, your workshops, and the habits that keep old cameras working.", stages: ["stage-care"] },
   { id: "identify", mode: "collect", label: "What is this?", blurb: "Take a photo of a camera or lens. We'll tell you what it is and read its serial number.", stages: ["stage-identify"] },
   { id: "listing", mode: "collect", label: "Before you buy", blurb: "Paste a link to something for sale. We'll check it and compare the price.", stages: ["stage-listing"] },
   { id: "serial", mode: "collect", label: "Serial numbers", blurb: "Type a serial number: which camera it is, or when your lens was made.", stages: ["stage-serial"] },
   { id: "aihelper", mode: "collect", label: "AI helper", blurb: "Turn on the photo and price tools, choose how much to spend, and see what you've spent.", stages: ["stage-aihelper"] },
 ];
 
-export const DEFAULT_TOOL: Record<ModeId, ToolId> = { simulate: "studio", learn: "assignment", shoot: "live", explore: "today", collect: "collection" };
+export const DEFAULT_TOOL: Record<ModeId, ToolId> = { simulate: "studio", learn: "assignment", shoot: "live", film: "filmstock", explore: "today", collect: "collection" };
 
 /** Tools that moved to another mode: their old links still open them. */
 const MOVED: Partial<Record<ModeId, ToolId[]>> = { explore: ["collection", "serial"] };

@@ -133,7 +133,7 @@ Development phases are separate roadmap milestones: Phase 0, Phase 1, Phase 2, P
 
 A Priority 1 feature is not automatically part of Phase 1. A Priority 2 feature is not automatically part of Phase 2. Feature completion must be determined from `PROJECT_STATUS.md` and the explicit milestone sections of this Master Plan.
 
-## Feature implementation briefs (1–45)
+## Feature implementation briefs (1–55)
 
 ### 1. Live Leica View  — Priority 1
 **Goal:** Turn the phone into a live shooting companion that overlays the selected Leica body/lens behavior on the real camera feed. The goal is not to pretend the phone is optically identical to the Leica; it is to help the photographer make a better decision before exposing film or pressing the shutter.
@@ -1015,6 +1015,48 @@ Added 2026-09-30 at the user's request.
 - Only catalogue facts: medium, finder magnification, frame lines, mounts, year, maximum aperture, size, ISO range. Also the documented facts that Q, SL, CL and S focus automatically and that the M11-D has no rear screen.
 - No prices or weights (the catalogue has none); the page says so and points to a dealer.
 - Hand-offs: hold it on the simulator, compare the viewfinders, keep it in My Gear, print it for the shop.
+
+### 46–55. Everyday tools for real shooting  — Priority 2
+Added 2026-09-30 at the user's request ("do 1–10"). A new mode, **Film & darkroom**, holds the film tools.
+
+- **46. Developing timer** (Film & darkroom)
+  - The datasheet's own time for the app's films and developers, or the owner's time.
+  - Kodak, Ilford or stand agitation.
+  - Stop, fix, wash and wetting steps (editable, "check your chemistry"), and C-41 steps.
+  - Run by the wall clock (survives sleep and reload) with sound, vibration, the red screen and the screen kept on.
+- **47. Negative viewer** (Film & darkroom)
+  - The live camera, or a photo, of a colour or black-and-white negative, or a slide, shown as a positive.
+  - Per-channel density and levels; a tap on the clear film edge sets the base.
+  - Freeze and save. A second screen can be the light table.
+  - Labelled a preview, not a scan.
+- **48. Film stock** (Film & darkroom)
+  - The fridge, with expiry warnings (expired, or within three months).
+  - The roll in each camera, with a frame counter and the push or pull.
+  - Rolls to develop, then developed.
+- **49. Travel kit** (Shoot)
+  - The airport "hand-inspect my film" card in 23 languages, beside English.
+  - A packing list built from the chosen gear and film.
+  - A printable proof-of-ownership list with serials. Customs registration is mentioned only as "ask your customs office" (the US form CBP 4457 as the example).
+- **50. Sun finder** (Shoot)
+  - The sun's bearing and height at any time and day (NOAA equations).
+  - A compass that turns with the phone, and the day's path drawn over the live camera.
+  - Sunrise, golden hours and sunset with bearings.
+  - Optional clouds from Open-Meteo (location rounded to about a kilometre), read as a stated rule of thumb.
+- **51. Tag your scans** (Film & darkroom): the Shot log's settings written into JPEG scans' EXIF, matched by file order. The originals are untouched.
+- **52. Printing** (Film & darkroom)
+  - An f-stop test-strip enlarger timer (the covering method) and print-size and f-stop changes.
+  - Dilution mixing, and a chemistry use counter with the owner's own capacity (none is assumed).
+- **53. Exposure calculators** (Shoot)
+  - ND filters, stacked, with each film's published reciprocity correction: Ilford's exponents, Kodak's Tri-X table, Fujifilm's Velvia 50 table, and Kodak Portra and Ektar up to 1 s.
+  - No extrapolation past the last published point.
+  - Flash by guide number.
+- **54. Photo feedback** (Learn): an AI teacher's opinion, never a score, through the AI helper, in the reader's language, using the photo's EXIF.
+- **55. Manuals and care** (Collectors)
+  - Links to Leica's own downloads, repair and contact pages (checked 2026-09-30).
+  - Service status from the passports, and the workshops the owner has named.
+  - General care habits, labelled as such.
+
+Shared requirements: everything is kept on the device, works at phone width, and is translated in every language.
 
 ## First production milestone I want you to implement after Phase 0
 

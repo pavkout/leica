@@ -73,6 +73,7 @@ const d: Dict = {
   "mu.prev": "Pièce précédente",
   "mu.next": "Pièce suivante",
   "mu.nextRoom": "Salle suivante : {room}",
+  "mu.startAgain": "Recommencer : {room}",
   "mu.story": "{title} : l'histoire",
   "mu.backToExhibit": "Retour à la pièce",
   "mu.keyFacts": "Données clés",

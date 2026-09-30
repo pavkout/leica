@@ -10,6 +10,7 @@ const d: Dict = {
   "ai.action.photo": "Identifier une photo",
   "ai.action.listing": "Vérifier une annonce",
   "ai.action.value": "Trouver la valeur",
+  "ai.action.critique": "Avis sur une photo",
   "ai.model.claude-haiku-4-5": "Le moins cher",
   "ai.model.claude-haiku-4-5.note": "Coûte le moins. Peut manquer les petites gravures.",
   "ai.model.claude-sonnet-5": "Recommandé",

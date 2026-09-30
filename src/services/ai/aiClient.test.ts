@@ -117,3 +117,17 @@ describe("the reader's language", () => {
     __setDictForTest("en", en);
   });
 });
+
+describe("photo feedback", () => {
+  it("returns the critique and refuses a malformed one", async () => {
+    const { critiquePhoto, setTransport: set } = await import("./aiClient");
+    const good = { summary: "A quiet street at dusk.", strengths: ["Warm light on the wall"], improvements: ["Level the horizon", "Wait for a figure"], exposure: null, focus: "Sharp on the door.", composition: null, tryNext: "Shoot five frames of one doorway." };
+    let restore = set(async () => fakeMessage([textBlock(JSON.stringify(good))]));
+    const out = await critiquePhoto("sk-ant-x", "claude-sonnet-5", { base64: "AA", mediaType: "image/jpeg", dataUrl: "" }, "f/2, 1/60, HP5");
+    expect(out.critique).toEqual(good);
+    restore();
+    restore = set(async () => fakeMessage([textBlock(JSON.stringify({ summary: 3 }))]));
+    await expect(critiquePhoto("sk-ant-x", "claude-sonnet-5", { base64: "AA", mediaType: "image/jpeg", dataUrl: "" }, "")).rejects.toMatchObject({ kind: "unreadable" });
+    restore();
+  });
+});

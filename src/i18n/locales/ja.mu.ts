@@ -72,6 +72,7 @@ const d: Dict = {
   "mu.prev": "前の展示品",
   "mu.next": "次の展示品",
   "mu.nextRoom": "次の展示室：{room}",
+  "mu.startAgain": "最初から：{room}",
   "mu.story": "{title}：その物語",
   "mu.backToExhibit": "展示品に戻る",
   "mu.keyFacts": "主な仕様",

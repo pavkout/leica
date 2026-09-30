@@ -12,6 +12,7 @@ Last updated: 2026-09-30
 | Phase 3 — “WTF” / 3D Layer | 🟡 IN PROGRESS: all features done; #2 awaits the real-phone check |
 | Phase 4 — Explore / Kiosk / Museum | 🟡 MOSTLY DONE: #20, #23, #34 COMPLETE; #21 PARTIAL (no authored 3D assets). Not formally defined in the Master Plan |
 | Product expansion — #40–#45 (user request, 2026-09-30) | 🟡 CODE COMPLETE, awaiting the user's review; #40 PARTIAL (older pages still English) |
+| Everyday tools — #46–#55 (user request, 2026-09-30) | 🟡 CODE COMPLETE, awaiting the user's review and a real-phone pass |
 
 > Phase 0 and Phase 1 were verified directly against the repository (typecheck/lint/test/build all clean, 126 tests passing before this session's work) before Phase 2 began.
 
@@ -20,6 +21,39 @@ Last updated: 2026-09-30
 **Phase 3 — "WTF" / 3D Layer**, started 2026-09-27 at the user's request, after Phase 2 was closed.
 
 ## Current task
+
+**Everyday tools #46–#55** (user request, 2026-09-30: "let's do the 1–10"; briefs in the Master Plan). **Code COMPLETE, waiting for the user's review and a real-phone pass.** Nothing committed.
+- **New mode:** Film & darkroom (`#/film/…`), holding Film stock, Developing timer, Negative viewer, Printing and Tag your scans. Shoot gains Exposure calculators, Sun finder and Travel kit; Learn gains Photo feedback; Collectors gains Manuals and care.
+- The ten pages are lazy chunks. Every page is translated in all six languages, and a test enforces it.
+- **Pure, tested modules:**
+  - `physics/devTimer.ts`, `physics/negative.ts`, `physics/printing.ts`
+  - `physics/exposureCalc.ts` with `data/reciprocity.ts`
+  - `physics/sunFinder.ts`, plus `sunPosition` (azimuth) in `physics/sun.ts`
+  - `state/filmStock.ts`, `state/packing.ts` with `data/xrayCard.ts`, `state/scanTags.ts`
+  - `utils/exifWrite.ts` (round-trips with `utils/exif.ts`, and Pillow reads its output)
+  - `services/compass.ts`
+- **Shared helpers:** `state/filmStockStore.ts`, `state/place.ts`, `utils/useWakeLock.ts`, `services/cueTone.ts`.
+- **AI:** a new `critique` action (pricing, per-tool model choice, schema, prompt, `critiquePhoto`), tested with the fake transport.
+- **Museum:** display mode already looped; a check fast-forwarded through all 83 pieces and it came back to the first. Browsing by hand now ends with "Start again: Cameras" instead of a dead end.
+- **Validation:**
+  - Typecheck clean; lint has 0 errors (the 5 old warnings); 781 tests pass; the build passes.
+  - Chrome at 390 px in English and German: all ten pages have no errors and no overflow.
+  - Film stock: add, load, count, finish, to develop.
+  - Timer, with the clock fast-forwarded: agitate, rest, agitate at 60 s, survives a reload, skip, done.
+  - Printing: the strip table and the first exposure, then mixing.
+  - A real JPEG tagged and read back with Pillow.
+  - Tri-X 17 s gives 1 min 45 s, and GN 20 at 3 m gives f/7.1.
+  - The London sun matches (sunrise 07:00, sunset 18:41).
+  - The Japanese airport card.
+  - The live Open-Meteo reply matches the parser.
+- **Known limitations:**
+  - Not tried on a phone: compass accuracy, camera plus overlay alignment (it assumes the phone camera's field of view), the microphone and the wake lock in iOS Safari.
+  - The negative viewer is a preview, not a scan.
+  - The reciprocity figures are transcribed from the makers' datasheets; the page says to check the current one.
+  - The airport card and all translations were written with AI help, not checked by native speakers.
+  - Photo feedback hasn't been run against the real API.
+
+**Previous task:**
 
 **Product expansion #40–#45** (user request, 2026-09-30: act as product owner, then "fix gaps two and three and implement all six ideas, don't ask"). Briefs are in the Master Plan (#40–#45). **Code COMPLETE for #41–#45; #40 PARTIAL. Waiting for the user's review and a real-phone pass.** Nothing committed.
 - Gap 1 from the review (accounts, sync across devices) was **not** requested, so everything stays on the device. The Passport's hand-over works through a file plus a seal code instead of a server.

@@ -11,8 +11,8 @@ import type { CollectionItem } from "../../state/collection";
 import { aiError, describeApiError } from "./errors";
 import type { PreparedImage } from "./image";
 import { actualCost, type AiAction, type ModelId } from "./pricing";
-import { LISTING_SCHEMA, PHOTO_SCHEMA, PRICE_SCHEMA, parseListingReport, parsePhotoReading, parsePriceSuggestion, type ListingReport, type PhotoReading, type PriceSuggestion } from "./schemas";
-import { LISTING_SYSTEM, PHOTO_PROMPT, PHOTO_SYSTEM, VALUE_SYSTEM, listingPrompt, valuePrompt } from "./prompts";
+import { CRITIQUE_SCHEMA, LISTING_SCHEMA, PHOTO_SCHEMA, PRICE_SCHEMA, parseCritique, parseListingReport, parsePhotoReading, parsePriceSuggestion, type Critique, type ListingReport, type PhotoReading, type PriceSuggestion } from "./schemas";
+import { CRITIQUE_SYSTEM, LISTING_SYSTEM, PHOTO_PROMPT, PHOTO_SYSTEM, VALUE_SYSTEM, critiquePrompt, listingPrompt, valuePrompt } from "./prompts";
 import { recordSpend } from "./spendLog";
 import { getLang, languageOf } from "../../i18n";
 
@@ -202,4 +202,32 @@ export async function valueItem(key: string | null, model: ModelId, item: Collec
   const price = parsePriceSuggestion(input);
   if (!price) throw aiError("unreadable");
   return { price, cost };
+}
+
+/** Feedback on one of the photographer's own pictures (#54): an opinion, never a score. */
+export async function critiquePhoto(key: string | null, model: ModelId, image: PreparedImage, context: string): Promise<{ critique: Critique; cost: RunCost }> {
+  const cost = newCost();
+  const res = await send(
+    key,
+    "critique",
+    {
+      model,
+      max_tokens: 3000,
+      system: inReadersLanguage(CRITIQUE_SYSTEM),
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: image.mediaType, data: image.base64 } },
+            { type: "text", text: critiquePrompt(context) },
+          ],
+        },
+      ],
+      output_config: { ...effortFor(model), format: { type: "json_schema", schema: CRITIQUE_SCHEMA } },
+    },
+    cost
+  );
+  const critique = parseCritique(firstJsonText(res));
+  if (!critique) throw aiError("unreadable");
+  return { critique, cost };
 }

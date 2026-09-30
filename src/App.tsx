@@ -76,6 +76,17 @@ import { ATTRACT_IDLE_MS } from "./museum/deck";
 import { useIdle } from "./utils/useIdle";
 import { t, useLang } from "./i18n";
 
+// The film, darkroom and travel tools (#46–#55) load when first opened.
+const FilmStock = lazy(() => import("./components/film/FilmStock"));
+const DevelopTimer = lazy(() => import("./components/film/DevelopTimer"));
+const NegativeViewer = lazy(() => import("./components/film/NegativeViewer"));
+const Printing = lazy(() => import("./components/film/Printing"));
+const TagScans = lazy(() => import("./components/film/TagScans"));
+const ExposureCalcs = lazy(() => import("./components/ExposureCalcs"));
+const SunFinder = lazy(() => import("./components/SunFinder"));
+const TravelKit = lazy(() => import("./components/TravelKit"));
+const PhotoFeedback = lazy(() => import("./components/PhotoFeedback"));
+const CameraCare = lazy(() => import("./components/collector/CameraCare"));
 // The museum (#39) is its own full-screen world, loaded only when it's opened.
 const Museum = lazy(() => import("./museum/ui/Museum"));
 import RangefinderCheck from "./components/RangefinderCheck";
@@ -1463,6 +1474,16 @@ export default function App() {
     passport: <PassportPage />,
     lab: <PhotoLab />,
     walks: <PhotoWalks />,
+    filmstock: <FilmStock />,
+    develop: <DevelopTimer />,
+    negative: <NegativeViewer />,
+    printing: <Printing />,
+    tagscans: <TagScans />,
+    calcs: <ExposureCalcs />,
+    sun: <SunFinder />,
+    travel: <TravelKit />,
+    feedback: <PhotoFeedback />,
+    care: <CameraCare />,
     matcher: (
       <WhichLeica
         onTry={(bodyId, lensId) => {
@@ -1731,7 +1752,9 @@ export default function App() {
                   <h1 className="tool-title">{t(`tool.${tool.id}`)}</h1>
                   <p className="tool-blurb">{t(`tool.${tool.id}.blurb`)}</p>
                 </header>
-                <ToolBoundary label={t(`tool.${tool.id}`)}>{views[tool.id]}</ToolBoundary>
+                <ToolBoundary label={t(`tool.${tool.id}`)}>
+                  <Suspense fallback={<p className="panel tool-loading">…</p>}>{views[tool.id]}</Suspense>
+                </ToolBoundary>
               </div>
             );
           })}

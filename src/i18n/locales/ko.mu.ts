@@ -72,6 +72,7 @@ const d: Dict = {
   "mu.prev": "이전 전시품",
   "mu.next": "다음 전시품",
   "mu.nextRoom": "다음 전시실: {room}",
+  "mu.startAgain": "처음부터: {room}",
   "mu.story": "{title}: 이야기",
   "mu.backToExhibit": "전시품으로 돌아가기",
   "mu.keyFacts": "주요 사양",

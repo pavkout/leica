@@ -51,6 +51,26 @@ const COMPARABLE_SCHEMA = obj({
   condition: nullable(str),
 });
 
+export interface Critique {
+  summary: string;
+  strengths: string[];
+  improvements: string[];
+  exposure: string | null;
+  focus: string | null;
+  composition: string | null;
+  tryNext: string;
+}
+
+export const CRITIQUE_SCHEMA = obj({
+  summary: str,
+  strengths: { type: "array", items: str },
+  improvements: { type: "array", items: str },
+  exposure: nullable(str),
+  focus: nullable(str),
+  composition: nullable(str),
+  tryNext: str,
+});
+
 export const PRICE_SCHEMA = obj({
   comparables: { type: "array", items: COMPARABLE_SCHEMA },
   note: str,
@@ -169,4 +189,14 @@ export function parseListingReport(x: unknown): ListingReport | null {
     redFlags: (x.redFlags as { flag: string; why: string }[]).map((f) => ({ flag: f.flag.trim(), why: f.why.trim() })).filter((f) => f.flag),
     price,
   };
+}
+
+/** A photo critique; lists are trimmed and capped so a runaway answer stays readable. */
+export function parseCritique(x: unknown): Critique | null {
+  if (!isRec(x)) return null;
+  const list = (v: unknown) => (Array.isArray(v) && v.every((e) => typeof e === "string") ? (v as string[]).map((e) => e.trim()).filter(Boolean).slice(0, 5) : null);
+  const strengths = list(x.strengths);
+  const improvements = list(x.improvements);
+  if (typeof x.summary !== "string" || typeof x.tryNext !== "string" || !strengths || !improvements || !sOrNull(x.exposure) || !sOrNull(x.focus) || !sOrNull(x.composition)) return null;
+  return { summary: x.summary.trim(), strengths, improvements, exposure: clean(x.exposure), focus: clean(x.focus), composition: clean(x.composition), tryNext: x.tryNext.trim() };
 }

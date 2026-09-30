@@ -7,6 +7,8 @@ import match from "./de.match";
 import col from "./de.col";
 import sn from "./de.sn";
 import mu from "./de.mu";
+import film from "./de.film";
+import kit from "./de.kit";
 
 const de: Dict = {
   ...tools,
@@ -17,6 +19,8 @@ const de: Dict = {
   ...col,
   ...sn,
   ...mu,
+  ...film,
+  ...kit,
   "common.close": "Schließen",
   "common.back": "Zurück",
   "common.save": "Speichern",

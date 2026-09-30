@@ -9,6 +9,7 @@ const d: Dict = {
   "ai.action.photo": "写真を判定",
   "ai.action.listing": "出品をチェック",
   "ai.action.value": "価値を調べる",
+  "ai.action.critique": "写真へのフィードバック",
   "ai.model.claude-haiku-4-5": "最安",
   "ai.model.claude-haiku-4-5.note": "費用は最小。小さな刻印を見落とすことがあります。",
   "ai.model.claude-sonnet-5": "おすすめ",

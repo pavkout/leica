@@ -7,6 +7,8 @@ import match from "./zh.match";
 import col from "./zh.col";
 import sn from "./zh.sn";
 import mu from "./zh.mu";
+import film from "./zh.film";
+import kit from "./zh.kit";
 
 const zh: Dict = {
   ...tools,
@@ -17,6 +19,8 @@ const zh: Dict = {
   ...col,
   ...sn,
   ...mu,
+  ...film,
+  ...kit,
   "common.close": "关闭",
   "common.back": "返回",
   "common.save": "保存",

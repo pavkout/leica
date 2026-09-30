@@ -5,7 +5,7 @@ import { t, tn } from "../../i18n";
 // the actual cost is computed from the usage the API reports.
 
 export type ModelId = "claude-haiku-4-5" | "claude-sonnet-5" | "claude-opus-5-5";
-export type AiAction = "photo" | "listing" | "value";
+export type AiAction = "photo" | "listing" | "value" | "critique";
 
 export interface ModelPrice {
   id: ModelId;
@@ -33,6 +33,7 @@ export const ACTION_LABEL: Record<AiAction, string> = {
   photo: "Identify a photo",
   listing: "Check a listing",
   value: "Find the value",
+  critique: "Photo feedback",
 };
 
 export function modelPrice(id: ModelId): ModelPrice {
@@ -44,6 +45,7 @@ const TYPICAL: Record<AiAction, { input: [number, number]; output: [number, numb
   photo: { input: [3000, 10000], output: [600, 1500], searches: [0, 0] },
   listing: { input: [15000, 60000], output: [1500, 4000], searches: [2, 5] },
   value: { input: [10000, 40000], output: [1000, 3000], searches: [2, 5] },
+  critique: { input: [2500, 6000], output: [700, 1600], searches: [0, 0] },
 };
 
 export interface UsageLike {

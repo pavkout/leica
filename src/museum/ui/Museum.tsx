@@ -314,7 +314,10 @@ export default function Museum({ onExit, onSimulate }: Props) {
   const e = room.exhibits[view.index];
   if (!e) return null;
   const count = room.exhibits.length;
-  const nextRoom = rooms.slice(rooms.indexOf(room) + 1).find((r) => r.exhibits.length > 0);
+  // After the last room, the tour starts again from the first, so a visitor is never left at a dead end.
+  const laterRoom = rooms.slice(rooms.indexOf(room) + 1).find((r) => r.exhibits.length > 0);
+  const nextRoom = laterRoom ?? rooms.find((r) => r.exhibits.length > 0 && r.id !== room.id);
+  const restart = !laterRoom;
 
   return (
     <div className="mu mu-room-view" ref={rootRef} tabIndex={-1} role="region" aria-label={t("mu.pieceOf", { room: room.title, i: view.index + 1, n: count })}>
@@ -374,7 +377,7 @@ export default function Museum({ onExit, onSimulate }: Props) {
         ) : (
           nextRoom && (
             <button type="button" className="mu-next-room" onClick={() => openRoom(nextRoom.id)}>
-              {t("mu.nextRoom", { room: nextRoom.title })}
+              {restart ? t("mu.startAgain", { room: nextRoom.title }) : t("mu.nextRoom", { room: nextRoom.title })}
             </button>
           )
         )}

@@ -9,6 +9,7 @@ const d: Dict = {
   "ai.action.photo": "사진 판별",
   "ai.action.listing": "판매글 확인",
   "ai.action.value": "가치 알아보기",
+  "ai.action.critique": "사진 피드백",
   "ai.model.claude-haiku-4-5": "가장 저렴",
   "ai.model.claude-haiku-4-5.note": "비용이 가장 적습니다. 작은 각인을 놓칠 수 있습니다.",
   "ai.model.claude-sonnet-5": "추천",

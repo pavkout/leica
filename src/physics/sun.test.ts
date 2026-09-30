@@ -34,3 +34,23 @@ describe("sun", () => {
     expect(phaseAt(20)).toBe("day");
   });
 });
+
+describe("the sun's bearing", () => {
+  it("rises in the east, stands south at noon in the north, and sets in the west", async () => {
+    const { sunPosition } = await import("./sun");
+    // London, the equinox (20 March 2026): about due east at sunrise, due south at solar noon, due west at sunset.
+    const lat = 51.51;
+    const lon = -0.13;
+    const at = (h: number, m = 0) => new Date(Date.UTC(2026, 2, 20, h, m));
+    expect(sunPosition(at(6, 5), lat, lon).azimuth).toBeGreaterThan(85);
+    expect(sunPosition(at(6, 5), lat, lon).azimuth).toBeLessThan(95);
+    const noon = sunPosition(at(12, 8), lat, lon);
+    expect(Math.abs(noon.azimuth - 180)).toBeLessThan(3);
+    expect(noon.altitude).toBeGreaterThan(37);
+    expect(noon.altitude).toBeLessThan(40);
+    expect(Math.abs(sunPosition(at(18, 12), lat, lon).azimuth - 270)).toBeLessThan(6);
+    // Sydney at noon: the sun is to the north.
+    const syd = sunPosition(new Date(Date.UTC(2026, 2, 20, 2, 0)), -33.87, 151.21);
+    expect(syd.azimuth < 30 || syd.azimuth > 330).toBe(true);
+  });
+});

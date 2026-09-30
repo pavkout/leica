@@ -7,6 +7,8 @@ import match from "./ko.match";
 import col from "./ko.col";
 import sn from "./ko.sn";
 import mu from "./ko.mu";
+import film from "./ko.film";
+import kit from "./ko.kit";
 
 const ko: Dict = {
   ...tools,
@@ -17,6 +19,8 @@ const ko: Dict = {
   ...col,
   ...sn,
   ...mu,
+  ...film,
+  ...kit,
   "common.close": "닫기",
   "common.back": "뒤로",
   "common.save": "저장",

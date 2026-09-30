@@ -10,6 +10,14 @@ const RAD = Math.PI / 180;
 
 /** Sun altitude above the horizon, degrees, at an instant, for a place. */
 export function sunAltitude(date: Date, latDeg: number, lonDeg: number): number {
+  return sunPosition(date, latDeg, lonDeg).altitude;
+}
+
+/**
+ * Where the sun is: altitude above the horizon and azimuth (compass bearing,
+ * degrees clockwise from true north), from the same NOAA equations.
+ */
+export function sunPosition(date: Date, latDeg: number, lonDeg: number): { altitude: number; azimuth: number } {
   const jd = date.getTime() / 86_400_000 + 2440587.5;
   const t = (jd - 2451545) / 36525;
   const L0 = (280.46646 + t * (36000.76983 + t * 0.0003032)) % 360;
@@ -35,8 +43,17 @@ export function sunAltitude(date: Date, latDeg: number, lonDeg: number): number 
   const trueSolar = (((minutesUtc + eqTime + 4 * lonDeg) % 1440) + 1440) % 1440;
   const hourAngle = trueSolar / 4 < 0 ? trueSolar / 4 + 180 : trueSolar / 4 - 180;
   const lat = latDeg * RAD;
-  const cosZenith = Math.sin(lat) * Math.sin(decl) + Math.cos(lat) * Math.cos(decl) * Math.cos(hourAngle * RAD);
-  return 90 - Math.acos(Math.min(1, Math.max(-1, cosZenith))) / RAD;
+  const cosZenith = Math.min(1, Math.max(-1, Math.sin(lat) * Math.sin(decl) + Math.cos(lat) * Math.cos(decl) * Math.cos(hourAngle * RAD)));
+  const zenith = Math.acos(cosZenith);
+  const altitude = 90 - zenith / RAD;
+  const denom = Math.cos(lat) * Math.sin(zenith);
+  let azimuth: number;
+  if (Math.abs(denom) < 1e-9) azimuth = latDeg > 0 ? 180 : 0;
+  else {
+    const a = Math.acos(Math.min(1, Math.max(-1, (Math.sin(lat) * cosZenith - Math.sin(decl)) / denom))) / RAD;
+    azimuth = hourAngle > 0 ? (a + 180) % 360 : (540 - a) % 360;
+  }
+  return { altitude, azimuth };
 }
 
 export type Phase = "night" | "blue" | "golden" | "day";
