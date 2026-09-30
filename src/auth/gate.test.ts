@@ -97,6 +97,15 @@ describe("sign-in gate", () => {
     expect(res.status).toBe(503);
   });
 
+  // Vercel runs the middleware as unbundled Node ESM, which can't resolve "./gate"; it needs "./gate.js".
+  it("uses file extensions on every server-side relative import", () => {
+    const sources = import.meta.glob(["../../middleware.ts", "./*.ts", "!./*.test.ts"], { query: "?raw", import: "default", eager: true }) as Record<string, string>;
+    expect(Object.keys(sources).length).toBeGreaterThanOrEqual(4);
+    for (const [file, text] of Object.entries(sources)) {
+      for (const [, spec] of text.matchAll(/from "(\.[^"]+)"/g)) expect(spec, `${file} imports ${spec}`).toMatch(/\.js$/);
+    }
+  });
+
   it("only redirects within the site after login", () => {
     expect(safeNext("/?museum=display")).toBe("/?museum=display");
     expect(safeNext("//evil.example")).toBe("/");

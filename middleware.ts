@@ -3,7 +3,7 @@
 // variables AUTH_USERNAME and AUTH_PASSWORD; without them nothing is served.
 
 import { next } from "@vercel/functions";
-import { gate } from "./src/auth/gate";
+import { gate } from "./src/auth/gate.js";
 
 export default async function middleware(request: Request): Promise<Response> {
   const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};

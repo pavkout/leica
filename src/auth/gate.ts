@@ -2,8 +2,8 @@
 // /middleware.ts). Signed in: the request goes through. Not signed in: pages
 // redirect to /login, everything else is 401, so none of the app is served.
 
-import { loginPage } from "./loginPage";
-import { CLEAR_COOKIE, COOKIE, checkCredentials, checkSession, issueSession, ownerFromEnv, readCookie, safeHash, safeNext, sessionCookie } from "./session";
+import { loginPage } from "./loginPage.js";
+import { CLEAR_COOKIE, COOKIE, checkCredentials, checkSession, issueSession, ownerFromEnv, readCookie, safeHash, safeNext, sessionCookie } from "./session.js";
 
 /** What the gate decided: answer with this response, or let the request through (optionally setting a renewed cookie). */
 export type GateResult = { respond: Response } | { pass: true; setCookie?: string };
