@@ -1,6 +1,6 @@
 # Rangefinder — Project Status
 
-Last updated: 2026-09-29
+Last updated: 2026-09-30
 
 ## Current state
 
@@ -36,7 +36,8 @@ Last updated: 2026-09-29
   - "Try it in the simulator"
 - **Display mode:**
   - a 9-second loop, alternating rooms
-  - touch to explore; back to the loop after 60 s idle
+  - touch to explore; back to the loop after 30 s idle (was 60 s; user request, 2026-09-30)
+  - **Starts on its own** (user request, 2026-09-30): after 2 minutes without a touch anywhere in the app (or while browsing the museum normally), the display loop starts. Shared idle watcher: `src/utils/useIdle.ts` (tested); the 2-minute value is `ATTRACT_IDLE_MS` in `src/museum/deck.ts`. Full screen still needs a tap, since browsers only allow it from a gesture.
   - wake lock, and full screen from a tap
   - hidden exit: hold the top-left corner for 3 s, or press Esc
 - **Plinth** (user request, 2026-09-30): cameras, lenses, accessories, and collection pieces without a photo stand on a gallery plinth, drawn in CSS (`ui/Showpiece.tsx`): a matte black block with a red felt top set in a black rim. It follows the look of the official Leica display stand, but deliberately doesn't use its photo or logo: trademark (the app stays "leica.rt", not affiliated) and the photo's unknown rights. On wide screens the piece stands right of centre, with the spotlight following it.

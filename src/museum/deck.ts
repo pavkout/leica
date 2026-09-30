@@ -4,6 +4,9 @@
 
 import type { Exhibit, Room, RoomId } from "./exhibits";
 
+/** Anywhere in the app, this long without a touch starts the museum's display loop. */
+export const ATTRACT_IDLE_MS = 120_000;
+
 /** The next exhibit index in a room; stays at the ends (the room ends, it doesn't wrap). */
 export function step(index: number, count: number, dir: 1 | -1): number {
   if (count <= 0) return 0;

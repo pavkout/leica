@@ -2,18 +2,19 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { playDialClick } from "../../audio/sounds";
 import Wordmark from "../../components/app/Wordmark";
 import { loadCollection } from "../../state/collectionStorage";
-import { attractSequence, museumHash, parseMuseumPath, step } from "../deck";
+import { ATTRACT_IDLE_MS, attractSequence, museumHash, parseMuseumPath, step } from "../deck";
 import { buildRooms, findExhibit, type Exhibit, type Room, type RoomId } from "../exhibits";
 import { leaveFullscreen, requestFullscreen } from "../fullscreen";
 import InfoLabel from "./InfoLabel";
 import Showpiece from "./Showpiece";
+import { useIdle } from "../../utils/useIdle";
 import { hearShutter } from "./sound";
 import Story from "./Story";
 import "./museum.css";
 
 /** How long each piece stays up in the display loop, and how long an idle visitor keeps control. */
 const LOOP_MS = 9000;
-const IDLE_MS = 60_000;
+const IDLE_MS = 30_000;
 const HOLD_MS = 3000;
 
 type View = { kind: "lobby" } | { kind: "room"; room: RoomId; index: number; story: boolean; dir: -1 | 0 | 1 } | { kind: "display"; index: number };
@@ -102,21 +103,16 @@ export default function Museum({ onExit, onSimulate }: Props) {
     return () => clearTimeout(t);
   }, [view, loop.length]);
 
-  // In display mode, a minute without a touch returns to the loop.
-  useEffect(() => {
-    if (!displayMode || view.kind === "display") return;
-    let t = setTimeout(() => setView({ kind: "display", index: 0 }), IDLE_MS);
-    const poke = () => {
-      clearTimeout(t);
-      t = setTimeout(() => setView({ kind: "display", index: 0 }), IDLE_MS);
-    };
-    const events = ["pointerdown", "keydown", "wheel", "touchstart"] as const;
-    events.forEach((e) => window.addEventListener(e, poke, { passive: true }));
-    return () => {
-      clearTimeout(t);
-      events.forEach((e) => window.removeEventListener(e, poke));
-    };
-  }, [displayMode, view.kind]);
+  // In display mode, half a minute without a touch returns to the loop; browsing
+  // normally, two minutes starts it.
+  useIdle(
+    displayMode ? IDLE_MS : ATTRACT_IDLE_MS,
+    () => {
+      setDisplayMode(true);
+      setView({ kind: "display", index: 0 });
+    },
+    view.kind !== "display"
+  );
 
   const exit = useCallback(() => {
     leaveFullscreen();

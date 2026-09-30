@@ -67,6 +67,8 @@ import IdentifyPage from "./components/collector/IdentifyPage";
 import ListingPage from "./components/collector/ListingPage";
 import AiHelper from "./components/collector/AiHelper";
 import { requestFullscreen } from "./museum/fullscreen";
+import { ATTRACT_IDLE_MS } from "./museum/deck";
+import { useIdle } from "./utils/useIdle";
 
 // The museum (#39) is its own full-screen world, loaded only when it's opened.
 const Museum = lazy(() => import("./museum/ui/Museum"));
@@ -461,6 +463,9 @@ export default function App() {
   useEffect(() => {
     if (new URLSearchParams(location.search).get("museum") === "display" && !location.hash.startsWith("#/museum")) location.hash = "#/museum/display";
   }, []);
+  // Left alone anywhere in the app, the screen turns into the museum's display loop
+  // (the museum handles its own idle time once open).
+  useIdle(ATTRACT_IDLE_MS, () => (location.hash = "#/museum/display"), route.screen !== "museum");
   const [playOpen, setPlayOpen] = useState(false);
   const cameraPreviewRef = useRef<PreviewHandle>(null);
   useEffect(() => {
