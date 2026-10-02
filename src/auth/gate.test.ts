@@ -37,6 +37,7 @@ describe("sign-in gate", () => {
     const body = await res.text();
     expect(body).toContain('name="password"');
     expect(body).toContain('value="/x"');
+    expect(body).toContain('aria-label="Show password"');
     expect(body).not.toContain(env.AUTH_PASSWORD);
   });
 

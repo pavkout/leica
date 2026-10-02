@@ -1,6 +1,6 @@
 // The login page, served by the gate itself (the app's files stay locked until
-// you're in). Plain HTML in the app's black and red; no scripts beyond carrying
-// the app's hash route (#/…) through the form.
+// you're in). Plain HTML in the app's black and red; the only scripts carry the
+// app's hash route (#/…) through the form and run the password's Show/Hide.
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -29,6 +29,14 @@ export function loginPage({ next, error, configured }: { next: string; error?: s
   label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--muted); }
   input { width: 100%; min-height: 48px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--plate); color: var(--text); font: inherit; font-size: 17px; }
   input:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .field > label { display: block; }
+  .secret { position: relative; }
+  .secret input { padding-right: 76px; }
+  .secret .reveal { position: absolute; top: 4px; right: 4px; bottom: 4px; min-height: 0; margin: 0; padding: 0 14px; border-radius: 4px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 500; }
+  .secret .reveal:hover { background: transparent; color: var(--text); }
+  .secret .reveal:focus-visible { outline-offset: 0; }
+  .secret .reveal[hidden] { display: none; }
   button { min-height: 48px; margin-top: 8px; border: 0; border-radius: 999px; background: var(--red); color: #fff; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
   button:hover { background: var(--red-hover); }
   button:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
@@ -46,10 +54,31 @@ export function loginPage({ next, error, configured }: { next: string; error?: s
     <input type="hidden" name="next" value="${esc(next)}" />
     <input type="hidden" name="hash" value="" />
     <label>Username<input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus /></label>
-    <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
+    <div class="field">
+      <label for="password">Password</label>
+      <div class="secret">
+        <input id="password" name="password" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" required />
+        <button type="button" class="reveal" aria-label="Show password" aria-controls="password" aria-pressed="false" hidden>Show</button>
+      </div>
+    </div>
     <button type="submit">Sign in</button>
   </form>
-  <script>document.querySelector('input[name="hash"]').value = location.hash;</script>`
+  <script>
+    document.querySelector('input[name="hash"]').value = location.hash;
+    (function () {
+      var input = document.getElementById("password");
+      var toggle = document.querySelector(".reveal");
+      var set = function (shown) {
+        input.type = shown ? "text" : "password";
+        toggle.textContent = shown ? "Hide" : "Show";
+        toggle.setAttribute("aria-pressed", String(shown));
+      };
+      toggle.hidden = false;
+      toggle.addEventListener("click", function () { set(input.type === "password"); input.focus(); });
+      // Back to a password field before sending, so the browser offers to save it as one.
+      input.form.addEventListener("submit", function () { set(false); });
+    })();
+  </script>`
       : `<p class="error" role="alert">Sign-in isn't set up on this server: AUTH_USERNAME and AUTH_PASSWORD are missing.</p>`
   }
   <p class="foot">Private preview. Independent tool, not affiliated with or endorsed by Leica Camera AG.</p>
